@@ -17,9 +17,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->string('label');
             $table->string('city')->nullable();
-            $table->string('speciality_code')->nullable();
             $table->timestamps();
-            $table->foreign('speciality_code')->references('code')->on('specialities')->nullOnDelete();
         });
         Schema::create('ratings', function (Blueprint $table) {
             $table->id();

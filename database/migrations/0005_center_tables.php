@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->string('name');
             $table->string('center_catalog_code')->nullable();
+            $table->string('wilaya_code')->nullable();
             $table->string('license_number')->nullable();
             $table->string('phone_public')->nullable();
             $table->text('description')->nullable();
@@ -28,15 +29,9 @@ return new class extends Migration
             $table->softDeletes();
             $table->timestamps();
             $table->foreign('center_catalog_code')->references('code')->on('center_catalogs')->nullOnDelete();
+            $table->foreign('wilaya_code')->references('code')->on('wilayas')->nullOnDelete();
         });
-        Schema::create('center_contacts', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('center_id')->constrained('centers')->onDelete('cascade');
-            $table->string('platform_code')->nullable();
-            $table->string('url')->nullable();
-            $table->timestamps();
-            $table->foreign('platform_code')->references('code')->on('contact_platforms')->nullOnDelete();
-        });
+
         Schema::create('center_working_hours', function (Blueprint $table) {
             $table->id();
             $table->foreignId('center_id')->constrained('centers')->onDelete('cascade');

@@ -14,12 +14,13 @@ class UserSeeder extends Seeder
 
     public function run(): void
     {
-        // Create user roles first
+        // Create user roles
         $roles = [
             ['code' => 'admin', 'en' => 'Administrator', 'fr' => 'Administrateur', 'ar' => 'مسؤول'],
-            ['code' => 'doctor', 'en' => 'Doctor', 'fr' => 'Médecin', 'ar' => 'طبيب'],
+            ['code' => 'professional', 'en' => 'Professional', 'fr' => 'Professionnel', 'ar' => 'أخصائي/طبيب'],
             ['code' => 'center', 'en' => 'Center', 'fr' => 'Centre', 'ar' => 'مركز'],
             ['code' => 'patient', 'en' => 'Patient', 'fr' => 'Patient', 'ar' => 'مريض'],
+            ['code' => 'pharmacist', 'en' => 'Pharmacist', 'fr' => 'Pharmacien', 'ar' => 'صيدلي'],
         ];
         foreach ($roles as $data) {
             UserRole::firstOrCreate(['code' => $data['code']], $data);
@@ -41,18 +42,18 @@ class UserSeeder extends Seeder
             ]
         );
 
-        // Doctor users
-        $doctorNames = [
+        // Professional users
+        $professionals = [
             ['name' => 'Dr. Karim', 'email' => 'karim@rendee.dz', 'full_name' => 'Dr. Karim Benali'],
             ['name' => 'Dr. Amina', 'email' => 'amina@rendee.dz', 'full_name' => 'Dr. Amina Ouali'],
             ['name' => 'Dr. Reda', 'email' => 'reda@rendee.dz', 'full_name' => 'Dr. Reda Mansouri'],
             ['name' => 'Dr. Lina', 'email' => 'lina@rendee.dz', 'full_name' => 'Dr. Lina Bouzid'],
         ];
-        foreach ($doctorNames as $data) {
+        foreach ($professionals as $data) {
             User::firstOrCreate(
                 ['email' => $data['email']],
                 [
-                    'user_role_code' => 'doctor',
+                    'user_role_code' => 'professional',
                     'name' => $data['name'],
                     'full_name' => $data['full_name'],
                     'email_verified_at' => now(),
@@ -64,12 +65,12 @@ class UserSeeder extends Seeder
         }
 
         // Center users
-        $centerNames = [
+        $centers = [
             ['name' => 'Clinique El Azhar', 'email' => 'elazhar@rendee.dz', 'full_name' => 'Clinique El Azhar'],
             ['name' => 'Hopital Ibn Sina', 'email' => 'ibsina@rendee.dz', 'full_name' => 'Hopital Ibn Sina'],
             ['name' => 'Centre Nessma', 'email' => 'nessma@rendee.dz', 'full_name' => 'Centre Nessma'],
         ];
-        foreach ($centerNames as $data) {
+        foreach ($centers as $data) {
             User::firstOrCreate(
                 ['email' => $data['email']],
                 [
@@ -84,15 +85,35 @@ class UserSeeder extends Seeder
             );
         }
 
+        // Pharmacist users
+        $pharmacists = [
+            ['name' => 'Pharmacien Salim', 'email' => 'salim@rendee.dz', 'full_name' => 'Salim Meziane'],
+            ['name' => 'Pharmacie Centrale', 'email' => 'centrale@rendee.dz', 'full_name' => 'Pharmacie Centrale Bejaia'],
+        ];
+        foreach ($pharmacists as $data) {
+            User::firstOrCreate(
+                ['email' => $data['email']],
+                [
+                    'user_role_code' => 'pharmacist',
+                    'name' => $data['name'],
+                    'full_name' => $data['full_name'],
+                    'email_verified_at' => now(),
+                    'password' => $password,
+                    'phone_number' => fake()->unique()->phoneNumber(),
+                    'profile_complete' => true,
+                ]
+            );
+        }
+
         // Patient users
-        $patientNames = [
+        $patients = [
             ['name' => 'Ahmed', 'email' => 'ahmed@rendee.dz', 'full_name' => 'Ahmed Khelifi'],
             ['name' => 'Fatima', 'email' => 'fatima@rendee.dz', 'full_name' => 'Fatima Zidane'],
             ['name' => 'Rachid', 'email' => 'rachid@rendee.dz', 'full_name' => 'Rachid Belaid'],
             ['name' => 'Nadia', 'email' => 'nadia@rendee.dz', 'full_name' => 'Nadia Saidi'],
             ['name' => 'Samir', 'email' => 'samir@rendee.dz', 'full_name' => 'Samir Hocine'],
         ];
-        foreach ($patientNames as $data) {
+        foreach ($patients as $data) {
             User::firstOrCreate(
                 ['email' => $data['email']],
                 [

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 #[Fillable([
     'code',
+    'source',
     'en',
     'fr',
     'ar',
@@ -14,9 +15,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class ServiceCatalog extends Model
 {
-    public function doctorServices()
+    public function professionalServices()
     {
-        return $this->hasMany(DoctorService::class, 'service_catalog_code', 'code');
+        return $this->hasMany(ProfessionalService::class, 'service_catalog_code', 'code');
     }
 
     public function centerServices()

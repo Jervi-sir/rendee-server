@@ -15,7 +15,7 @@ class DatabaseSeeder extends Seeder
             CatalogSeeder::class,
             UserSeeder::class,
             PatientSeeder::class,
-            DoctorSeeder::class,
+            ProfessionalSeeder::class,
             CenterSeeder::class,
             BookingSeeder::class,
             NotificationSeeder::class,

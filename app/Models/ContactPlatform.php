@@ -14,13 +14,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class ContactPlatform extends Model
 {
-    public function doctorContacts()
+    public function userContacts()
     {
-        return $this->hasMany(DoctorContact::class, 'platform_code', 'code');
-    }
-
-    public function centerContacts()
-    {
-        return $this->hasMany(CenterContact::class, 'platform_code', 'code');
+        return $this->hasMany(UserContact::class, 'platform_code', 'code');
     }
 }

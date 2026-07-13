@@ -6,13 +6,13 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 
 #[Fillable([
-    'doctor_id',
+    'professional_id',
     'service_catalog_code',
     'price',
     'duration_minutes',
 ])]
 
-class DoctorService extends Model
+class ProfessionalService extends Model
 {
     /**
      * Get the attributes that should be cast.
@@ -27,9 +27,9 @@ class DoctorService extends Model
         ];
     }
 
-    public function doctor()
+    public function professional()
     {
-        return $this->belongsTo(Doctor::class);
+        return $this->belongsTo(Professional::class);
     }
 
     public function serviceCatalog()
@@ -39,6 +39,6 @@ class DoctorService extends Model
 
     public function bookings()
     {
-        return $this->hasMany(Booking::class, 'doctor_service_id');
+        return $this->hasMany(Booking::class, 'professional_service_id');
     }
 }

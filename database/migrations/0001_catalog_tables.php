@@ -11,7 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('specialities', function (Blueprint $table) {
+        Schema::create('professions', function (Blueprint $table) {
+            $table->string('code')->primary();
+            $table->string('en')->nullable();
+            $table->string('fr')->nullable();
+            $table->string('ar')->nullable();
+            $table->string('hex');
+            $table->timestamps();
+        });
+
+        Schema::create('professional_specialities', function (Blueprint $table) {
             $table->id();
             $table->string('code')->unique();
             $table->string('en')->nullable();
@@ -22,6 +31,7 @@ return new class extends Migration
         Schema::create('service_catalogs', function (Blueprint $table) {
             $table->id();
             $table->string('code')->unique();
+            $table->string('source')->nullable();
             $table->string('en')->nullable();
             $table->string('fr')->nullable();
             $table->string('ar')->nullable();

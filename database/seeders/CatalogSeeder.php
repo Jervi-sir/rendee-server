@@ -5,7 +5,8 @@ namespace Database\Seeders;
 use App\Models\CenterCatalog;
 use App\Models\ContactPlatform;
 use App\Models\ServiceCatalog;
-use App\Models\Speciality;
+use App\Models\Profession;
+use App\Models\ProfessionalSpeciality;
 use App\Models\Status;
 use App\Models\Wilaya;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -17,7 +18,17 @@ class CatalogSeeder extends Seeder
 
     public function run(): void
     {
-        // Specialities
+        // Professions
+        $professions = [
+            ['code' => 'doctor', 'en' => 'Doctor', 'fr' => 'Médecin', 'ar' => 'طبيب', 'hex' => '#0ea5e9'],
+            ['code' => 'psychologist', 'en' => 'Psychologist', 'fr' => 'Psychologue', 'ar' => 'أخصائي نفساني', 'hex' => '#8b5cf6'],
+            ['code' => 'dentist', 'en' => 'Dentist', 'fr' => 'Dentiste', 'ar' => 'طبيب أسنان', 'hex' => '#10b981'],
+        ];
+        foreach ($professions as $data) {
+            Profession::firstOrCreate(['code' => $data['code']], $data);
+        }
+
+        // Professional Specialities
         $specialities = [
             ['code' => 'general', 'en' => 'General Practitioner', 'fr' => 'Médecin Généraliste', 'ar' => 'طبيب عام'],
             ['code' => 'cardiology', 'en' => 'Cardiology', 'fr' => 'Cardiologie', 'ar' => 'طب القلب'],
@@ -27,27 +38,29 @@ class CatalogSeeder extends Seeder
             ['code' => 'ophthalmology', 'en' => 'Ophthalmology', 'fr' => 'Ophtalmologie', 'ar' => 'طب العيون'],
             ['code' => 'neurology', 'en' => 'Neurology', 'fr' => 'Neurologie', 'ar' => 'طب الأعصاب'],
             ['code' => 'psychiatry', 'en' => 'Psychiatry', 'fr' => 'Psychiatrie', 'ar' => 'طب النفسي'],
+            ['code' => 'dentistry', 'en' => 'General Dentistry', 'fr' => 'Dentisterie Générale', 'ar' => 'طب أسنان عام'],
+            ['code' => 'orthodontics', 'en' => 'Orthodontics', 'fr' => 'Orthodontie', 'ar' => 'تقويم الأسنان'],
         ];
         foreach ($specialities as $data) {
-            Speciality::firstOrCreate(['code' => $data['code']], $data);
+            ProfessionalSpeciality::firstOrCreate(['code' => $data['code']], $data);
         }
 
         // Service Catalogs
         $services = [
-            ['code' => 'consultation', 'en' => 'Consultation', 'fr' => 'Consultation', 'ar' => 'استشارة'],
-            ['code' => 'checkup', 'en' => 'Medical Checkup', 'fr' => 'Bilan de Santé', 'ar' => 'فحص طبي'],
-            ['code' => 'surgery', 'en' => 'Surgery', 'fr' => 'Chirurgie', 'ar' => 'جراحة'],
-            ['code' => 'vaccination', 'en' => 'Vaccination', 'fr' => 'Vaccination', 'ar' => 'تلقيح'],
-            ['code' => 'lab_test', 'en' => 'Lab Test', 'fr' => 'Analyse', 'ar' => 'تحليل مخبري'],
-            ['code' => 'radiology', 'en' => 'Radiology', 'fr' => 'Radiologie', 'ar' => 'أشعة'],
-            ['code' => 'dental', 'en' => 'Dental Care', 'fr' => 'Soins Dentaires', 'ar' => 'رعاية الأسنان'],
-            ['code' => 'physiotherapy', 'en' => 'Physiotherapy', 'fr' => 'Kinésithérapie', 'ar' => 'علاج طبيعي'],
+            ['code' => 'consultation', 'source' => 'professional', 'en' => 'Consultation', 'fr' => 'Consultation', 'ar' => 'استشارة'],
+            ['code' => 'checkup', 'source' => 'professional', 'en' => 'Medical Checkup', 'fr' => 'Bilan de Santé', 'ar' => 'فحص طبي'],
+            ['code' => 'surgery', 'source' => 'center', 'en' => 'Surgery', 'fr' => 'Chirurgie', 'ar' => 'جراحة'],
+            ['code' => 'vaccination', 'source' => 'center', 'en' => 'Vaccination', 'fr' => 'Vaccination', 'ar' => 'تلقيح'],
+            ['code' => 'lab_test', 'source' => 'center', 'en' => 'Lab Test', 'fr' => 'Analyse', 'ar' => 'تحليل مخبري'],
+            ['code' => 'radiology', 'source' => 'center', 'en' => 'Radiology', 'fr' => 'Radiologie', 'ar' => 'أشعة'],
+            ['code' => 'dental', 'source' => 'professional', 'en' => 'Dental Care', 'fr' => 'Soins Dentaires', 'ar' => 'رعاية الأسنان'],
+            ['code' => 'physiotherapy', 'source' => 'professional', 'en' => 'Physiotherapy', 'fr' => 'Kinésithérapie', 'ar' => 'علاج طبيعي'],
         ];
         foreach ($services as $data) {
             ServiceCatalog::firstOrCreate(['code' => $data['code']], $data);
         }
 
-        // Wilayas (Algerian provinces - subset)
+        // Wilayas
         $wilayas = [
             ['code' => '16', 'number' => '16', 'en' => 'Algiers', 'fr' => 'Alger', 'ar' => 'الجزائر'],
             ['code' => '31', 'number' => '31', 'en' => 'Oran', 'fr' => 'Oran', 'ar' => 'وهران'],

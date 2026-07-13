@@ -10,10 +10,10 @@ use Illuminate\Database\Eloquent\Model;
     'patient_id',
     'bookable_type',
     'bookable_id',
-    'center_service_id',
-    'doctor_service_id',
-    'doctor_schedule_id',
-    'center_working_hour_id',
+    'service_type',
+    'service_id',
+    'schedule_type',
+    'schedule_id',
     'patient_name',
     'patient_phone',
     'booking_date',
@@ -28,6 +28,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class Booking extends Model
 {
+    public const TYPE_PROFESSIONAL = 'professional';
+    public const TYPE_CENTER = 'center';
+
     protected function casts(): array
     {
         return [
@@ -47,37 +50,27 @@ class Booking extends Model
 
     /*
     |--------------------------------------------------------------------------
-    | Center
+    | Polymorphic Relations
     |--------------------------------------------------------------------------
     */
-    public function centerService()
+    public function bookable()
     {
-        return $this->belongsTo(CenterService::class);
+        return $this->morphTo();
     }
 
-    public function centerWorkingHour()
+    public function service()
     {
-        return $this->belongsTo(CenterWorkingHour::class);
+        return $this->morphTo();
+    }
+
+    public function schedule()
+    {
+        return $this->morphTo();
     }
 
     /*
     |--------------------------------------------------------------------------
-    | Doctor
-    |--------------------------------------------------------------------------
-    */
-    public function doctorService()
-    {
-        return $this->belongsTo(DoctorService::class);
-    }
-
-    public function doctorSchedule()
-    {
-        return $this->belongsTo(DoctorSchedule::class);
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Other
+    | Common Relations
     |--------------------------------------------------------------------------
     */
     public function status()
@@ -85,14 +78,8 @@ class Booking extends Model
         return $this->belongsTo(Status::class, 'status_code', 'code');
     }
 
-    public function bookable()
-    {
-        return $this->morphTo();
-    }
-
     public function bookingHistories()
     {
         return $this->hasMany(BookingHistory::class);
     }
-
 }

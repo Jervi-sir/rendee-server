@@ -11,10 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('doctors', function (Blueprint $table) {
+        Schema::create('professionals', function (Blueprint $table) {
             $table->id();
+            $table->string('profession_code');
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->string('speciality_code')->nullable();
+            $table->string('professional_speciality_code')->nullable();
+            $table->string('wilaya_code')->nullable();
 
             $table->string('license_number')->nullable();
             $table->string('years_experience')->nullable();
@@ -29,34 +31,27 @@ return new class extends Migration
             $table->softDeletes();
             $table->timestamps();
 
-            $table->foreign('speciality_code')->references('code')->on('specialities')->nullOnDelete();
+            $table->foreign('profession_code')->references('code')->on('professions')->restrictOnDelete()->cascadeOnUpdate();
+            $table->foreign('professional_speciality_code')->references('code')->on('professional_specialities')->nullOnDelete();
+            $table->foreign('wilaya_code')->references('code')->on('wilayas')->nullOnDelete();
         });
 
-        Schema::create('doctor_contacts', function (Blueprint $table) {
+        Schema::create('professional_schedules', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('doctor_id')->constrained('doctors')->onDelete('cascade');
-            $table->string('platform_code')->nullable();
-            $table->string('url')->nullable();
-            $table->timestamps();
-            $table->foreign('platform_code')->references('code')->on('contact_platforms')->nullOnDelete();
-        });
-
-        Schema::create('doctor_schedules', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('doctor_id')->constrained('doctors')->onDelete('cascade');
+            $table->foreignId('professional_id')->constrained('professionals')->onDelete('cascade');
             $table->integer('day_of_week'); // 0-6 (Sunday-Saturday)
             $table->time('start_time')->nullable();
             $table->time('end_time')->nullable();
             $table->boolean('is_active')->default(false);
             $table->timestamps();
 
-            $table->index(['doctor_id', 'day_of_week']);
+            $table->index(['professional_id', 'day_of_week']);
             $table->index(['is_active']);
         });
 
-        Schema::create('doctor_services', function (Blueprint $table) {
+        Schema::create('professional_services', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('doctor_id')->constrained('doctors')->onDelete('cascade');
+            $table->foreignId('professional_id')->constrained('professionals')->onDelete('cascade');
             $table->string('service_catalog_code')->nullable();
             $table->decimal('price', 10, 2)->nullable();
             $table->integer('duration_minutes')->nullable();
@@ -70,8 +65,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('doctors');
-        Schema::dropIfExists('doctor_contacts');
-        Schema::dropIfExists('doctor_schedules');
+        Schema::dropIfExists('professionals');
+        Schema::dropIfExists('professional_contacts');
+        Schema::dropIfExists('professional_schedules');
     }
 };

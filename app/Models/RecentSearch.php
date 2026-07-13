@@ -21,6 +21,6 @@ class RecentSearch extends Model
 
     public function speciality()
     {
-        return $this->belongsTo(Speciality::class, 'speciality_code', 'code');
+        return $this->belongsTo(ProfessionalSpeciality::class, 'speciality_code', 'code');
     }
 }

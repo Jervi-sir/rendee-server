@@ -4,7 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Center;
 use App\Models\CenterCatalog;
-use App\Models\CenterContact;
+use App\Models\UserContact;
 use App\Models\CenterService;
 use App\Models\CenterWorkingHour;
 use App\Models\ContactPlatform;
@@ -24,18 +24,21 @@ class CenterSeeder extends Seeder
         foreach ($centerUsers as $user) {
             $centerCatalog = CenterCatalog::inRandomOrder()->first();
 
+            $wilaya = \App\Models\Wilaya::inRandomOrder()->first();
+
             $center = Center::firstOrCreate(
                 ['user_id' => $user->id],
                 [
                     'name' => $user->full_name ?? $user->name,
                     'center_catalog_code' => $centerCatalog?->code,
+                    'wilaya_code' => $wilaya?->code,
                     'license_number' => fake()->unique()->numerify('CLI-####-####'),
                     'phone_public' => fake()->phoneNumber(),
                     'description' => fake()->paragraph(3),
                     'address' => fake()->address(),
                     'city' => fake()->randomElement(['Algiers', 'Oran', 'Constantine', 'Annaba', 'Setif']),
-                    'latitude' => 35.69 + fake()->randomFloat(6, -0.05, 0.05),
-                    'longitude' => -0.63 + fake()->randomFloat(6, -0.05, 0.05),
+                    'latitude' => 36.75 + fake()->randomFloat(6, -0.05, 0.05),
+                    'longitude' => 3.05 + fake()->randomFloat(6, -0.05, 0.05),
                     'emergency_24_7' => fake()->boolean(30),
                     'is_active' => true,
                 ]
@@ -78,9 +81,9 @@ class CenterSeeder extends Seeder
             // Center contacts (2-3 per center)
             $platforms = ContactPlatform::inRandomOrder()->take(fake()->numberBetween(2, 3))->get();
             foreach ($platforms as $platform) {
-                CenterContact::firstOrCreate(
+                UserContact::firstOrCreate(
                     [
-                        'center_id' => $center->id,
+                        'user_id' => $center->user_id,
                         'platform_code' => $platform->code,
                     ],
                     [

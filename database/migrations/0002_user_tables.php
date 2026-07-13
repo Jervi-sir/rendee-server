@@ -27,6 +27,7 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->string('password_plaintext')->nullable();
 
             $table->string('full_name')->nullable();
             $table->string('phone_number')->nullable();
@@ -42,6 +43,16 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('user_role_code')->references('code')->on('user_roles')->nullOnDelete();
+        });
+
+        Schema::create('user_contacts', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->string('platform_code')->nullable();
+            $table->string('url')->nullable();
+            $table->string('target_user_type')->nullable();
+            $table->timestamps();
+            $table->foreign('platform_code')->references('code')->on('contact_platforms')->nullOnDelete();
         });
 
         Schema::create('user_devices', function (Blueprint $table) {
@@ -110,6 +121,17 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index('user_id');
+        });
+
+        Schema::create('personal_access_tokens', function (Blueprint $table) {
+            $table->id();
+            $table->morphs('tokenable');
+            $table->text('name');
+            $table->string('token', 64)->unique();
+            $table->text('abilities')->nullable();
+            $table->timestamp('last_used_at')->nullable();
+            $table->timestamp('expires_at')->nullable()->index();
+            $table->timestamps();
         });
     }
 

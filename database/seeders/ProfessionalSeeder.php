@@ -2,64 +2,73 @@
 
 namespace Database\Seeders;
 
-use App\Models\Doctor;
-use App\Models\DoctorContact;
-use App\Models\DoctorSchedule;
-use App\Models\DoctorService;
+use App\Models\Professional;
+use App\Models\UserContact;
+use App\Models\ProfessionalSchedule;
+use App\Models\ProfessionalService;
 use App\Models\ServiceCatalog;
-use App\Models\Speciality;
+use App\Models\ProfessionalSpeciality;
+use App\Models\Wilaya;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
-class DoctorSeeder extends Seeder
+class ProfessionalSeeder extends Seeder
 {
     use WithoutModelEvents;
 
     public function run(): void
     {
-        $doctorUsers = User::where('user_role_code', 'doctor')->get();
+        $users = User::where('user_role_code', 'professional')->get();
 
-        foreach ($doctorUsers as $user) {
-            $speciality = Speciality::inRandomOrder()->first();
+        foreach ($users as $user) {
+            $speciality = ProfessionalSpeciality::inRandomOrder()->first();
+            $wilaya = Wilaya::inRandomOrder()->first();
 
-            $doctor = Doctor::firstOrCreate(
+            $professional = Professional::firstOrCreate(
                 ['user_id' => $user->id],
                 [
-                    'speciality_code' => $speciality?->code,
+                    'profession_code' => fake()->randomElement(['doctor', 'psychologist', 'dentist']),
+                    'professional_speciality_code' => $speciality?->code,
+                    'wilaya_code' => $wilaya?->code,
                     'license_number' => fake()->unique()->numerify('LIC-####-####'),
                     'years_experience' => (string) fake()->numberBetween(2, 25),
                     'phone_public' => fake()->phoneNumber(),
                     'bio' => fake()->paragraph(2),
                     'address' => fake()->address(),
                     'city' => fake()->randomElement(['Algiers', 'Oran', 'Constantine', 'Annaba', 'Setif', 'Bejaia', 'Tlemcen']),
-                    'latitude' => 35.69 + fake()->randomFloat(6, -0.05, 0.05),
-                    'longitude' => -0.63 + fake()->randomFloat(6, -0.05, 0.05),
-                    'is_available' => fake()->boolean(80),
+                    'latitude' => 36.75 + fake()->randomFloat(6, -0.05, 0.05),
+                    'longitude' => 3.05 + fake()->randomFloat(6, -0.05, 0.05),
+                    'is_available' => fake()->boolean(85),
                 ]
             );
 
-            // Doctor services (1-3 per doctor)
-            $serviceCatalogs = ServiceCatalog::inRandomOrder()->take(fake()->numberBetween(1, 3))->get();
+            // Add services
+            $serviceCatalogs = ServiceCatalog::where('source', 'professional')
+                ->orWhereNull('source')
+                ->inRandomOrder()
+                ->take(fake()->numberBetween(1, 3))
+                ->get();
+
             foreach ($serviceCatalogs as $service) {
-                DoctorService::firstOrCreate(
+                ProfessionalService::firstOrCreate(
                     [
-                        'doctor_id' => $doctor->id,
+                        'professional_id' => $professional->id,
                         'service_catalog_code' => $service->code,
                     ],
                     [
-                        'price' => fake()->randomFloat(2, 1000, 10000),
+                        'price' => fake()->randomFloat(2, 1000, 4000),
                         'duration_minutes' => fake()->randomElement([15, 30, 45, 60]),
                     ]
                 );
             }
 
-            // Doctor schedules (5-6 days per week, Sunday-Thursday typical)
+            // Add schedule slots
             $days = fake()->randomElements([0, 1, 2, 3, 4, 5, 6], fake()->numberBetween(5, 6));
             foreach ($days as $day) {
-                DoctorSchedule::firstOrCreate(
+                ProfessionalSchedule::firstOrCreate(
                     [
-                        'doctor_id' => $doctor->id,
+                        'professional_id' => $professional->id,
                         'day_of_week' => $day,
                     ],
                     [
@@ -70,12 +79,12 @@ class DoctorSeeder extends Seeder
                 );
             }
 
-            // Doctor contacts (1-2 per doctor)
+            // Add contacts
             $contactTypes = fake()->randomElements(['phone', 'whatsapp', 'facebook'], fake()->numberBetween(1, 2));
             foreach ($contactTypes as $platformCode) {
-                DoctorContact::firstOrCreate(
+                UserContact::firstOrCreate(
                     [
-                        'doctor_id' => $doctor->id,
+                        'user_id' => $professional->user->id,
                         'platform_code' => $platformCode,
                     ],
                     [

@@ -34,11 +34,12 @@ use Laravel\Sanctum\HasApiTokens;
     'name',
     'email',
     'password',
+    'password_plaintext',
     'full_name',
     'phone_number',
     'profile_complete',
 ])]
-#[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
+#[Hidden(['password', 'password_plaintext', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable implements PasskeyUser
 {
     /** @use HasFactory<UserFactory> */
@@ -68,9 +69,9 @@ class User extends Authenticatable implements PasskeyUser
         return $this->hasOne(UserDevice::class);
     }
 
-    public function doctor(): HasOne
+    public function professional(): HasOne
     {
-        return $this->hasOne(Doctor::class);
+        return $this->hasOne(Professional::class);
     }
 
     public function center(): HasOne
@@ -81,5 +82,10 @@ class User extends Authenticatable implements PasskeyUser
     public function patient(): HasOne
     {
         return $this->hasOne(Patient::class);
+    }
+
+    public function pharmacy(): HasOne
+    {
+        return $this->hasOne(Pharmacy::class);
     }
 }

@@ -7,9 +7,9 @@ use App\Models\BookingHistory;
 use App\Models\Center;
 use App\Models\CenterService;
 use App\Models\CenterWorkingHour;
-use App\Models\Doctor;
-use App\Models\DoctorSchedule;
-use App\Models\DoctorService;
+use App\Models\Professional;
+use App\Models\ProfessionalSchedule;
+use App\Models\ProfessionalService;
 use App\Models\Patient;
 use App\Models\Status;
 use App\Models\User;
@@ -26,33 +26,37 @@ class BookingSeeder extends Seeder
         $patients = Patient::all();
         $statuses = Status::all();
 
-        // Doctor bookings
-        $doctors = Doctor::all();
-        foreach ($doctors as $doctor) {
-            $doctorSchedules = DoctorSchedule::where('doctor_id', $doctor->id)->where('is_active', true)->get();
-            $doctorServices = DoctorService::where('doctor_id', $doctor->id)->get();
+        if ($patients->isEmpty() || $statuses->isEmpty()) {
+            return;
+        }
 
-            if ($doctorSchedules->isEmpty() || $doctorServices->isEmpty()) {
+        // Professional Bookings
+        $professionals = Professional::all();
+        foreach ($professionals as $professional) {
+            $schedules = ProfessionalSchedule::where('professional_id', $professional->id)->where('is_active', true)->get();
+            $services = ProfessionalService::where('professional_id', $professional->id)->get();
+
+            if ($schedules->isEmpty() || $services->isEmpty()) {
                 continue;
             }
 
             foreach (range(1, fake()->numberBetween(1, 3)) as $i) {
                 $patient = $patients->random();
-                $schedule = $doctorSchedules->random();
-                $service = $doctorServices->random();
+                $schedule = $schedules->random();
+                $service = $services->random();
                 $status = $statuses->random();
 
                 $bookingDate = now()->addDays(fake()->numberBetween(-10, 30))->format('Y-m-d');
 
                 $booking = Booking::create([
-                    'reference' => 'DR-' . strtoupper(Str::random(8)),
+                    'reference' => 'PR-' . strtoupper(Str::random(8)),
                     'patient_id' => $patient->id,
-                    'bookable_type' => Doctor::class,
-                    'bookable_id' => $doctor->id,
-                    'doctor_service_id' => $service->id,
-                    'doctor_schedule_id' => $schedule->id,
-                    'center_service_id' => null,
-                    'center_working_hour_id' => null,
+                    'bookable_type' => Professional::class,
+                    'bookable_id' => $professional->id,
+                    'service_type' => ProfessionalService::class,
+                    'service_id' => $service->id,
+                    'schedule_type' => ProfessionalSchedule::class,
+                    'schedule_id' => $schedule->id,
                     'patient_name' => $patient->user->full_name ?? $patient->user->name,
                     'patient_phone' => $patient->user->phone_number ?? fake()->phoneNumber(),
                     'booking_date' => $bookingDate,
@@ -74,20 +78,20 @@ class BookingSeeder extends Seeder
             }
         }
 
-        // Center bookings
+        // Center Bookings
         $centers = Center::all();
         foreach ($centers as $center) {
-            $centerServices = CenterService::where('center_id', $center->id)->where('is_active', true)->get();
-            $centerHours = CenterWorkingHour::where('center_id', $center->id)->where('is_available', true)->get();
+            $services = CenterService::where('center_id', $center->id)->where('is_active', true)->get();
+            $hours = CenterWorkingHour::where('center_id', $center->id)->where('is_available', true)->get();
 
-            if ($centerServices->isEmpty() || $centerHours->isEmpty()) {
+            if ($services->isEmpty() || $hours->isEmpty()) {
                 continue;
             }
 
             foreach (range(1, fake()->numberBetween(2, 5)) as $i) {
                 $patient = $patients->random();
-                $service = $centerServices->random();
-                $hour = $centerHours->random();
+                $service = $services->random();
+                $hour = $hours->random();
                 $status = $statuses->random();
 
                 $booking = Booking::create([
@@ -95,10 +99,10 @@ class BookingSeeder extends Seeder
                     'patient_id' => $patient->id,
                     'bookable_type' => Center::class,
                     'bookable_id' => $center->id,
-                    'doctor_service_id' => null,
-                    'doctor_schedule_id' => null,
-                    'center_service_id' => $service->id,
-                    'center_working_hour_id' => $hour->id,
+                    'service_type' => CenterService::class,
+                    'service_id' => $service->id,
+                    'schedule_type' => CenterWorkingHour::class,
+                    'schedule_id' => $hour->id,
                     'patient_name' => $patient->user->full_name ?? $patient->user->name,
                     'patient_phone' => $patient->user->phone_number ?? fake()->phoneNumber(),
                     'booking_date' => $hour->slot_date,

@@ -17,10 +17,10 @@ return new class extends Migration
             $table->foreignId('patient_id')->nullable()->constrained('patients')->onDelete('set null');
             $table->text('bookable_type')->nullable(); // doctor, center
             $table->unsignedBigInteger('bookable_id');
-            $table->foreignId('center_service_id')->nullable()->constrained('center_services')->onDelete('set null');
-            $table->foreignId('doctor_service_id')->nullable()->constrained('doctor_services')->onDelete('set null');
-            $table->foreignId('doctor_schedule_id')->nullable()->constrained('doctor_schedules')->onDelete('set null');
-            $table->foreignId('center_working_hour_id')->nullable()->constrained('center_working_hours')->onDelete('set null');
+            $table->string('service_type')->nullable();
+            $table->unsignedBigInteger('service_id')->nullable();
+            $table->string('schedule_type')->nullable();
+            $table->unsignedBigInteger('schedule_id')->nullable();
             $table->string('patient_name');
             $table->string('patient_phone');
             $table->date('booking_date');
@@ -33,10 +33,12 @@ return new class extends Migration
             $table->text('notes')->nullable();
             $table->timestamps();
             $table->index(['bookable_type', 'bookable_id']);
+            $table->index(['service_type', 'service_id']);
+            $table->index(['schedule_type', 'schedule_id']);
             $table->foreign('status_code')->references('code')->on('statuses')->nullOnDelete();
 
             $table->index(['booking_date', 'status_code']);
-                        $table->index(['patient_id', 'status_code']);
+            $table->index(['patient_id', 'status_code']);
         });
         Schema::create('booking_histories', function (Blueprint $table) {
             $table->id();

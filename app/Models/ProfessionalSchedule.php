@@ -6,14 +6,14 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 
 #[Fillable([
-    'doctor_id',
+    'professional_id',
     'day_of_week',
     'start_time',
     'end_time',
     'is_active',
 ])]
 
-class DoctorSchedule extends Model
+class ProfessionalSchedule extends Model
 {
     /**
      * Get the attributes that should be cast.
@@ -30,13 +30,13 @@ class DoctorSchedule extends Model
         ];
     }
 
-    public function doctor()
+    public function professional()
     {
-        return $this->belongsTo(Doctor::class);
+        return $this->belongsTo(Professional::class);
     }
 
     public function bookings()
     {
-        return $this->hasMany(Booking::class, 'doctor_schedule_id');
+        return $this->hasMany(Booking::class, 'professional_schedule_id');
     }
 }
