@@ -21,7 +21,11 @@ class PharmacistController extends Controller
         }
 
         if ($request->has('city')) {
-            $query->where('location', 'like', '%' . $request->query('city') . '%');
+            $city = $request->query('city');
+            $query->where(function ($q) use ($city) {
+                $q->where('city', 'like', "%{$city}%")
+                    ->orWhere('address', 'like', "%{$city}%");
+            });
         }
 
         $pharmacies = $query->where('is_available', true)->get()->map(function ($pharmacy) {
@@ -38,9 +42,9 @@ class PharmacistController extends Controller
      */
     public function show(Request $request, int $id): JsonResponse
     {
-        $pharmacy = Pharmacy::with(['user'])->find($id);
+        $pharmacy = Pharmacy::with(['user', 'contacts', 'wilaya'])->find($id);
 
-        if (!$pharmacy) {
+        if (! $pharmacy) {
             return response()->json([
                 'message' => 'Pharmacy not found.',
             ], 404);

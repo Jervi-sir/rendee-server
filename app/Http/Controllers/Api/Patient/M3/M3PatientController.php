@@ -25,13 +25,13 @@ class M3PatientController extends Controller
         $user = $request->user();
         if ($user && $user->user_role_code === 'patient') {
             $patient = $user->patient;
-            if (!$patient) {
+            if (! $patient) {
                 $patient = Patient::create(['user_id' => $user->id]);
             }
 
             $bookings = Booking::with([
                 'status',
-                'bookable'
+                'bookable',
             ])
                 ->where('patient_id', $patient->id)
                 ->orderBy('booking_date', 'desc')
@@ -46,7 +46,7 @@ class M3PatientController extends Controller
                 if ($booking->bookable instanceof Doctor) {
                     $doctor = $booking->bookable;
                     $doctor->load(['user', 'specialty']);
-                    $name = 'د. ' . ($doctor->user->full_name ?? $doctor->user->name ?? '');
+                    $name = 'د. '.($doctor->user->full_name ?? $doctor->user->name ?? '');
                     $specialty = $doctor->specialty?->ar ?? $doctor->specialty?->en ?? 'طبيب عام';
                 } elseif ($booking->bookable instanceof Center) {
                     $center = $booking->bookable;
@@ -60,17 +60,17 @@ class M3PatientController extends Controller
 
                 $mappedBookings[] = [
                     'id' => $booking->id,
-                    'reference' => $booking->reference ?? ('BK-' . $booking->id),
+                    'reference' => $booking->reference ?? ('BK-'.$booking->id),
                     'name' => $name,
                     'specialty' => $specialty,
                     'date' => $booking->booking_date ? $booking->booking_date->format('Y-m-d') : null,
                     'time' => $booking->booking_time ? substr($booking->booking_time, 0, 5) : null,
                     'status' => $booking->status?->ar ?? $booking->status?->en ?? 'قيد الانتظار',
                     'status_color' => $statusColor,
-                    'is_center' => (bool)$booking->is_center,
+                    'is_center' => (bool) $booking->is_center,
                     'bookable_type' => $booking->bookable_type === Center::class ? 'center' : 'doctor',
                     'bookable_id' => $booking->bookable_id,
-                    'has_pending_proposal' => (bool)$booking->has_pending_proposal,
+                    'has_pending_proposal' => (bool) $booking->has_pending_proposal,
                     'proposed_date' => $booking->proposed_date ? $booking->proposed_date->format('Y-m-d') : null,
                     'proposed_time' => $booking->proposed_time ? substr($booking->proposed_time, 0, 5) : null,
                 ];

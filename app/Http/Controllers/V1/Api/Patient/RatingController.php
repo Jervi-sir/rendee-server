@@ -24,7 +24,7 @@ class RatingController extends Controller
         $user = $request->user();
         $patientId = $user && $user->patient ? $user->patient->id : null;
 
-        if (!$patientId) {
+        if (! $patientId) {
             return response()->json(['error' => 'Patient profile not found'], 403);
         }
 
@@ -32,7 +32,7 @@ class RatingController extends Controller
             ->where('patient_id', $patientId)
             ->first();
 
-        if (!$booking) {
+        if (! $booking) {
             return response()->json(['error' => 'Booking not found'], 404);
         }
 

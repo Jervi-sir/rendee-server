@@ -28,6 +28,7 @@ return new class extends Migration
             $table->string('ar')->nullable();
             $table->timestamps();
         });
+
         Schema::create('service_catalogs', function (Blueprint $table) {
             $table->id();
             $table->string('code')->unique();
@@ -37,6 +38,7 @@ return new class extends Migration
             $table->string('ar')->nullable();
             $table->timestamps();
         });
+
         Schema::create('wilayas', function (Blueprint $table) {
             $table->id();
             $table->string('code')->unique();
@@ -46,6 +48,7 @@ return new class extends Migration
             $table->string('ar')->nullable();
             $table->timestamps();
         });
+
         Schema::create('contact_platforms', function (Blueprint $table) {
             $table->id();
             $table->string('code')->unique();
@@ -54,6 +57,7 @@ return new class extends Migration
             $table->string('ar')->nullable();
             $table->timestamps();
         });
+
         Schema::create('center_catalogs', function (Blueprint $table) {
             $table->id();
             $table->string('code')->unique();
@@ -62,6 +66,7 @@ return new class extends Migration
             $table->string('ar')->nullable();
             $table->timestamps();
         });
+
         Schema::create('statuses', function (Blueprint $table) {
             $table->id();
             $table->string('code')->unique();
@@ -77,7 +82,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('specialities');
+        Schema::dropIfExists('professions');
+        Schema::dropIfExists('professional_specialities');
         Schema::dropIfExists('service_catalogs');
         Schema::dropIfExists('wilayas');
         Schema::dropIfExists('contact_platforms');

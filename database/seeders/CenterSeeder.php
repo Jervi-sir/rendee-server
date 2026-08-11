@@ -4,12 +4,13 @@ namespace Database\Seeders;
 
 use App\Models\Center;
 use App\Models\CenterCatalog;
-use App\Models\UserContact;
 use App\Models\CenterService;
 use App\Models\CenterWorkingHour;
 use App\Models\ContactPlatform;
 use App\Models\ServiceCatalog;
 use App\Models\User;
+use App\Models\UserContact;
+use App\Models\Wilaya;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -23,8 +24,7 @@ class CenterSeeder extends Seeder
 
         foreach ($centerUsers as $user) {
             $centerCatalog = CenterCatalog::inRandomOrder()->first();
-
-            $wilaya = \App\Models\Wilaya::inRandomOrder()->first();
+            $wilaya = Wilaya::inRandomOrder()->first();
 
             $center = Center::firstOrCreate(
                 ['user_id' => $user->id],
@@ -89,12 +89,13 @@ class CenterSeeder extends Seeder
                     [
                         'url' => match ($platform->code) {
                             'phone' => fake()->phoneNumber(),
-                            'email' => 'contact@' . fake()->domainName(),
-                            'whatsapp' => 'https://wa.me/' . fake()->numerify('2135########'),
-                            'facebook' => 'https://facebook.com/' . fake()->userName(),
+                            'email' => 'contact@'.fake()->domainName(),
+                            'whatsapp' => 'https://wa.me/'.fake()->numerify('2135########'),
+                            'facebook' => 'https://facebook.com/'.fake()->userName(),
                             'website' => fake()->url(),
                             default => fake()->url(),
                         },
+                        'target_user_type' => 'center',
                     ]
                 );
             }

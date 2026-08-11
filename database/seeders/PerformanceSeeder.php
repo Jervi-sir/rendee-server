@@ -3,8 +3,10 @@
 namespace Database\Seeders;
 
 use App\Models\Booking;
+use App\Models\ProfessionalSpeciality;
 use App\Models\Rating;
 use App\Models\RecentSearch;
+use App\Models\ServiceCatalog;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -16,18 +18,20 @@ class PerformanceSeeder extends Seeder
     public function run(): void
     {
         // Recent Searches
-        $users = User::all();
+        $users = User::query()->inRandomOrder()->get();
+        $specialities = ProfessionalSpeciality::query()->inRandomOrder()->get();
+        $services = ServiceCatalog::query()->inRandomOrder()->get();
+
         foreach ($users as $user) {
             foreach (range(1, fake()->numberBetween(1, 5)) as $i) {
-                RecentSearch::create([
+                RecentSearch::query()->create([
                     'user_id' => $user->id,
                     'label' => fake()->randomElement([
-                        'General Practitioner',
-                        'Cardiologist',
+                        $specialities->isNotEmpty() ? $specialities->random()->en : 'General Practitioner',
+                        $services->isNotEmpty() ? $services->random()->en : 'Medical Checkup',
                         'Dentist',
                         'Physiotherapy',
                         'Vaccination',
-                        'Medical Checkup',
                     ]),
                     'city' => fake()->randomElement(['Algiers', 'Oran', 'Constantine', null, null]),
                 ]);
@@ -35,12 +39,12 @@ class PerformanceSeeder extends Seeder
         }
 
         // Ratings
-        $bookings = Booking::whereIn('status_code', ['completed'])->get();
+        $bookings = Booking::query()->where('status_code', 'completed')->inRandomOrder()->get();
         foreach ($bookings as $booking) {
-            if (!$booking->patient_id) {
+            if (! $booking->patient_id) {
                 continue;
             }
-            Rating::firstOrCreate(
+            Rating::query()->firstOrCreate(
                 ['booking_id' => $booking->id],
                 [
                     'patient_id' => $booking->patient_id,

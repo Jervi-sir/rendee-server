@@ -6,9 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\BookingHistory;
 use App\Models\Doctor;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Carbon\Carbon;
 
 class M2DoctorController extends Controller
 {
@@ -22,11 +22,11 @@ class M2DoctorController extends Controller
             $doctor = Doctor::where('user_id', $user->id)->first();
         }
 
-        if (!$doctor) {
+        if (! $doctor) {
             $doctor = Doctor::first();
         }
 
-        if (!$doctor) {
+        if (! $doctor) {
             return response()->json([
                 'tabs' => [
                     ['key' => 'pending', 'label' => 'قيد الانتظار', 'count' => 0],
@@ -94,10 +94,10 @@ class M2DoctorController extends Controller
                 'status_key' => $booking->status_code,
                 'proposed_date' => $booking->proposed_date ? Carbon::parse($booking->proposed_date)->format('Y-m-d') : null,
                 'proposed_time' => $booking->proposed_time ? Carbon::parse($booking->proposed_time)->format('H:i') : null,
-                'has_pending_proposal' => (bool)$booking->has_pending_proposal,
-                'can_confirm' => ($booking->status_code === 'pending' && !$booking->has_pending_proposal),
+                'has_pending_proposal' => (bool) $booking->has_pending_proposal,
+                'can_confirm' => ($booking->status_code === 'pending' && ! $booking->has_pending_proposal),
                 'can_reject' => ($booking->status_code === 'pending'),
-                'can_suggest_new_time' => ($booking->status_code === 'pending' && !$booking->has_pending_proposal),
+                'can_suggest_new_time' => ($booking->status_code === 'pending' && ! $booking->has_pending_proposal),
             ];
         }
 
@@ -119,7 +119,7 @@ class M2DoctorController extends Controller
 
         $booking = Booking::find($id);
 
-        if (!$booking) {
+        if (! $booking) {
             return response()->json(['error' => 'Booking not found'], 404);
         }
 
@@ -151,7 +151,7 @@ class M2DoctorController extends Controller
 
         $booking = Booking::find($id);
 
-        if (!$booking) {
+        if (! $booking) {
             return response()->json(['error' => 'Booking not found'], 404);
         }
 
@@ -163,7 +163,7 @@ class M2DoctorController extends Controller
         BookingHistory::create([
             'booking_id' => $booking->id,
             'status_code' => $booking->status_code,
-            'notes' => 'Reschedule suggested by doctor: ' . $validated['proposed_date'] . ' ' . $validated['proposed_time'],
+            'notes' => 'Reschedule suggested by doctor: '.$validated['proposed_date'].' '.$validated['proposed_time'],
             'changed_by' => $request->user()?->id,
         ]);
 

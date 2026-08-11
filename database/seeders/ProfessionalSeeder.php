@@ -3,13 +3,13 @@
 namespace Database\Seeders;
 
 use App\Models\Professional;
-use App\Models\UserContact;
 use App\Models\ProfessionalSchedule;
 use App\Models\ProfessionalService;
-use App\Models\ServiceCatalog;
 use App\Models\ProfessionalSpeciality;
-use App\Models\Wilaya;
+use App\Models\ServiceCatalog;
 use App\Models\User;
+use App\Models\UserContact;
+use App\Models\Wilaya;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -90,10 +90,11 @@ class ProfessionalSeeder extends Seeder
                     [
                         'url' => match ($platformCode) {
                             'phone' => fake()->phoneNumber(),
-                            'whatsapp' => 'https://wa.me/' . fake()->numerify('2135########'),
-                            'facebook' => 'https://facebook.com/' . fake()->userName(),
+                            'whatsapp' => 'https://wa.me/'.fake()->numerify('2135########'),
+                            'facebook' => 'https://facebook.com/'.fake()->userName(),
                             default => fake()->url(),
                         },
+                        'target_user_type' => 'professional',
                     ]
                 );
             }

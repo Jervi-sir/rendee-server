@@ -36,6 +36,7 @@ use Laravel\Sanctum\HasApiTokens;
     'password',
     'password_plaintext',
     'full_name',
+    'image_url',
     'phone_number',
     'profile_complete',
 ])]
@@ -87,5 +88,72 @@ class User extends Authenticatable implements PasskeyUser
     public function pharmacy(): HasOne
     {
         return $this->hasOne(Pharmacy::class);
+    }
+
+    /**
+     * Eager-load all role-specific profile relations.
+     *
+     * @return $this
+     */
+    public function loadProfileRelations(): static
+    {
+        return $this->load([
+            'userRole',
+            'userDevice',
+            'professional',
+            'center',
+            'patient',
+            'pharmacy',
+        ]);
+    }
+
+    /**
+     * Format explicit array representation of user with profile relations.
+     *
+     * @return array<string, mixed>
+     */
+    public function toFormattedUserArray(): array
+    {
+        $this->loadProfileRelations();
+
+        return array_filter([
+            'id' => $this->id,
+            'user_role_code' => $this->user_role_code,
+            'name' => $this->name,
+            'full_name' => $this->full_name,
+            'email' => $this->email,
+            'phone_number' => $this->phone_number,
+            'profile_complete' => (bool) $this->profile_complete,
+            'image_url' => $this->image_url,
+            'created_at' => $this->created_at?->toIso8601String(),
+            'updated_at' => $this->updated_at?->toIso8601String(),
+            'user_role' => $this->userRole ? [
+                'code' => $this->userRole->code,
+                'en' => $this->userRole->en,
+                'fr' => $this->userRole->fr,
+                'ar' => $this->userRole->ar,
+            ] : null,
+        ], fn ($value) => $value !== null);
+    }
+
+    /**
+     * Format the standard auth JSON response (login / register / me).
+     *
+     * @return array{message: string, token_type?: string, access_token?: string, user: array<string, mixed>}
+     */
+    public function formatAuthResponse(?string $token = null, string $message = 'Success'): array
+    {
+        $response = [
+            'message' => $message,
+        ];
+
+        if ($token !== null) {
+            $response['token_type'] = 'Bearer';
+            $response['access_token'] = $token;
+        }
+
+        $response['user'] = $this->toFormattedUserArray();
+
+        return $response;
     }
 }

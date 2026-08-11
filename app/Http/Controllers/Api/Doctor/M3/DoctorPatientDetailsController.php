@@ -6,9 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Doctor;
 use App\Models\Patient;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Carbon\Carbon;
 
 class DoctorPatientDetailsController extends Controller
 {
@@ -21,13 +21,13 @@ class DoctorPatientDetailsController extends Controller
             $doctor = Doctor::where('user_id', $user->id)->first();
         }
 
-        if (!$doctor) {
+        if (! $doctor) {
             $doctor = Doctor::first();
         }
 
         $patient = Patient::with(['user'])->find($id);
 
-        if (!$patient) {
+        if (! $patient) {
             return response()->json(['error' => 'Patient not found'], 404);
         }
 
@@ -72,7 +72,7 @@ class DoctorPatientDetailsController extends Controller
             if ($booking->status_code === 'completed') {
                 $medicalRecords[] = [
                     'id' => $booking->id,
-                    'title' => 'تقرير طبي - ' . $visitType,
+                    'title' => 'تقرير طبي - '.$visitType,
                     'diagnosis' => $booking->notes ?? 'متابعة الحالة العامة واستقرار المؤشرات الحيوية',
                     'treatment' => 'الاستمرار على الخطة العلاجية الموصوفة ونمط الحياة الصحي',
                     'notes' => 'المريض متعاون ومستمر بالفحوصات الدورية',

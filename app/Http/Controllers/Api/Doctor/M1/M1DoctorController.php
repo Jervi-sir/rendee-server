@@ -5,11 +5,9 @@ namespace App\Http\Controllers\Api\Doctor\M1;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Doctor;
-use App\Models\DoctorService;
-use App\Models\Speciality;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Carbon\Carbon;
 
 class M1DoctorController extends Controller
 {
@@ -22,11 +20,11 @@ class M1DoctorController extends Controller
             $doctor = Doctor::with(['user', 'specialty'])->where('user_id', $user->id)->first();
         }
 
-        if (!$doctor) {
+        if (! $doctor) {
             $doctor = Doctor::with(['user', 'specialty'])->first();
         }
 
-        if (!$doctor) {
+        if (! $doctor) {
             return response()->json([
                 'header' => [
                     'doctor_name' => 'د. طبيب تجريبي',
@@ -44,13 +42,13 @@ class M1DoctorController extends Controller
         }
 
         // Header Data
-        $doctorName = 'د. ' . ($doctor->user->full_name ?? $doctor->user->name ?? 'طبيب');
+        $doctorName = 'د. '.($doctor->user->full_name ?? $doctor->user->name ?? 'طبيب');
         $speciality = $doctor->specialty?->ar ?? $doctor->specialty?->en ?? 'طبيب عام';
         $dateLabel = Carbon::now()->translatedFormat('l، d F Y');
 
         // Stats queries
         $today = Carbon::today()->format('Y-m-d');
-        
+
         $todayBookingsCount = Booking::where('bookable_type', Doctor::class)
             ->where('bookable_id', $doctor->id)
             ->where('booking_date', $today)
@@ -103,9 +101,9 @@ class M1DoctorController extends Controller
                 'date_label' => $dateLabel,
             ],
             'stats' => [
-                ['key' => 'today_bookings', 'label' => 'حجوزات اليوم', 'value' => (string)$todayBookingsCount],
-                ['key' => 'unique_patients', 'label' => 'مرضى فريدون', 'value' => (string)$uniquePatientsCount],
-                ['key' => 'completed_bookings', 'label' => 'مكتملة', 'value' => (string)$completedBookingsCount],
+                ['key' => 'today_bookings', 'label' => 'حجوزات اليوم', 'value' => (string) $todayBookingsCount],
+                ['key' => 'unique_patients', 'label' => 'مرضى فريدون', 'value' => (string) $uniquePatientsCount],
+                ['key' => 'completed_bookings', 'label' => 'مكتملة', 'value' => (string) $completedBookingsCount],
             ],
             'agenda' => $agenda,
             'actions' => [],

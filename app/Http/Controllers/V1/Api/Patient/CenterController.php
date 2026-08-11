@@ -14,14 +14,18 @@ class CenterController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Center::with(['catalog', 'user']);
+        $query = Center::with(['catalog', 'user', 'wilaya']);
 
         if ($request->has('center_catalog_code')) {
             $query->where('center_catalog_code', $request->query('center_catalog_code'));
         }
 
+        if ($request->has('wilaya_code')) {
+            $query->where('wilaya_code', $request->query('wilaya_code'));
+        }
+
         if ($request->has('city')) {
-            $query->where('city', 'like', '%' . $request->query('city') . '%');
+            $query->where('city', 'like', '%'.$request->query('city').'%');
         }
 
         $centers = $query->where('is_active', true)->get()->map(function ($center) {
@@ -41,12 +45,13 @@ class CenterController extends Controller
         $center = Center::with([
             'catalog',
             'user',
+            'wilaya',
             'contacts',
             'workingHours',
-            'services.serviceCatalog'
+            'services.serviceCatalog',
         ])->find($id);
 
-        if (!$center) {
+        if (! $center) {
             return response()->json([
                 'message' => 'Center not found.',
             ], 404);

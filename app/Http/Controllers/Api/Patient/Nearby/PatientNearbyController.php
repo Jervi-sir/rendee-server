@@ -20,7 +20,7 @@ class PatientNearbyController extends Controller
         foreach ($doctors as $index => $doctor) {
             $markers[] = [
                 'id' => $doctor->id,
-                'title' => 'د. ' . ($doctor->user->full_name ?? $doctor->user->name ?? ''),
+                'title' => 'د. '.($doctor->user->full_name ?? $doctor->user->name ?? ''),
                 'latitude' => $doctor->latitude ? (float) $doctor->latitude : (35.6971 + 0.005 * ($index - 2)),
                 'longitude' => $doctor->longitude ? (float) $doctor->longitude : (-0.6308 + 0.005 * ($index - 2)),
                 'entity_type' => 'doctor',
@@ -57,7 +57,7 @@ class PatientNearbyController extends Controller
         // Selected card (default to the first marker)
         $selectedCard = null;
 
-        if (!empty($markers)) {
+        if (! empty($markers)) {
             $first = $markers[0];
 
             $city = 'وهران';
@@ -85,7 +85,7 @@ class PatientNearbyController extends Controller
 
             $selectedCard = [
                 'title' => $first['title'],
-                'subtitle' => $city . '، ' . $address . ' (2.4 كم)',
+                'subtitle' => $city.'، '.$address.' (2.4 كم)',
                 'entity_type' => $first['entity_type'],
                 'entity_id' => $first['entity_id'],
                 'latitude' => $first['latitude'],

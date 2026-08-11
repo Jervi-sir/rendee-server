@@ -30,6 +30,7 @@ return new class extends Migration
             $table->string('password_plaintext')->nullable();
 
             $table->string('full_name')->nullable();
+            $table->string('image_url')->nullable();
             $table->string('phone_number')->nullable();
 
             $table->text('two_factor_secret')->after('password')->nullable();

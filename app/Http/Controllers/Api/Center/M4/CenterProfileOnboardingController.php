@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\Center\M4;
@@ -21,11 +22,11 @@ class CenterProfileOnboardingController extends Controller
             $center = Center::where('user_id', $user->id)->first();
         }
 
-        if (!$center) {
+        if (! $center) {
             $center = Center::first();
         }
 
-        if (!$center) {
+        if (! $center) {
             return response()->json([
                 'missing_items' => [
                     'رقم الترخيص',
@@ -52,20 +53,20 @@ class CenterProfileOnboardingController extends Controller
         if (empty($center->city)) {
             $missingItems[] = 'المدينة';
         }
-        if (!$center->emergency_24_7) {
+        if (! $center->emergency_24_7) {
             $missingItems[] = 'تفعيل خدمة 24/7';
         }
-        if (!$center->is_active) {
+        if (! $center->is_active) {
             $missingItems[] = 'تفعيل الحساب';
         }
 
         $hasServices = CenterService::where('center_id', $center->id)->where('is_active', true)->exists();
-        if (!$hasServices) {
+        if (! $hasServices) {
             $missingItems[] = 'خدمة واحدة على الأقل';
         }
 
         $hasWorkingHours = CenterWorkingHour::where('center_id', $center->id)->where('is_available', true)->exists();
-        if (!$hasWorkingHours) {
+        if (! $hasWorkingHours) {
             $missingItems[] = 'موعد متاح واحد على الأقل';
         }
 

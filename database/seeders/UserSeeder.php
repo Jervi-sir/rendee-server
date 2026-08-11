@@ -7,6 +7,7 @@ use App\Models\UserRole;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class UserSeeder extends Seeder
 {
@@ -14,114 +15,124 @@ class UserSeeder extends Seeder
 
     public function run(): void
     {
-        // Create user roles
         $roles = [
             ['code' => 'admin', 'en' => 'Administrator', 'fr' => 'Administrateur', 'ar' => 'مسؤول'],
+            ['code' => 'patient', 'en' => 'Patient', 'fr' => 'Patient', 'ar' => 'مريض'],
             ['code' => 'professional', 'en' => 'Professional', 'fr' => 'Professionnel', 'ar' => 'أخصائي/طبيب'],
             ['code' => 'center', 'en' => 'Center', 'fr' => 'Centre', 'ar' => 'مركز'],
-            ['code' => 'patient', 'en' => 'Patient', 'fr' => 'Patient', 'ar' => 'مريض'],
             ['code' => 'pharmacist', 'en' => 'Pharmacist', 'fr' => 'Pharmacien', 'ar' => 'صيدلي'],
         ];
+
         foreach ($roles as $data) {
-            UserRole::firstOrCreate(['code' => $data['code']], $data);
+            UserRole::query()->firstOrCreate(['code' => $data['code']], $data);
         }
 
         $password = Hash::make('password');
 
-        // Admin user
-        User::firstOrCreate(
+        User::query()->firstOrCreate(
             ['email' => 'admin@rendee.dz'],
             [
                 'user_role_code' => 'admin',
                 'name' => 'Admin',
                 'full_name' => 'Admin User',
+                'image_url' => 'https://i.pravatar.cc/300?img=1',
                 'email_verified_at' => now(),
                 'password' => $password,
+                'password_plaintext' => 'password',
                 'phone_number' => '+213555000000',
                 'profile_complete' => true,
             ]
         );
 
-        // Professional users
-        $professionals = [
-            ['name' => 'Dr. Karim', 'email' => 'karim@rendee.dz', 'full_name' => 'Dr. Karim Benali'],
-            ['name' => 'Dr. Amina', 'email' => 'amina@rendee.dz', 'full_name' => 'Dr. Amina Ouali'],
-            ['name' => 'Dr. Reda', 'email' => 'reda@rendee.dz', 'full_name' => 'Dr. Reda Mansouri'],
-            ['name' => 'Dr. Lina', 'email' => 'lina@rendee.dz', 'full_name' => 'Dr. Lina Bouzid'],
-        ];
-        foreach ($professionals as $data) {
-            User::firstOrCreate(
-                ['email' => $data['email']],
-                [
-                    'user_role_code' => 'professional',
-                    'name' => $data['name'],
-                    'full_name' => $data['full_name'],
-                    'email_verified_at' => now(),
-                    'password' => $password,
-                    'phone_number' => fake()->unique()->phoneNumber(),
-                    'profile_complete' => true,
-                ]
-            );
-        }
+        $this->createUsersForRole('professional', 24, [
+            'prefix' => 'Dr.',
+            'full_name_prefix' => 'Dr.',
+            'email_domain' => 'rendee.dz',
+        ], $password);
 
-        // Center users
-        $centers = [
-            ['name' => 'Clinique El Azhar', 'email' => 'elazhar@rendee.dz', 'full_name' => 'Clinique El Azhar'],
-            ['name' => 'Hopital Ibn Sina', 'email' => 'ibsina@rendee.dz', 'full_name' => 'Hopital Ibn Sina'],
-            ['name' => 'Centre Nessma', 'email' => 'nessma@rendee.dz', 'full_name' => 'Centre Nessma'],
-        ];
-        foreach ($centers as $data) {
-            User::firstOrCreate(
-                ['email' => $data['email']],
-                [
-                    'user_role_code' => 'center',
-                    'name' => $data['name'],
-                    'full_name' => $data['full_name'],
-                    'email_verified_at' => now(),
-                    'password' => $password,
-                    'phone_number' => fake()->unique()->phoneNumber(),
-                    'profile_complete' => true,
-                ]
-            );
-        }
+        $this->createUsersForRole('center', 15, [
+            'prefix' => 'Center',
+            'full_name_prefix' => 'Center',
+            'email_domain' => 'rendee.dz',
+        ], $password);
 
-        // Pharmacist users
-        $pharmacists = [
-            ['name' => 'Pharmacien Salim', 'email' => 'salim@rendee.dz', 'full_name' => 'Salim Meziane'],
-            ['name' => 'Pharmacie Centrale', 'email' => 'centrale@rendee.dz', 'full_name' => 'Pharmacie Centrale Bejaia'],
-        ];
-        foreach ($pharmacists as $data) {
-            User::firstOrCreate(
-                ['email' => $data['email']],
-                [
-                    'user_role_code' => 'pharmacist',
-                    'name' => $data['name'],
-                    'full_name' => $data['full_name'],
-                    'email_verified_at' => now(),
-                    'password' => $password,
-                    'phone_number' => fake()->unique()->phoneNumber(),
-                    'profile_complete' => true,
-                ]
-            );
-        }
+        $this->createUsersForRole('pharmacist', 10, [
+            'prefix' => 'Pharm',
+            'full_name_prefix' => 'Pharmacist',
+            'email_domain' => 'rendee.dz',
+        ], $password);
 
-        // Patient users
-        $patients = [
-            ['name' => 'Ahmed', 'email' => 'ahmed@rendee.dz', 'full_name' => 'Ahmed Khelifi'],
-            ['name' => 'Fatima', 'email' => 'fatima@rendee.dz', 'full_name' => 'Fatima Zidane'],
-            ['name' => 'Rachid', 'email' => 'rachid@rendee.dz', 'full_name' => 'Rachid Belaid'],
-            ['name' => 'Nadia', 'email' => 'nadia@rendee.dz', 'full_name' => 'Nadia Saidi'],
-            ['name' => 'Samir', 'email' => 'samir@rendee.dz', 'full_name' => 'Samir Hocine'],
+        $this->createUsersForRole('patient', 50, [
+            'prefix' => 'Patient',
+            'full_name_prefix' => null,
+            'email_domain' => 'rendee.dz',
+        ], $password);
+    }
+
+    private function createUsersForRole(string $roleCode, int $count, array $options, string $password): void
+    {
+        $firstNames = [
+            'Ahmed',
+            'Fatima',
+            'Rachid',
+            'Nadia',
+            'Samir',
+            'Amina',
+            'Karim',
+            'Lina',
+            'Yacine',
+            'Imane',
+            'Yasmine',
+            'Reda',
+            'Sofiane',
+            'Meriem',
+            'Walid',
+            'Sarah',
+            'Hakim',
+            'Nour',
+            'Hichem',
+            'Aya',
         ];
-        foreach ($patients as $data) {
-            User::firstOrCreate(
-                ['email' => $data['email']],
+
+        $lastNames = [
+            'Benali',
+            'Bouzid',
+            'Khelifi',
+            'Mansouri',
+            'Ouali',
+            'Saidi',
+            'Meziane',
+            'Cherif',
+            'Benaissa',
+            'Mekki',
+            'Zidane',
+            'Belaid',
+            'Haddad',
+            'Boukerche',
+            'Boudiaf',
+            'Amrani',
+            'Ferhat',
+            'Gacem',
+            'Kaci',
+            'Tahar',
+        ];
+
+        for ($i = 1; $i <= $count; $i++) {
+            $firstName = fake()->randomElement($firstNames);
+            $lastName = fake()->randomElement($lastNames);
+            $fullName = trim(($options['full_name_prefix'] ? $options['full_name_prefix'].' ' : '').$firstName.' '.$lastName);
+            $emailPrefix = Str::slug($firstName.'.'.$lastName.'.'.$roleCode.'.'.$i);
+
+            User::query()->firstOrCreate(
+                ['email' => $emailPrefix.'@'.$options['email_domain']],
                 [
-                    'user_role_code' => 'patient',
-                    'name' => $data['name'],
-                    'full_name' => $data['full_name'],
+                    'user_role_code' => $roleCode,
+                    'name' => $options['prefix'].' '.$firstName,
+                    'full_name' => $fullName,
+                    'image_url' => 'https://i.pravatar.cc/300?u='.rawurlencode($emailPrefix.'@'.$options['email_domain']),
                     'email_verified_at' => now(),
                     'password' => $password,
+                    'password_plaintext' => 'password',
                     'phone_number' => fake()->unique()->phoneNumber(),
                     'profile_complete' => true,
                 ]

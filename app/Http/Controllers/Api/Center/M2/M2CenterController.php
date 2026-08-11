@@ -1,15 +1,16 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\Center\M2;
 
 use App\Http\Controllers\Controller;
-use App\Models\Center;
 use App\Models\Booking;
+use App\Models\Center;
 use App\Models\Status;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Carbon\Carbon;
 
 class M2CenterController extends Controller
 {
@@ -22,11 +23,11 @@ class M2CenterController extends Controller
             $center = Center::where('user_id', $user->id)->first();
         }
 
-        if (!$center) {
+        if (! $center) {
             $center = Center::first();
         }
 
-        if (!$center) {
+        if (! $center) {
             return response()->json([
                 'tabs' => [
                     ['key' => 'new', 'label' => 'جديدة', 'count' => 0],
@@ -86,10 +87,10 @@ class M2CenterController extends Controller
                 'status_key' => $b->status_code,
                 'proposed_date' => $b->proposed_date ? Carbon::parse($b->proposed_date)->format('Y-m-d') : null,
                 'proposed_time' => $b->proposed_time ? Carbon::parse($b->proposed_time)->format('H:i') : null,
-                'has_pending_proposal' => (bool)$b->has_pending_proposal,
-                'can_confirm' => ($b->status_code === 'pending' && !$b->has_pending_proposal),
+                'has_pending_proposal' => (bool) $b->has_pending_proposal,
+                'can_confirm' => ($b->status_code === 'pending' && ! $b->has_pending_proposal),
                 'can_cancel' => in_array($b->status_code, ['pending', 'confirmed']),
-                'can_suggest_new_time' => ($b->status_code === 'pending' && !$b->has_pending_proposal),
+                'can_suggest_new_time' => ($b->status_code === 'pending' && ! $b->has_pending_proposal),
             ];
         }
 
@@ -111,7 +112,7 @@ class M2CenterController extends Controller
 
         $booking = Booking::find($id);
 
-        if (!$booking) {
+        if (! $booking) {
             return response()->json(['error' => 'Booking not found'], 404);
         }
 
@@ -137,7 +138,7 @@ class M2CenterController extends Controller
 
         $booking = Booking::find($id);
 
-        if (!$booking) {
+        if (! $booking) {
             return response()->json(['error' => 'Booking not found'], 404);
         }
 

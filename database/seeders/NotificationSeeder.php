@@ -28,7 +28,7 @@ class NotificationSeeder extends Seeder
                     ]),
                     'body' => fake()->sentence(8),
                     'type' => fake()->randomElement(['booking', 'reminder', 'system', 'promotion']),
-                    'data' => json_encode(['key' => fake()->uuid(), 'action' => fake()->word()]),
+                    'data' => ['key' => fake()->uuid(), 'action' => fake()->word()],
                     'is_read' => fake()->boolean(30),
                 ]);
             }

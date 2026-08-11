@@ -36,7 +36,7 @@ class M1PatientController extends Controller
             $suggestions[] = [
                 'entity_type' => 'doctor',
                 'entity_id' => $doctor->id,
-                'title' => 'د. ' . ($doctor->user->full_name ?? $doctor->user->name ?? ''),
+                'title' => 'د. '.($doctor->user->full_name ?? $doctor->user->name ?? ''),
                 'subtitle' => $doctor->specialty?->ar ?? $doctor->specialty?->en ?? 'طبيب عام',
                 'action_label' => 'احجز الآن',
                 'primary' => count($suggestions) % 2 === 0,

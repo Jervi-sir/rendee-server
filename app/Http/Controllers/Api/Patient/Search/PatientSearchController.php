@@ -64,19 +64,19 @@ class PatientSearchController extends Controller
             $doctorQuery = Doctor::with(['user', 'specialty'])->where('is_available', true);
 
             if ($specialityId) {
-                $doctorQuery->whereHas('specialty', function($q) use ($specialityId) {
+                $doctorQuery->whereHas('specialty', function ($q) use ($specialityId) {
                     $q->where('id', $specialityId);
                 });
             }
 
             if ($query) {
-                $doctorQuery->where(function($q) use ($query) {
-                    $q->whereHas('user', function($uq) use ($query) {
+                $doctorQuery->where(function ($q) use ($query) {
+                    $q->whereHas('user', function ($uq) use ($query) {
                         $uq->where('full_name', 'like', "%{$query}%")
-                           ->orWhere('name', 'like', "%{$query}%");
-                    })->orWhereHas('specialty', function($sq) use ($query) {
+                            ->orWhere('name', 'like', "%{$query}%");
+                    })->orWhereHas('specialty', function ($sq) use ($query) {
                         $sq->where('ar', 'like', "%{$query}%")
-                           ->orWhere('en', 'like', "%{$query}%");
+                            ->orWhere('en', 'like', "%{$query}%");
                     });
                 });
             }
@@ -86,7 +86,7 @@ class PatientSearchController extends Controller
                 $results[] = [
                     'type' => 'doctor',
                     'id' => $doctor->id,
-                    'name' => 'د. ' . ($doctor->user->full_name ?? $doctor->user->name ?? ''),
+                    'name' => 'د. '.($doctor->user->full_name ?? $doctor->user->name ?? ''),
                     'subtitle' => $doctor->specialty?->ar ?? $doctor->specialty?->en ?? 'طبيب عام',
                     'city' => $doctor->city,
                     'rating' => 4.8,
@@ -96,15 +96,15 @@ class PatientSearchController extends Controller
             }
 
             // Search Centers
-            if (!$specialityId) {
+            if (! $specialityId) {
                 $centerQuery = Center::with(['user', 'catalog'])->where('is_active', true);
                 if ($query) {
-                    $centerQuery->where(function($q) use ($query) {
+                    $centerQuery->where(function ($q) use ($query) {
                         $q->where('name', 'like', "%{$query}%")
-                           ->orWhereHas('catalog', function($cq) use ($query) {
-                               $cq->where('ar', 'like', "%{$query}%")
-                                  ->orWhere('en', 'like', "%{$query}%");
-                           });
+                            ->orWhereHas('catalog', function ($cq) use ($query) {
+                                $cq->where('ar', 'like', "%{$query}%")
+                                    ->orWhere('en', 'like', "%{$query}%");
+                            });
                     });
                 }
 

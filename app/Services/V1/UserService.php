@@ -8,9 +8,6 @@ class UserService
 {
     /**
      * Eager load the role-specific profile relations on the User model.
-     *
-     * @param User $user
-     * @return User
      */
     public function loadProfileRelations(User $user): User
     {
@@ -20,17 +17,12 @@ class UserService
             'professional',
             'center',
             'patient',
-            'pharmacy'
+            'pharmacy',
         ]);
     }
 
     /**
      * Format the standard login/register JSON response with access token.
-     *
-     * @param User $user
-     * @param string $token
-     * @param string $message
-     * @return array
      */
     public function formatAuthResponse(User $user, string $token, string $message = 'Success'): array
     {

@@ -7,10 +7,10 @@ use App\Models\BookingHistory;
 use App\Models\Center;
 use App\Models\CenterService;
 use App\Models\CenterWorkingHour;
+use App\Models\Patient;
 use App\Models\Professional;
 use App\Models\ProfessionalSchedule;
 use App\Models\ProfessionalService;
-use App\Models\Patient;
 use App\Models\Status;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -23,18 +23,23 @@ class BookingSeeder extends Seeder
 
     public function run(): void
     {
-        $patients = Patient::all();
-        $statuses = Status::all();
+        $patients = Patient::inRandomOrder()->get();
+        $statuses = Status::inRandomOrder()->get();
 
         if ($patients->isEmpty() || $statuses->isEmpty()) {
             return;
         }
 
-        // Professional Bookings
-        $professionals = Professional::all();
+        // Professional bookings
+        $professionals = Professional::inRandomOrder()->get();
         foreach ($professionals as $professional) {
-            $schedules = ProfessionalSchedule::where('professional_id', $professional->id)->where('is_active', true)->get();
-            $services = ProfessionalService::where('professional_id', $professional->id)->get();
+            $schedules = ProfessionalSchedule::where('professional_id', $professional->id)
+                ->where('is_active', true)
+                ->inRandomOrder()
+                ->get();
+            $services = ProfessionalService::where('professional_id', $professional->id)
+                ->inRandomOrder()
+                ->get();
 
             if ($schedules->isEmpty() || $services->isEmpty()) {
                 continue;
@@ -46,10 +51,8 @@ class BookingSeeder extends Seeder
                 $service = $services->random();
                 $status = $statuses->random();
 
-                $bookingDate = now()->addDays(fake()->numberBetween(-10, 30))->format('Y-m-d');
-
                 $booking = Booking::create([
-                    'reference' => 'PR-' . strtoupper(Str::random(8)),
+                    'reference' => 'PR-'.strtoupper(Str::random(8)),
                     'patient_id' => $patient->id,
                     'bookable_type' => Professional::class,
                     'bookable_id' => $professional->id,
@@ -59,7 +62,7 @@ class BookingSeeder extends Seeder
                     'schedule_id' => $schedule->id,
                     'patient_name' => $patient->user->full_name ?? $patient->user->name,
                     'patient_phone' => $patient->user->phone_number ?? fake()->phoneNumber(),
-                    'booking_date' => $bookingDate,
+                    'booking_date' => now()->addDays(fake()->numberBetween(-10, 30))->format('Y-m-d'),
                     'booking_time' => $schedule->start_time,
                     'status_code' => $status->code,
                     'is_center' => false,
@@ -78,11 +81,17 @@ class BookingSeeder extends Seeder
             }
         }
 
-        // Center Bookings
-        $centers = Center::all();
+        // Center bookings
+        $centers = Center::inRandomOrder()->get();
         foreach ($centers as $center) {
-            $services = CenterService::where('center_id', $center->id)->where('is_active', true)->get();
-            $hours = CenterWorkingHour::where('center_id', $center->id)->where('is_available', true)->get();
+            $services = CenterService::where('center_id', $center->id)
+                ->where('is_active', true)
+                ->inRandomOrder()
+                ->get();
+            $hours = CenterWorkingHour::where('center_id', $center->id)
+                ->where('is_available', true)
+                ->inRandomOrder()
+                ->get();
 
             if ($services->isEmpty() || $hours->isEmpty()) {
                 continue;
@@ -95,7 +104,7 @@ class BookingSeeder extends Seeder
                 $status = $statuses->random();
 
                 $booking = Booking::create([
-                    'reference' => 'CT-' . strtoupper(Str::random(8)),
+                    'reference' => 'CT-'.strtoupper(Str::random(8)),
                     'patient_id' => $patient->id,
                     'bookable_type' => Center::class,
                     'bookable_id' => $center->id,

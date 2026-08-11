@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\Center\M1;
 
 use App\Http\Controllers\Controller;
-use App\Models\Center;
 use App\Models\Booking;
+use App\Models\Center;
 use App\Models\CenterService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Carbon\Carbon;
 
 class M1CenterController extends Controller
 {
@@ -23,11 +23,11 @@ class M1CenterController extends Controller
             $center = Center::where('user_id', $user->id)->first();
         }
 
-        if (!$center) {
+        if (! $center) {
             $center = Center::first();
         }
 
-        if (!$center) {
+        if (! $center) {
             return response()->json([
                 'header' => [
                     'center_name' => 'المركز الطبي',
@@ -66,7 +66,7 @@ class M1CenterController extends Controller
         $revenue = 0.00;
         foreach ($todayBookings as $b) {
             if ($b->centerService) {
-                $revenue += (float)$b->centerService->price;
+                $revenue += (float) $b->centerService->price;
             }
         }
 
@@ -81,7 +81,7 @@ class M1CenterController extends Controller
             $servicesData[] = [
                 'id' => $s->id,
                 'name' => $s->serviceCatalog?->ar ?? $s->serviceCatalog?->en ?? 'خدمة طبية',
-                'price' => number_format((float)$s->price, 0) . '  دج',
+                'price' => number_format((float) $s->price, 0).'  دج',
                 'type' => $s->serviceCatalog?->ar ?? 'تحاليل/أشعة',
             ];
         }
@@ -106,12 +106,12 @@ class M1CenterController extends Controller
                 [
                     'key' => 'today_bookings',
                     'label' => 'حجوزات اليوم',
-                    'value' => (string)$todayBookingsCount,
+                    'value' => (string) $todayBookingsCount,
                 ],
                 [
                     'key' => 'estimated_revenue',
                     'label' => 'الإيرادات المتوقعة',
-                    'value' => number_format($revenue, 0) . '  دج',
+                    'value' => number_format($revenue, 0).'  دج',
                 ],
             ],
             'services' => $servicesData,

@@ -11,14 +11,8 @@ use Illuminate\Database\Eloquent\Model;
     'price',
     'duration_minutes',
 ])]
-
 class ProfessionalService extends Model
 {
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
@@ -39,6 +33,6 @@ class ProfessionalService extends Model
 
     public function bookings()
     {
-        return $this->hasMany(Booking::class, 'professional_service_id');
+        return $this->hasMany(Booking::class, 'service_id');
     }
 }

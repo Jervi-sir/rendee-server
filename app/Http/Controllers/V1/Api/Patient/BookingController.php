@@ -5,45 +5,63 @@ namespace App\Http\Controllers\V1\Api\Patient;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Center;
+use App\Models\CenterService;
+use App\Models\CenterWorkingHour;
+use App\Models\Patient;
 use App\Models\Professional;
 use App\Models\ProfessionalSchedule;
-use App\Models\CenterWorkingHour;
 use App\Models\ProfessionalService;
-use App\Models\CenterService;
-use App\Models\Patient;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use Carbon\Carbon;
 
 class BookingController extends Controller
 {
     /**
-     * Display a list of the patient's bookings.
+     * Display a paginated list of the patient's bookings.
      */
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
         $patientId = $user && $user->patient ? $user->patient->id : null;
 
-        if (!$patientId) {
-            return response()->json([
-                'bookings' => [],
-            ]);
+        if (! $patientId) {
+            $firstPatient = Patient::first();
+            $patientId = $firstPatient ? $firstPatient->id : null;
         }
 
-        $bookings = Booking::with([
-            'bookable.user',
-            'service',
-            'status'
+        $page = max(1, (int) $request->query('page', 1));
+        $perPage = max(1, min(100, (int) $request->query('per_page', 10)));
+
+        $query = Booking::with([
+            'bookable' => function (MorphTo $morphTo) {
+                $morphTo->morphWith([
+                    Professional::class => ['user', 'speciality', 'profession'],
+                    Center::class => ['user', 'catalog'],
+                ]);
+            },
+            'service.serviceCatalog',
+            'status',
         ])
-        ->where('patient_id', $patientId)
-        ->orderBy('booking_date', 'desc')
-        ->orderBy('booking_time', 'desc')
-        ->get();
+            ->where('patient_id', $patientId);
+
+        if ($request->has('status_code')) {
+            $query->where('status_code', $request->query('status_code'));
+        }
+
+        $paginator = $query->orderBy('booking_date', 'desc')
+            ->orderBy('booking_time', 'desc')
+            ->paginate($perPage, ['*'], 'page', $page);
+
+        $bookings = collect($paginator->items())->map(fn ($b) => $b->formatForPatient(false));
 
         return response()->json([
             'bookings' => $bookings,
+            'current_page' => $paginator->currentPage(),
+            'next_page' => $paginator->hasMorePages() ? $paginator->currentPage() + 1 : null,
+            'total' => $paginator->total(),
         ]);
     }
 
@@ -56,21 +74,26 @@ class BookingController extends Controller
         $patientId = $user && $user->patient ? $user->patient->id : null;
 
         $booking = Booking::with([
-            'bookable.user',
-            'service',
+            'bookable' => function (MorphTo $morphTo) {
+                $morphTo->morphWith([
+                    Professional::class => ['user', 'speciality', 'profession'],
+                    Center::class => ['user', 'catalog'],
+                ]);
+            },
+            'service.serviceCatalog',
             'schedule',
             'status',
-            'bookingHistories.changedBy'
+            'bookingHistories.changedBy',
         ])->find($id);
 
-        if (!$booking || ($patientId && $booking->patient_id !== $patientId)) {
+        if (! $booking || ($patientId && $booking->patient_id !== $patientId)) {
             return response()->json([
                 'message' => 'Booking not found.',
             ], 404);
         }
 
         return response()->json([
-            'booking' => $booking,
+            'booking' => $booking->formatForPatient(true),
         ]);
     }
 
@@ -99,7 +122,7 @@ class BookingController extends Controller
         $patientId = null;
         if ($user && $user->user_role_code === 'patient') {
             $patient = $user->patient;
-            if (!$patient) {
+            if (! $patient) {
                 $patient = Patient::create(['user_id' => $user->id]);
             }
             $patientId = $patient->id;
@@ -110,7 +133,7 @@ class BookingController extends Controller
             }
         }
 
-        $reference = ($bookableType === 'professional' ? 'PR-' : 'CT-') . strtoupper(Str::random(8));
+        $reference = ($bookableType === 'professional' ? 'PR-' : 'CT-').strtoupper(Str::random(8));
 
         $bookingData = [
             'reference' => $reference,
@@ -155,10 +178,21 @@ class BookingController extends Controller
 
         $booking = Booking::create($bookingData);
 
+        $booking->load([
+            'bookable' => function (MorphTo $morphTo) {
+                $morphTo->morphWith([
+                    Professional::class => ['user', 'speciality', 'profession'],
+                    Center::class => ['user', 'catalog'],
+                ]);
+            },
+            'service.serviceCatalog',
+            'status',
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Appointment booked successfully.',
-            'booking' => $booking,
+            'booking' => $booking->formatForPatient(true),
         ], 201);
     }
 }

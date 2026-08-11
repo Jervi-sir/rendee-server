@@ -7,11 +7,15 @@ use Illuminate\Database\Eloquent\Model;
 class Profession extends Model
 {
     public const DOCTOR = 'doctor';
+
     public const PSYCHOLOGIST = 'psychologist';
+
     public const DENTIST = 'dentist';
 
     protected $primaryKey = 'code';
+
     protected $keyType = 'string';
+
     public $incrementing = false;
 
     protected $fillable = [

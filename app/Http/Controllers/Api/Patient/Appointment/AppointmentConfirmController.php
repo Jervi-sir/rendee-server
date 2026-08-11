@@ -6,9 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Center;
 use App\Models\Doctor;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Carbon\Carbon;
 
 class AppointmentConfirmController extends Controller
 {
@@ -17,13 +17,13 @@ class AppointmentConfirmController extends Controller
         $booking = Booking::with([
             'centerService.serviceCatalog',
             'doctorService.serviceCatalog',
-            'bookable.user'
+            'bookable.user',
         ])->where('id', $id)->orWhere('reference', $id)->first();
 
-        if (!$booking) {
+        if (! $booking) {
             return response()->json([
                 'success' => false,
-                'message' => 'Booking not found.'
+                'message' => 'Booking not found.',
             ], 404);
         }
 
@@ -34,11 +34,11 @@ class AppointmentConfirmController extends Controller
         if ($booking->bookable_type === Doctor::class) {
             $doctor = Doctor::with(['user', 'specialty'])->find($booking->bookable_id);
             if ($doctor) {
-                $bookableName = 'د. ' . ($doctor->user->full_name ?? $doctor->user->name ?? '');
+                $bookableName = 'د. '.($doctor->user->full_name ?? $doctor->user->name ?? '');
                 $speciality = $doctor->specialty?->ar ?? $doctor->specialty?->en ?? 'طبيب عام';
             }
             $price = $booking->doctorService?->price ?? 2000;
-        } else if ($booking->bookable_type === Center::class) {
+        } elseif ($booking->bookable_type === Center::class) {
             $center = Center::with(['user', 'catalog'])->find($booking->bookable_id);
             if ($center) {
                 $bookableName = $center->name ?? $center->user->full_name ?? $center->user->name ?? '';
@@ -63,8 +63,8 @@ class AppointmentConfirmController extends Controller
                 'time' => $formattedTime,
                 'patient_name' => $booking->patient_name ?? 'مريض',
                 'patient_phone' => $booking->patient_phone ?? '0555000000',
-                'price' => (float)$price,
-            ]
+                'price' => (float) $price,
+            ],
         ]);
     }
 
@@ -72,17 +72,17 @@ class AppointmentConfirmController extends Controller
     {
         $booking = Booking::find($id);
 
-        if (!$booking) {
+        if (! $booking) {
             return response()->json([
                 'success' => false,
-                'message' => 'Booking not found.'
+                'message' => 'Booking not found.',
             ], 404);
         }
 
-        if (!$booking->has_pending_proposal) {
+        if (! $booking->has_pending_proposal) {
             return response()->json([
                 'success' => false,
-                'message' => 'No pending proposal found for this booking.'
+                'message' => 'No pending proposal found for this booking.',
             ], 400);
         }
 
@@ -97,7 +97,7 @@ class AppointmentConfirmController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Proposal accepted successfully.',
-            'booking' => $booking
+            'booking' => $booking,
         ]);
     }
 
@@ -105,17 +105,17 @@ class AppointmentConfirmController extends Controller
     {
         $booking = Booking::find($id);
 
-        if (!$booking) {
+        if (! $booking) {
             return response()->json([
                 'success' => false,
-                'message' => 'Booking not found.'
+                'message' => 'Booking not found.',
             ], 404);
         }
 
-        if (!$booking->has_pending_proposal) {
+        if (! $booking->has_pending_proposal) {
             return response()->json([
                 'success' => false,
-                'message' => 'No pending proposal found for this booking.'
+                'message' => 'No pending proposal found for this booking.',
             ], 400);
         }
 
@@ -128,7 +128,7 @@ class AppointmentConfirmController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Proposal rejected successfully.',
-            'booking' => $booking
+            'booking' => $booking,
         ]);
     }
 }

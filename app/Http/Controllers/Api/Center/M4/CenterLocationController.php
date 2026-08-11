@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\Center\M4;
@@ -19,9 +20,10 @@ class CenterLocationController extends Controller
         if ($user) {
             $center = Center::where('user_id', $user->id)->first();
         }
-        if (!$center) {
+        if (! $center) {
             $center = Center::first();
         }
+
         return $center;
     }
 
@@ -30,10 +32,10 @@ class CenterLocationController extends Controller
         $hasServices = CenterService::where('center_id', $center->id)->where('is_active', true)->exists();
         $hasWorkingHours = CenterWorkingHour::where('center_id', $center->id)->where('is_available', true)->exists();
 
-        $isComplete = !empty($center->license_number) &&
-                      !empty($center->description) &&
-                      !empty($center->address) &&
-                      !empty($center->city) &&
+        $isComplete = ! empty($center->license_number) &&
+                      ! empty($center->description) &&
+                      ! empty($center->address) &&
+                      ! empty($center->city) &&
                       $hasServices &&
                       $hasWorkingHours;
 
@@ -47,7 +49,7 @@ class CenterLocationController extends Controller
     {
         $center = $this->getCenter($request);
 
-        if (!$center) {
+        if (! $center) {
             return response()->json([
                 'profile' => [
                     'address' => '',
@@ -67,7 +69,7 @@ class CenterLocationController extends Controller
     public function update(Request $request): JsonResponse
     {
         $center = $this->getCenter($request);
-        if (!$center) {
+        if (! $center) {
             return response()->json(['error' => 'Center profile not found'], 404);
         }
 
@@ -85,7 +87,7 @@ class CenterLocationController extends Controller
 
         return response()->json([
             'success' => true,
-            'profile_complete' => (bool)($center->user->profile_complete ?? false),
+            'profile_complete' => (bool) ($center->user->profile_complete ?? false),
         ]);
     }
 }

@@ -5,7 +5,19 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 
-#[Fillable(['user_id', 'date_of_birth', 'gender', 'address', 'city', 'medical_notes'])]
+#[Fillable([
+    'user_id',
+    'date_of_birth',
+    'gender',
+    'address',
+    'city',
+    'medical_notes',
+    'blood_type',
+    'allergies',
+    'chronic_diseases',
+    'medications',
+    'emergency_contacts',
+])]
 
 class Patient extends Model
 {
@@ -18,6 +30,10 @@ class Patient extends Model
     {
         return [
             'date_of_birth' => 'date:Y-m-d',
+            'allergies' => 'array',
+            'chronic_diseases' => 'array',
+            'medications' => 'array',
+            'emergency_contacts' => 'array',
         ];
     }
 

@@ -4,9 +4,9 @@ namespace Database\Seeders;
 
 use App\Models\CenterCatalog;
 use App\Models\ContactPlatform;
-use App\Models\ServiceCatalog;
 use App\Models\Profession;
 use App\Models\ProfessionalSpeciality;
+use App\Models\ServiceCatalog;
 use App\Models\Status;
 use App\Models\Wilaya;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;

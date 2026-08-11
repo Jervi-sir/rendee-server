@@ -20,7 +20,7 @@ class DoctorPersonalDataController extends Controller
             $doctor = Doctor::with(['user', 'specialty'])->where('user_id', $user->id)->first();
         }
 
-        if (!$doctor) {
+        if (! $doctor) {
             $doctor = Doctor::with(['user', 'specialty'])->first();
         }
 
@@ -31,7 +31,7 @@ class DoctorPersonalDataController extends Controller
             ];
         });
 
-        if (!$doctor) {
+        if (! $doctor) {
             return response()->json([
                 'profile' => [
                     'full_name' => '',
@@ -64,7 +64,7 @@ class DoctorPersonalDataController extends Controller
                 'bio' => $doctor->bio,
                 'address' => $doctor->address,
                 'city' => $doctor->city,
-                'is_available' => (bool)$doctor->is_available,
+                'is_available' => (bool) $doctor->is_available,
             ],
             'specialities' => $specialities,
         ]);
@@ -79,20 +79,20 @@ class DoctorPersonalDataController extends Controller
             $doctor = Doctor::where('user_id', $user->id)->first();
         }
 
-        if (!$doctor) {
+        if (! $doctor) {
             $doctor = Doctor::first();
             if ($doctor) {
                 $user = User::find($doctor->user_id);
             }
         }
 
-        if (!$doctor || !$user) {
+        if (! $doctor || ! $user) {
             return response()->json(['error' => 'Doctor profile not found'], 404);
         }
 
         $validated = $request->validate([
             'full_name' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:users,email,' . $user->id,
+            'email' => 'required|email|max:255|unique:users,email,'.$user->id,
             'phone' => 'nullable|string|max:30',
             'specialty_id' => 'nullable|integer',
             'license_number' => 'nullable|string|max:100',
@@ -112,7 +112,7 @@ class DoctorPersonalDataController extends Controller
 
         // Find speciality code
         $specialityCode = null;
-        if (!empty($validated['specialty_id'])) {
+        if (! empty($validated['specialty_id'])) {
             $speciality = Speciality::find($validated['specialty_id']);
             if ($speciality) {
                 $specialityCode = $speciality->code;
@@ -131,13 +131,13 @@ class DoctorPersonalDataController extends Controller
         $doctor->save();
 
         // Check if profile is complete
-        $isComplete = !empty($doctor->speciality_code) &&
-                      !empty($doctor->license_number) &&
-                      !empty($doctor->years_experience) &&
-                      !empty($doctor->bio) &&
-                      !empty($doctor->address) &&
-                      !empty($doctor->city) &&
-                      !empty($doctor->phone_public) &&
+        $isComplete = ! empty($doctor->speciality_code) &&
+                      ! empty($doctor->license_number) &&
+                      ! empty($doctor->years_experience) &&
+                      ! empty($doctor->bio) &&
+                      ! empty($doctor->address) &&
+                      ! empty($doctor->city) &&
+                      ! empty($doctor->phone_public) &&
                       $doctor->is_available;
 
         $user->profile_complete = $isComplete;

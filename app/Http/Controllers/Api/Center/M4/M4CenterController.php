@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\Center\M4;
@@ -19,11 +20,11 @@ class M4CenterController extends Controller
             $center = Center::where('user_id', $user->id)->with('catalog')->first();
         }
 
-        if (!$center) {
+        if (! $center) {
             $center = Center::with('catalog')->first();
         }
 
-        if (!$center) {
+        if (! $center) {
             return response()->json([
                 'profile' => [
                     'name' => 'المركز الطبي',

@@ -12,14 +12,8 @@ use Illuminate\Database\Eloquent\Model;
     'end_time',
     'is_active',
 ])]
-
 class ProfessionalSchedule extends Model
 {
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
@@ -37,6 +31,6 @@ class ProfessionalSchedule extends Model
 
     public function bookings()
     {
-        return $this->hasMany(Booking::class, 'professional_schedule_id');
+        return $this->hasMany(Booking::class, 'schedule_id');
     }
 }

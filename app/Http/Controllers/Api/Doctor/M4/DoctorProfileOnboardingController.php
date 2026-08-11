@@ -19,11 +19,11 @@ class DoctorProfileOnboardingController extends Controller
             $doctor = Doctor::with(['specialty'])->where('user_id', $user->id)->first();
         }
 
-        if (!$doctor) {
+        if (! $doctor) {
             $doctor = Doctor::with(['specialty'])->first();
         }
 
-        if (!$doctor) {
+        if (! $doctor) {
             return response()->json([
                 'doctor' => [
                     'id' => null,
@@ -45,14 +45,30 @@ class DoctorProfileOnboardingController extends Controller
             ->get();
 
         $missing = [];
-        if (empty($doctor->speciality_code)) $missing[] = "التخصص";
-        if (empty($doctor->license_number)) $missing[] = "رقم الترخيص";
-        if (empty($doctor->years_experience)) $missing[] = "سنوات الخبرة";
-        if (empty($doctor->bio)) $missing[] = "النبذة";
-        if (empty($doctor->address)) $missing[] = "العنوان";
-        if (empty($doctor->city)) $missing[] = "المدينة";
-        if (!$doctor->is_available) $missing[] = "تفعيل التوفر";
-        if ($schedules->isEmpty()) $missing[] = "جدول أسبوعي واحد على الأقل";
+        if (empty($doctor->speciality_code)) {
+            $missing[] = 'التخصص';
+        }
+        if (empty($doctor->license_number)) {
+            $missing[] = 'رقم الترخيص';
+        }
+        if (empty($doctor->years_experience)) {
+            $missing[] = 'سنوات الخبرة';
+        }
+        if (empty($doctor->bio)) {
+            $missing[] = 'النبذة';
+        }
+        if (empty($doctor->address)) {
+            $missing[] = 'العنوان';
+        }
+        if (empty($doctor->city)) {
+            $missing[] = 'المدينة';
+        }
+        if (! $doctor->is_available) {
+            $missing[] = 'تفعيل التوفر';
+        }
+        if ($schedules->isEmpty()) {
+            $missing[] = 'جدول أسبوعي واحد على الأقل';
+        }
 
         return response()->json([
             'doctor' => [
@@ -63,7 +79,7 @@ class DoctorProfileOnboardingController extends Controller
                 'bio' => $doctor->bio,
                 'address' => $doctor->address,
                 'city' => $doctor->city,
-                'is_available' => (bool)$doctor->is_available,
+                'is_available' => (bool) $doctor->is_available,
                 'schedules' => $schedules->toArray(),
             ],
             'missing_items' => $missing,

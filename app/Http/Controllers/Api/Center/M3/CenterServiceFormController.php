@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\Center\M3;
@@ -6,6 +7,7 @@ namespace App\Http\Controllers\Api\Center\M3;
 use App\Http\Controllers\Controller;
 use App\Models\Center;
 use App\Models\CenterService;
+use App\Models\CenterWorkingHour;
 use App\Models\ServiceCatalog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,21 +21,22 @@ class CenterServiceFormController extends Controller
         if ($user) {
             $center = Center::where('user_id', $user->id)->first();
         }
-        if (!$center) {
+        if (! $center) {
             $center = Center::first();
         }
+
         return $center;
     }
 
     private function updateProfileCompleteness(Center $center): void
     {
         $hasServices = CenterService::where('center_id', $center->id)->where('is_active', true)->exists();
-        $hasWorkingHours = \App\Models\CenterWorkingHour::where('center_id', $center->id)->where('is_available', true)->exists();
+        $hasWorkingHours = CenterWorkingHour::where('center_id', $center->id)->where('is_available', true)->exists();
 
-        $isComplete = !empty($center->license_number) &&
-                      !empty($center->description) &&
-                      !empty($center->address) &&
-                      !empty($center->city) &&
+        $isComplete = ! empty($center->license_number) &&
+                      ! empty($center->description) &&
+                      ! empty($center->address) &&
+                      ! empty($center->city) &&
                       $hasServices &&
                       $hasWorkingHours;
 
@@ -46,7 +49,7 @@ class CenterServiceFormController extends Controller
     public function index(Request $request): JsonResponse
     {
         $center = $this->getCenter($request);
-        if (!$center) {
+        if (! $center) {
             return response()->json(['services' => []]);
         }
 
@@ -62,11 +65,11 @@ class CenterServiceFormController extends Controller
                 'service_id' => $s->serviceCatalog?->id ?? 0,
                 'name' => $name,
                 'description' => $s->description,
-                'price' => (string)$s->price,
-                'price_label' => number_format((float)$s->price, 0) . ' ر.س',
+                'price' => (string) $s->price,
+                'price_label' => number_format((float) $s->price, 0).' ر.س',
                 'duration_minutes' => $s->duration_minutes,
                 'duration_label' => $s->duration_minutes ? "{$s->duration_minutes} دقيقة" : 'غير محدد',
-                'is_active' => (bool)$s->is_active,
+                'is_active' => (bool) $s->is_active,
                 'status_label' => $s->is_active ? 'نشط' : 'غير نشط',
             ];
         }
@@ -93,7 +96,7 @@ class CenterServiceFormController extends Controller
     public function store(Request $request): JsonResponse
     {
         $center = $this->getCenter($request);
-        if (!$center) {
+        if (! $center) {
             return response()->json(['error' => 'Center profile not found'], 404);
         }
 
@@ -106,7 +109,7 @@ class CenterServiceFormController extends Controller
         ]);
 
         $serviceCatalog = ServiceCatalog::find($validated['service_id']);
-        if (!$serviceCatalog) {
+        if (! $serviceCatalog) {
             return response()->json(['error' => 'Selected service catalog not found'], 422);
         }
 
@@ -140,7 +143,7 @@ class CenterServiceFormController extends Controller
     {
         $service = CenterService::with('serviceCatalog')->find($id);
 
-        if (!$service) {
+        if (! $service) {
             return response()->json(['error' => 'Service not found'], 404);
         }
 
@@ -152,26 +155,26 @@ class CenterServiceFormController extends Controller
                 'service_id' => $service->serviceCatalog?->id ?? 0,
                 'name' => $name,
                 'description' => $service->description,
-                'price' => (string)$service->price,
-                'price_label' => number_format((float)$service->price, 0) . ' ر.س',
+                'price' => (string) $service->price,
+                'price_label' => number_format((float) $service->price, 0).' ر.س',
                 'duration_minutes' => $service->duration_minutes,
                 'duration_label' => $service->duration_minutes ? "{$service->duration_minutes} دقيقة" : 'غير محدد',
-                'is_active' => (bool)$service->is_active,
+                'is_active' => (bool) $service->is_active,
                 'status_label' => $service->is_active ? 'نشط' : 'غير نشط',
-            ]
+            ],
         ]);
     }
 
     public function update(Request $request, $id): JsonResponse
     {
         $center = $this->getCenter($request);
-        if (!$center) {
+        if (! $center) {
             return response()->json(['error' => 'Center profile not found'], 404);
         }
 
         $service = CenterService::where('center_id', $center->id)->find($id);
 
-        if (!$service) {
+        if (! $service) {
             return response()->json(['error' => 'Service not found'], 404);
         }
 
@@ -184,7 +187,7 @@ class CenterServiceFormController extends Controller
         ]);
 
         $serviceCatalog = ServiceCatalog::find($validated['service_id']);
-        if (!$serviceCatalog) {
+        if (! $serviceCatalog) {
             return response()->json(['error' => 'Selected service catalog not found'], 422);
         }
 
@@ -207,13 +210,13 @@ class CenterServiceFormController extends Controller
     public function destroy(Request $request, $id): JsonResponse
     {
         $center = $this->getCenter($request);
-        if (!$center) {
+        if (! $center) {
             return response()->json(['error' => 'Center profile not found'], 404);
         }
 
         $service = CenterService::where('center_id', $center->id)->find($id);
 
-        if (!$service) {
+        if (! $service) {
             return response()->json(['error' => 'Service not found'], 404);
         }
 

@@ -14,9 +14,9 @@ class M4PatientController extends Controller
     {
         $user = $request->user();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json([
-                'message' => 'Unauthenticated.'
+                'message' => 'Unauthenticated.',
             ], 401);
         }
 
@@ -32,7 +32,7 @@ class M4PatientController extends Controller
                 'full_name' => $user->full_name ?? $user->name,
                 'email' => $user->email,
                 'phone' => $user->phone_number ?? $user->phone ?? '',
-                'profile_complete' => (bool)$user->profile_complete,
+                'profile_complete' => (bool) $user->profile_complete,
             ],
             'bookings_count' => $bookingsCount,
             'searches_count' => $searchesCount,

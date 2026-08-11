@@ -12,7 +12,7 @@ class M2PatientController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $placeholder = "ابحث عن طبيب، تخصص أو مركز...";
+        $placeholder = 'ابحث عن طبيب، تخصص أو مركز...';
 
         $popularSpecialities = [];
 

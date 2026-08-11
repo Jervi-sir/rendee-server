@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\Center\M4;
@@ -7,9 +8,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Center;
 use App\Models\CenterService;
 use App\Models\CenterWorkingHour;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Carbon\Carbon;
 
 class CenterWorkingHoursController extends Controller
 {
@@ -20,9 +21,10 @@ class CenterWorkingHoursController extends Controller
         if ($user) {
             $center = Center::where('user_id', $user->id)->first();
         }
-        if (!$center) {
+        if (! $center) {
             $center = Center::first();
         }
+
         return $center;
     }
 
@@ -31,10 +33,10 @@ class CenterWorkingHoursController extends Controller
         $hasServices = CenterService::where('center_id', $center->id)->where('is_active', true)->exists();
         $hasWorkingHours = CenterWorkingHour::where('center_id', $center->id)->where('is_available', true)->exists();
 
-        $isComplete = !empty($center->license_number) &&
-                      !empty($center->description) &&
-                      !empty($center->address) &&
-                      !empty($center->city) &&
+        $isComplete = ! empty($center->license_number) &&
+                      ! empty($center->description) &&
+                      ! empty($center->address) &&
+                      ! empty($center->city) &&
                       $hasServices &&
                       $hasWorkingHours;
 
@@ -48,7 +50,7 @@ class CenterWorkingHoursController extends Controller
     {
         $center = $this->getCenter($request);
 
-        if (!$center) {
+        if (! $center) {
             return response()->json([
                 'schedule' => [],
             ]);
@@ -66,7 +68,7 @@ class CenterWorkingHoursController extends Controller
                 'slot_date' => $s->slot_date ? Carbon::parse($s->slot_date)->format('Y-m-d') : '',
                 'start_time' => $s->start_time ? substr($s->start_time, 0, 5) : '',
                 'end_time' => $s->end_time ? substr($s->end_time, 0, 5) : '',
-                'is_available' => (bool)$s->is_available,
+                'is_available' => (bool) $s->is_available,
             ];
         }
 
@@ -78,7 +80,7 @@ class CenterWorkingHoursController extends Controller
     public function update(Request $request): JsonResponse
     {
         $center = $this->getCenter($request);
-        if (!$center) {
+        if (! $center) {
             return response()->json(['error' => 'Center profile not found'], 404);
         }
 
@@ -94,8 +96,8 @@ class CenterWorkingHoursController extends Controller
         CenterWorkingHour::where('center_id', $center->id)->delete();
 
         foreach ($validated['schedule'] as $item) {
-            $startTime = strlen($item['start_time']) === 5 ? $item['start_time'] . ':00' : $item['start_time'];
-            $endTime = strlen($item['end_time']) === 5 ? $item['end_time'] . ':00' : $item['end_time'];
+            $startTime = strlen($item['start_time']) === 5 ? $item['start_time'].':00' : $item['start_time'];
+            $endTime = strlen($item['end_time']) === 5 ? $item['end_time'].':00' : $item['end_time'];
 
             CenterWorkingHour::create([
                 'center_id' => $center->id,
@@ -110,7 +112,7 @@ class CenterWorkingHoursController extends Controller
 
         return response()->json([
             'success' => true,
-            'profile_complete' => (bool)($center->user->profile_complete ?? false),
+            'profile_complete' => (bool) ($center->user->profile_complete ?? false),
         ]);
     }
 }

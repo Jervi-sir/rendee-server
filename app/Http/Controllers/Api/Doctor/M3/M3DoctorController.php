@@ -6,9 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Doctor;
 use App\Models\Patient;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Carbon\Carbon;
 
 class M3DoctorController extends Controller
 {
@@ -21,11 +21,11 @@ class M3DoctorController extends Controller
             $doctor = Doctor::where('user_id', $user->id)->first();
         }
 
-        if (!$doctor) {
+        if (! $doctor) {
             $doctor = Doctor::first();
         }
 
-        if (!$doctor) {
+        if (! $doctor) {
             return response()->json([
                 'patients' => [],
             ]);
@@ -35,7 +35,7 @@ class M3DoctorController extends Controller
         $query = Patient::with(['user'])
             ->whereHas('bookings', function ($q) use ($doctor) {
                 $q->where('bookable_type', Doctor::class)
-                  ->where('bookable_id', $doctor->id);
+                    ->where('bookable_id', $doctor->id);
             });
 
         // Search query filter
@@ -44,8 +44,8 @@ class M3DoctorController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->whereHas('user', function ($uq) use ($search) {
                     $uq->where('full_name', 'like', "%{$search}%")
-                       ->orWhere('name', 'like', "%{$search}%")
-                       ->orWhere('phone_number', 'like', "%{$search}%");
+                        ->orWhere('name', 'like', "%{$search}%")
+                        ->orWhere('phone_number', 'like', "%{$search}%");
                 });
             });
         }
@@ -70,7 +70,7 @@ class M3DoctorController extends Controller
                 'phone' => $patient->user->phone_number ?? $patient->user->phone ?? 'رقم غير متوفر',
                 'last_visit' => $lastVisit,
                 'visits_count' => $visitsCount,
-                'medical_records_count' => max(1, (int)($visitsCount * 1.5)),
+                'medical_records_count' => max(1, (int) ($visitsCount * 1.5)),
             ];
         }
 

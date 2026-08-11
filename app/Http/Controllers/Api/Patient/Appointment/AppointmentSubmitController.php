@@ -5,24 +5,21 @@ namespace App\Http\Controllers\Api\Patient\Appointment;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Center;
+use App\Models\CenterWorkingHour;
 use App\Models\Doctor;
 use App\Models\DoctorSchedule;
-use App\Models\CenterWorkingHour;
-use App\Models\DoctorService;
-use App\Models\CenterService;
-use App\Models\User;
 use App\Models\Patient;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use Carbon\Carbon;
 
 class AppointmentSubmitController extends Controller
 {
     public function options(Request $request, $id): JsonResponse
     {
         $bookableType = $request->query('type', 'doctor');
-        $id = (int)$id;
+        $id = (int) $id;
 
         $bookableData = [
             'type' => $bookableType,
@@ -37,13 +34,13 @@ class AppointmentSubmitController extends Controller
         if ($bookableType === 'doctor') {
             $doctor = Doctor::with(['user', 'specialty', 'services.serviceCatalog'])->find($id);
 
-            if (!$doctor) {
+            if (! $doctor) {
                 return response()->json([
-                    'message' => 'Doctor not found.'
+                    'message' => 'Doctor not found.',
                 ], 404);
             }
 
-            $bookableData['name'] = 'د. ' . ($doctor->user->full_name ?? $doctor->user->name ?? 'طبيب');
+            $bookableData['name'] = 'د. '.($doctor->user->full_name ?? $doctor->user->name ?? 'طبيب');
             $bookableData['subtitle'] = $doctor->specialty?->ar ?? $doctor->specialty?->en ?? 'طبيب عام';
 
             foreach ($doctor->services as $ds) {
@@ -59,7 +56,7 @@ class AppointmentSubmitController extends Controller
             for ($i = 0; $i < 7; $i++) {
                 $date = $startDate->copy()->addDays($i);
                 $dayOfWeek = $date->dayOfWeek; // 0 (Sunday) to 6 (Saturday)
-                
+
                 $schedule = DoctorSchedule::where('doctor_id', $doctor->id)
                     ->where('day_of_week', $dayOfWeek)
                     ->where('is_active', true)
@@ -68,10 +65,10 @@ class AppointmentSubmitController extends Controller
                 if ($schedule) {
                     $startTime = Carbon::parse($schedule->start_time);
                     $endTime = Carbon::parse($schedule->end_time);
-                    
+
                     while ($startTime->lt($endTime)) {
                         $timeStr = $startTime->format('H:i');
-                        
+
                         // Check if already booked
                         $booked = Booking::where('bookable_type', Doctor::class)
                             ->where('bookable_id', $doctor->id)
@@ -79,9 +76,9 @@ class AppointmentSubmitController extends Controller
                             ->where('booking_time', $timeStr)
                             ->exists();
 
-                        if (!$booked) {
+                        if (! $booked) {
                             $slots[] = [
-                                'id' => crc32($date->format('Y-m-d') . '_' . $timeStr),
+                                'id' => crc32($date->format('Y-m-d').'_'.$timeStr),
                                 'date' => $date->format('Y-m-d'),
                                 'date_label' => $date->translatedFormat('Y-m-d') ?? $date->format('Y-m-d'),
                                 'time' => $timeStr,
@@ -95,9 +92,9 @@ class AppointmentSubmitController extends Controller
         } else {
             $center = Center::with(['user', 'catalog', 'services.serviceCatalog'])->find($id);
 
-            if (!$center) {
+            if (! $center) {
                 return response()->json([
-                    'message' => 'Center not found.'
+                    'message' => 'Center not found.',
                 ], 404);
             }
 
@@ -137,9 +134,9 @@ class AppointmentSubmitController extends Controller
                                 ->where('booking_time', $timeStr)
                                 ->exists();
 
-                            if (!$booked) {
+                            if (! $booked) {
                                 $slots[] = [
-                                    'id' => crc32($service->id . '_' . $date->format('Y-m-d') . '_' . $timeStr),
+                                    'id' => crc32($service->id.'_'.$date->format('Y-m-d').'_'.$timeStr),
                                     'service_id' => $service->id,
                                     'service_name' => $service->serviceCatalog?->ar ?? $service->serviceCatalog?->en ?? 'خدمة',
                                     'date' => $date->format('Y-m-d'),
@@ -175,12 +172,12 @@ class AppointmentSubmitController extends Controller
         ]);
 
         $bookableClass = $validated['bookable_type'] === 'doctor' ? Doctor::class : Center::class;
-        
+
         $user = $request->user();
         $patientId = null;
         if ($user && $user->user_role_code === 'patient') {
             $patient = $user->patient;
-            if (!$patient) {
+            if (! $patient) {
                 $patient = Patient::create(['user_id' => $user->id]);
             }
             $patientId = $patient->id;
@@ -191,7 +188,7 @@ class AppointmentSubmitController extends Controller
             }
         }
 
-        $reference = ($validated['bookable_type'] === 'doctor' ? 'DR-' : 'CT-') . strtoupper(Str::random(8));
+        $reference = ($validated['bookable_type'] === 'doctor' ? 'DR-' : 'CT-').strtoupper(Str::random(8));
 
         $bookingData = [
             'reference' => $reference,

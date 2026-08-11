@@ -13,20 +13,21 @@ class PatientOnboardingController extends Controller
     {
         $user = $request->user();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json([
-                'message' => 'Unauthenticated.'
+                'message' => 'Unauthenticated.',
             ], 401);
         }
 
         $user->load('patient');
+
         return response()->json([
             'user' => [
                 'id' => $user->id,
                 'full_name' => $user->full_name ?? $user->name,
                 'email' => $user->email,
                 'phone' => $user->phone_number ?? $user->phone ?? '',
-                'profile_complete' => (bool)$user->profile_complete,
+                'profile_complete' => (bool) $user->profile_complete,
                 'patient' => $user->patient ? [
                     'date_of_birth' => $user->patient->date_of_birth ? ($user->patient->date_of_birth instanceof \DateTime ? $user->patient->date_of_birth->format('Y-m-d') : $user->patient->date_of_birth) : null,
                     'gender' => $user->patient->gender,
@@ -34,7 +35,7 @@ class PatientOnboardingController extends Controller
                     'city' => $user->patient->city,
                     'medical_notes' => $user->patient->medical_notes,
                 ] : null,
-            ]
+            ],
         ]);
     }
 
@@ -50,15 +51,15 @@ class PatientOnboardingController extends Controller
 
         $user = $request->user();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json([
-                'message' => 'Unauthenticated.'
+                'message' => 'Unauthenticated.',
             ], 401);
         }
 
         $patient = $user->patient;
-        if (!$patient) {
-            $patient = new Patient();
+        if (! $patient) {
+            $patient = new Patient;
             $patient->user_id = $user->id;
         }
 
@@ -83,7 +84,7 @@ class PatientOnboardingController extends Controller
                     'city' => $patient->city,
                     'medical_notes' => $patient->medical_notes,
                 ],
-            ]
+            ],
         ]);
     }
 }

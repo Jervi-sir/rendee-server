@@ -16,28 +16,41 @@ class ProfileController extends Controller
     {
         $user = $request->user();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json([
-                'message' => 'Unauthenticated.'
+                'message' => 'Unauthenticated.',
             ], 401);
         }
 
         $user->load('patient');
+        $bookingsCount = $user->patient ? $user->patient->bookings()->count() : 0;
+
         return response()->json([
             'user' => [
                 'id' => $user->id,
+                'name' => $user->name,
                 'full_name' => $user->full_name ?? $user->name,
                 'email' => $user->email,
                 'phone' => $user->phone_number ?? '',
                 'profile_complete' => (bool) $user->profile_complete,
+                'image_url' => $user->image_url,
+                'bookings_count' => $bookingsCount,
+                'searches_count' => 0,
+                'files_count' => 0,
                 'patient' => $user->patient ? [
-                    'date_of_birth' => $user->patient->date_of_birth ? ($user->patient->date_of_birth instanceof \DateTime ? $user->patient->date_of_birth->format('Y-m-d') : $user->patient->date_of_birth) : null,
+                    'id' => $user->patient->id,
+                    'date_of_birth' => $user->patient->date_of_birth ? ($user->patient->date_of_birth instanceof \DateTime ? $user->patient->date_of_birth->format('Y-m-d') : (string) $user->patient->date_of_birth) : null,
                     'gender' => $user->patient->gender,
                     'address' => $user->patient->address,
                     'city' => $user->patient->city,
                     'medical_notes' => $user->patient->medical_notes,
+                    'blood_type' => $user->patient->blood_type ?? 'O+',
+                    'allergies' => $user->patient->allergies ?? [],
+                    'chronic_diseases' => $user->patient->chronic_diseases ?? [],
+                    'medications' => $user->patient->medications ?? [],
+                    'emergency_contacts' => $user->patient->emergency_contacts ?? [],
                 ] : null,
-            ]
+            ],
         ]);
     }
 
@@ -47,42 +60,81 @@ class ProfileController extends Controller
     public function update(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'full_name' => ['required', 'string', 'max:255'],
+            'full_name' => ['nullable', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:30'],
-            'date_of_birth' => ['required', 'date_format:Y-m-d'],
-            'gender' => ['required', 'in:male,female'],
-            'address' => ['required', 'string', 'max:255'],
-            'city' => ['required', 'string', 'max:255'],
-            'medical_notes' => ['required', 'string'],
+            'date_of_birth' => ['nullable', 'date_format:Y-m-d'],
+            'gender' => ['nullable', 'in:male,female'],
+            'address' => ['nullable', 'string', 'max:255'],
+            'city' => ['nullable', 'string', 'max:255'],
+            'medical_notes' => ['nullable', 'string'],
+            'blood_type' => ['nullable', 'string', 'max:10'],
+            'allergies' => ['nullable', 'array'],
+            'allergies.*' => ['string'],
+            'chronic_diseases' => ['nullable', 'array'],
+            'chronic_diseases.*' => ['string'],
+            'medications' => ['nullable', 'array'],
+            'medications.*' => ['string'],
+            'emergency_contacts' => ['nullable', 'array'],
+            'emergency_contacts.*.id' => ['nullable', 'string'],
+            'emergency_contacts.*.name' => ['required_with:emergency_contacts', 'string'],
+            'emergency_contacts.*.relation' => ['nullable', 'string'],
+            'emergency_contacts.*.phone' => ['required_with:emergency_contacts', 'string'],
         ]);
 
         $user = $request->user();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json([
-                'message' => 'Unauthenticated.'
+                'message' => 'Unauthenticated.',
             ], 401);
         }
 
         // Update User info
-        $user->full_name = $validated['full_name'];
-        if (!empty($validated['phone'])) {
+        if (isset($validated['full_name'])) {
+            $user->full_name = $validated['full_name'];
+        }
+        if (isset($validated['phone'])) {
             $user->phone_number = $validated['phone'];
         }
         $user->save();
 
         // Find or create Patient profile
         $patient = $user->patient;
-        if (!$patient) {
-            $patient = new Patient();
+        if (! $patient) {
+            $patient = new Patient;
             $patient->user_id = $user->id;
         }
 
-        $patient->date_of_birth = $validated['date_of_birth'];
-        $patient->gender = $validated['gender'];
-        $patient->address = $validated['address'];
-        $patient->city = $validated['city'];
-        $patient->medical_notes = $validated['medical_notes'];
+        if (array_key_exists('date_of_birth', $validated)) {
+            $patient->date_of_birth = $validated['date_of_birth'];
+        }
+        if (array_key_exists('gender', $validated)) {
+            $patient->gender = $validated['gender'];
+        }
+        if (array_key_exists('address', $validated)) {
+            $patient->address = $validated['address'];
+        }
+        if (array_key_exists('city', $validated)) {
+            $patient->city = $validated['city'];
+        }
+        if (array_key_exists('medical_notes', $validated)) {
+            $patient->medical_notes = $validated['medical_notes'];
+        }
+        if (array_key_exists('blood_type', $validated)) {
+            $patient->blood_type = $validated['blood_type'];
+        }
+        if (array_key_exists('allergies', $validated)) {
+            $patient->allergies = $validated['allergies'];
+        }
+        if (array_key_exists('chronic_diseases', $validated)) {
+            $patient->chronic_diseases = $validated['chronic_diseases'];
+        }
+        if (array_key_exists('medications', $validated)) {
+            $patient->medications = $validated['medications'];
+        }
+        if (array_key_exists('emergency_contacts', $validated)) {
+            $patient->emergency_contacts = $validated['emergency_contacts'];
+        }
         $patient->save();
 
         $user->profile_complete = true;
@@ -92,18 +144,26 @@ class ProfileController extends Controller
             'message' => 'Profile updated successfully.',
             'user' => [
                 'id' => $user->id,
+                'name' => $user->name,
                 'full_name' => $user->full_name ?? $user->name,
                 'email' => $user->email,
                 'phone' => $user->phone_number ?? '',
                 'profile_complete' => true,
+                'image_url' => $user->image_url,
                 'patient' => [
-                    'date_of_birth' => $patient->date_of_birth ? ($patient->date_of_birth instanceof \DateTime ? $patient->date_of_birth->format('Y-m-d') : $patient->date_of_birth) : null,
+                    'id' => $patient->id,
+                    'date_of_birth' => $patient->date_of_birth ? ($patient->date_of_birth instanceof \DateTime ? $patient->date_of_birth->format('Y-m-d') : (string) $patient->date_of_birth) : null,
                     'gender' => $patient->gender,
                     'address' => $patient->address,
                     'city' => $patient->city,
                     'medical_notes' => $patient->medical_notes,
+                    'blood_type' => $patient->blood_type ?? 'O+',
+                    'allergies' => $patient->allergies ?? [],
+                    'chronic_diseases' => $patient->chronic_diseases ?? [],
+                    'medications' => $patient->medications ?? [],
+                    'emergency_contacts' => $patient->emergency_contacts ?? [],
                 ],
-            ]
+            ],
         ]);
     }
 }

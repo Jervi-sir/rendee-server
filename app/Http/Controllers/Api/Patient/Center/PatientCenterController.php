@@ -13,9 +13,9 @@ class PatientCenterController extends Controller
     {
         $center = Center::with(['catalog', 'services.serviceCatalog', 'user'])->find($id);
 
-        if (!$center) {
+        if (! $center) {
             return response()->json([
-                'message' => 'Center not found.'
+                'message' => 'Center not found.',
             ], 404);
         }
 
@@ -43,7 +43,7 @@ class PatientCenterController extends Controller
                 'phone' => $center->phone_public,
                 'working_hours' => '٨:٠٠ ص - ١٠:٠٠ م',
                 'services' => $services,
-            ]
+            ],
         ]);
     }
 }

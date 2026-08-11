@@ -19,11 +19,11 @@ class DoctorWeeklyScheduleController extends Controller
             $doctor = Doctor::where('user_id', $user->id)->first();
         }
 
-        if (!$doctor) {
+        if (! $doctor) {
             $doctor = Doctor::first();
         }
 
-        if (!$doctor) {
+        if (! $doctor) {
             return response()->json([
                 'schedule' => [],
             ]);
@@ -35,10 +35,10 @@ class DoctorWeeklyScheduleController extends Controller
         foreach ($schedules as $s) {
             $scheduleData[] = [
                 'id' => $s->id,
-                'day_of_week' => (int)$s->day_of_week,
+                'day_of_week' => (int) $s->day_of_week,
                 'start_time' => $s->start_time ? substr($s->start_time, 0, 5) : null,
                 'end_time' => $s->end_time ? substr($s->end_time, 0, 5) : null,
-                'is_active' => (bool)$s->is_active,
+                'is_active' => (bool) $s->is_active,
             ];
         }
 
@@ -56,11 +56,11 @@ class DoctorWeeklyScheduleController extends Controller
             $doctor = Doctor::where('user_id', $user->id)->first();
         }
 
-        if (!$doctor) {
+        if (! $doctor) {
             $doctor = Doctor::first();
         }
 
-        if (!$doctor) {
+        if (! $doctor) {
             return response()->json(['error' => 'Doctor profile not found'], 404);
         }
 
@@ -79,8 +79,8 @@ class DoctorWeeklyScheduleController extends Controller
                     'day_of_week' => $item['day_of_week'],
                 ],
                 [
-                    'start_time' => $item['is_active'] && !empty($item['start_time']) ? $item['start_time'] . ':00' : null,
-                    'end_time' => $item['is_active'] && !empty($item['end_time']) ? $item['end_time'] . ':00' : null,
+                    'start_time' => $item['is_active'] && ! empty($item['start_time']) ? $item['start_time'].':00' : null,
+                    'end_time' => $item['is_active'] && ! empty($item['end_time']) ? $item['end_time'].':00' : null,
                     'is_active' => $item['is_active'],
                 ]
             );
@@ -88,13 +88,13 @@ class DoctorWeeklyScheduleController extends Controller
 
         // Recheck profile completeness
         $schedulesCount = DoctorSchedule::where('doctor_id', $doctor->id)->where('is_active', true)->count();
-        $isComplete = !empty($doctor->speciality_code) &&
-                      !empty($doctor->license_number) &&
-                      !empty($doctor->years_experience) &&
-                      !empty($doctor->bio) &&
-                      !empty($doctor->address) &&
-                      !empty($doctor->city) &&
-                      !empty($doctor->phone_public) &&
+        $isComplete = ! empty($doctor->speciality_code) &&
+                      ! empty($doctor->license_number) &&
+                      ! empty($doctor->years_experience) &&
+                      ! empty($doctor->bio) &&
+                      ! empty($doctor->address) &&
+                      ! empty($doctor->city) &&
+                      ! empty($doctor->phone_public) &&
                       $doctor->is_available &&
                       $schedulesCount > 0;
 

@@ -11,11 +11,10 @@ use Illuminate\Database\Eloquent\Model;
     'fr',
     'ar',
 ])]
-
 class ProfessionalSpeciality extends Model
 {
-    public function professional()
+    public function professionals()
     {
-        return $this->hasMany(Professional::class, 'speciality_code', 'code');
+        return $this->hasMany(Professional::class, 'professional_speciality_code', 'code');
     }
 }

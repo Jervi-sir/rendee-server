@@ -24,9 +24,9 @@ class PatientDoctorController extends Controller
                 return response()->json([
                     'doctor' => [
                         'id' => $doctor->id,
-                        'name' => 'د. ' . ($doctor->user->full_name ?? $doctor->user->name ?? 'طبيب'),
+                        'name' => 'د. '.($doctor->user->full_name ?? $doctor->user->name ?? 'طبيب'),
                         'speciality' => $doctor->specialty?->ar ?? $doctor->specialty?->en ?? 'طبيب عام',
-                        'years_experience' => (int)$doctor->years_experience,
+                        'years_experience' => (int) $doctor->years_experience,
                         'rating' => '4.8',
                         'reviews_count' => 156,
                         'patients_label' => '1,250+',
@@ -36,7 +36,7 @@ class PatientDoctorController extends Controller
                         'phone' => $doctor->phone_public,
                         'working_hours' => '٩:٠٠ ص - ٨:٠٠ م (ما عدا الجمعة)',
                         'qualifications' => $qualifications,
-                    ]
+                    ],
                 ]);
             }
         } catch (\Exception $e) {
@@ -112,7 +112,7 @@ class PatientDoctorController extends Controller
         $doctorData['id'] = $id;
 
         return response()->json([
-            'doctor' => $doctorData
+            'doctor' => $doctorData,
         ]);
     }
 }
