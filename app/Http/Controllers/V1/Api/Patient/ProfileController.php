@@ -62,7 +62,7 @@ class ProfileController extends Controller
         $validated = $request->validate([
             'full_name' => ['nullable', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:30'],
-            'date_of_birth' => ['nullable', 'date_format:Y-m-d'],
+            'date_of_birth' => ['nullable', 'string'],
             'gender' => ['nullable', 'in:male,female'],
             'address' => ['nullable', 'string', 'max:255'],
             'city' => ['nullable', 'string', 'max:255'],
@@ -106,7 +106,11 @@ class ProfileController extends Controller
         }
 
         if (array_key_exists('date_of_birth', $validated)) {
-            $patient->date_of_birth = $validated['date_of_birth'];
+            $dob = $validated['date_of_birth'];
+            if ($dob && strlen($dob) > 10) {
+                $dob = substr($dob, 0, 10);
+            }
+            $patient->date_of_birth = $dob;
         }
         if (array_key_exists('gender', $validated)) {
             $patient->gender = $validated['gender'];

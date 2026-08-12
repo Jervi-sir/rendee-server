@@ -6,6 +6,7 @@ use App\Http\Controllers\V1\Api\Patient\CenterController;
 use App\Http\Controllers\V1\Api\Patient\FeedController;
 use App\Http\Controllers\V1\Api\Patient\MapController;
 use App\Http\Controllers\V1\Api\Patient\OnboardingController as PatientOnboardingController;
+use App\Http\Controllers\V1\Api\Patient\PartnerController;
 use App\Http\Controllers\V1\Api\Patient\PharmacistController;
 use App\Http\Controllers\V1\Api\Patient\ProfessionalController;
 use App\Http\Controllers\V1\Api\Patient\ProfileController as PatientProfileController;
@@ -34,6 +35,9 @@ Route::prefix('patient')->name('api.v1.patient.')->group(function () {
   // Search
   Route::get('search', [SearchController::class, 'index'])->name('search');
   Route::get('search/feed', [SearchController::class, 'feed'])->name('search.feed');
+
+  // Partners
+  Route::get('partners/{id}', [PartnerController::class, 'show'])->name('partners.show');
 
   // Professionals
   Route::get('professionals', [ProfessionalController::class, 'index'])->name('professionals.index');

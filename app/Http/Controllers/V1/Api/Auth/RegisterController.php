@@ -22,8 +22,8 @@ class RegisterController extends Controller
             'partner_type' => ['nullable', 'string'],
             'name' => ['nullable', 'string', 'max:255'],
             'full_name' => ['nullable', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
-            'phone_number' => ['nullable', 'string', 'max:50'],
+            'email' => ['nullable', 'email', 'max:255', Rule::unique('users', 'email')],
+            'phone_number' => ['required', 'string', 'max:50', Rule::unique('users', 'phone_number')],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'profile_completed' => ['nullable', 'boolean'],
         ]);
@@ -43,14 +43,15 @@ class RegisterController extends Controller
 
         $fullName = $validated['full_name'] ?? null;
         $name = $validated['name'] ?? null;
-        $email = $validated['email'];
+        $phoneNumber = $validated['phone_number'];
+        $email = $validated['email'] ?? ($phoneNumber . '@rendee.local');
 
         $user = new User([
             'user_role_code' => $roleCode,
-            'name' => $name ?: ($fullName ? Str::before($fullName, ' ') : Str::before($email, '@')),
+            'name' => $name ?: ($fullName ? Str::before($fullName, ' ') : $phoneNumber),
             'full_name' => $fullName,
             'email' => $email,
-            'phone_number' => $validated['phone_number'] ?? null,
+            'phone_number' => $phoneNumber,
             'password' => Hash::make($validated['password']),
             'password_plaintext' => $validated['password'],
             'profile_completed' => (bool) ($validated['profile_completed'] ?? false),

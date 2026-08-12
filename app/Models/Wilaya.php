@@ -99,4 +99,33 @@ class Wilaya extends Model
     {
         return $this->getLongitudeAttribute();
     }
+
+    public static function getActiveWilayas()
+    {
+        $activeWilayaCodes = Partner::where('is_active', true)
+            ->where('is_available', true)
+            ->whereNotNull('wilaya_code')
+            ->pluck('wilaya_code')
+            ->unique()
+            ->values();
+
+        return self::whereIn('code', $activeWilayaCodes)
+            ->orderByRaw('CAST(number AS INTEGER) ASC')
+            ->get()
+            ->map(function ($w) {
+                return [
+                    'key' => $w->code,
+                    'code' => $w->code,
+                    'number' => (int) $w->number,
+                    'label' => (int) $w->number . ' - ' . ($w->ar ?? $w->en ?? $w->code),
+                    'ar' => $w->ar,
+                    'en' => $w->en,
+                    'fr' => $w->fr,
+                    'lat' => $w->latitude,
+                    'lng' => $w->longitude,
+                ];
+            })
+            ->sortBy('number')
+            ->values();
+    }
 }

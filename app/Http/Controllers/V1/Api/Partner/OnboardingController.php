@@ -59,7 +59,8 @@ class OnboardingController extends Controller
             'success' => true,
             'is_completed' => $isComplete,
             'current_step' => $stepStatus['current_step'],
-            'total_steps' => 5,
+            'total_steps' => 4,
+            'sections' => $stepStatus['sections'],
             'steps' => $stepStatus['steps'],
             'data' => [
                 'speciality_code' => $partner->professional_speciality_code,
@@ -333,14 +334,38 @@ class OnboardingController extends Controller
     }
 
     /**
-     * Calculate step-by-step completion status.
+     * Calculate step-by-step & section completion status.
      */
     private function calculateStepStatus(User $user, Partner $partner): array
     {
+        $hasProfile = ! empty($user->full_name) && ! empty($user->email) && (! empty($user->phone_number) || ! empty($partner->phone_public)) && (! empty($partner->address) || ! empty($partner->city));
+        $hasSchedule = $partner->schedules()->where('is_active', true)->count() > 0;
+        $hasServices = $partner->services()->count() > 0;
+        $hasLocation = ! empty($partner->latitude) && ! empty($partner->longitude);
+
+        $sections = [
+            'profile' => [
+                'completed' => $hasProfile,
+                'missing_count' => $hasProfile ? 0 : 1,
+            ],
+            'schedule' => [
+                'completed' => $hasSchedule,
+                'missing_count' => $hasSchedule ? 0 : 1,
+            ],
+            'services' => [
+                'completed' => $hasServices,
+                'missing_count' => $hasServices ? 0 : 1,
+            ],
+            'location' => [
+                'completed' => $hasLocation,
+                'missing_count' => $hasLocation ? 0 : 1,
+            ],
+        ];
+
         $step1Speciality = ! empty($partner->professional_speciality_code) || ! empty($partner->license_number) || ! empty($partner->center_catalog_code);
-        $step2Location = ! empty($partner->wilaya_code) && ! empty($partner->city) && ! empty($partner->address);
-        $step3Services = $partner->services()->count() > 0;
-        $step4Schedule = $partner->schedules()->where('is_active', true)->count() > 0;
+        $step2Location = $hasLocation;
+        $step3Services = $hasServices;
+        $step4Schedule = $hasSchedule;
         $step5Contacts = ! empty($partner->phone_public) || $partner->contacts()->count() > 0 || ! empty($user->phone_number);
 
         $steps = [
@@ -382,11 +407,12 @@ class OnboardingController extends Controller
             }
         }
 
-        $allCompleted = $step1Speciality && $step2Location && $step3Services && $step4Schedule && $step5Contacts;
+        $allCompleted = $hasProfile && $hasSchedule && $hasServices && $hasLocation;
 
         return [
             'is_completed' => $allCompleted,
             'current_step' => $currentStep,
+            'sections' => $sections,
             'steps' => $steps,
         ];
     }

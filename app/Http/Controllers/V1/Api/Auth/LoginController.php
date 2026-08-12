@@ -14,16 +14,25 @@ class LoginController extends Controller
     public function store(Request $request): JsonResponse
     {
         $credentials = $request->validate([
-            'email' => ['required', 'email'],
+            'phone_number' => ['nullable', 'string'],
+            'phone' => ['nullable', 'string'],
             'password' => ['required', 'string'],
             'device_name' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $user = User::where('email', $credentials['email'])->first();
+        $phone = $credentials['phone_number'] ?? $credentials['phone'] ?? null;
+
+        if (! $phone) {
+            throw ValidationException::withMessages([
+                'phone_number' => ['The phone number field is required.'],
+            ]);
+        }
+
+        $user = User::where('phone_number', $phone)->first();
 
         if (! $user || ! Hash::check($credentials['password'], $user->password)) {
             throw ValidationException::withMessages([
-                'email' => ['The provided credentials are incorrect.'],
+                'phone_number' => ['The provided credentials are incorrect.'],
             ]);
         }
 
