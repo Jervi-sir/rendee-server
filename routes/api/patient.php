@@ -63,9 +63,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('onboarding', [PatientOnboardingController::class, 'update'])->name('onboarding.update');
 
     // Bookings
+    Route::get('bookings/attempt', [PatientBookingController::class, 'attemptBooking'])->name('bookings.attempt');
     Route::get('bookings', [PatientBookingController::class, 'index'])->name('bookings.index');
     Route::get('bookings/{id}', [PatientBookingController::class, 'show'])->name('bookings.show');
     Route::post('bookings', [PatientBookingController::class, 'store'])->name('bookings.store');
+    Route::post('bookings/{id}/confirm-proposal', [PatientBookingController::class, 'confirmProposal'])->name('bookings.confirm-proposal');
 
     // Ratings
     Route::post('ratings', [RatingController::class, 'store'])->name('ratings.store');

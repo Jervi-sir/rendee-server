@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'code',
@@ -11,11 +12,15 @@ use Illuminate\Database\Eloquent\Model;
     'fr',
     'ar',
 ])]
-
 class CenterCatalog extends Model
 {
-    public function centers()
+    public function partners(): HasMany
     {
-        return $this->hasMany(Center::class, 'center_catalog_code', 'code');
+        return $this->hasMany(Partner::class, 'center_catalog_code', 'code');
+    }
+
+    public function centers(): HasMany
+    {
+        return $this->partners();
     }
 }

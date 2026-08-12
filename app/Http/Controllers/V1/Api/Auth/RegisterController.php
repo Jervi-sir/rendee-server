@@ -3,10 +3,8 @@
 namespace App\Http\Controllers\V1\Api\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\Center;
+use App\Models\Partner;
 use App\Models\Patient;
-use App\Models\Pharmacy;
-use App\Models\Professional;
 use App\Models\User;
 use App\Models\UserRole;
 use Illuminate\Http\JsonResponse;
@@ -20,34 +18,18 @@ class RegisterController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'user_role_code' => ['required', 'string', 'in:patient,center,pharmacist,pharmacy,professional,doctor,psychologist,dentist'],
-            'profession_code' => ['nullable', 'string', 'in:doctor,psychologist,dentist'],
+            'user_role_code' => ['required', 'string', 'in:patient,partner'],
+            'partner_type' => ['nullable', 'string'],
             'name' => ['nullable', 'string', 'max:255'],
             'full_name' => ['nullable', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
             'phone_number' => ['nullable', 'string', 'max:50'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'profile_complete' => ['nullable', 'boolean'],
+            'profile_completed' => ['nullable', 'boolean'],
         ]);
 
         $roleCode = $validated['user_role_code'];
-        $professionCode = $validated['profession_code'] ?? null;
-
-        // Map doctor/psychologist/dentist directly to professional role and set profession code
-        if (in_array($roleCode, ['doctor', 'psychologist', 'dentist'])) {
-            $professionCode = $roleCode;
-            $roleCode = 'professional';
-        }
-
-        // If the role is professional, default to 'doctor' if no profession code was provided
-        if ($roleCode === 'professional' && empty($professionCode)) {
-            $professionCode = 'doctor';
-        }
-
-        // Normalize pharmacy to pharmacist
-        if ($roleCode === 'pharmacy') {
-            $roleCode = 'pharmacist';
-        }
+        $partnerTypeInput = $validated['partner_type'] ?? null;
 
         // Ensure the role exists in the database
         UserRole::firstOrCreate(
@@ -71,7 +53,7 @@ class RegisterController extends Controller
             'phone_number' => $validated['phone_number'] ?? null,
             'password' => Hash::make($validated['password']),
             'password_plaintext' => $validated['password'],
-            'profile_complete' => (bool) ($validated['profile_complete'] ?? false),
+            'profile_completed' => (bool) ($validated['profile_completed'] ?? false),
         ]);
 
         $user->save();
@@ -79,31 +61,18 @@ class RegisterController extends Controller
         // Create the associated role profile
         if ($roleCode === 'patient') {
             Patient::create(['user_id' => $user->id]);
-        } elseif ($roleCode === 'professional') {
-            Professional::create([
+        } elseif ($roleCode === 'partner') {
+            Partner::create([
                 'user_id' => $user->id,
-                'profession_code' => $professionCode,
-                'is_available' => true,
-            ]);
-        } elseif ($roleCode === 'center') {
-            Center::create([
-                'user_id' => $user->id,
+                'partner_type_code' => $partnerTypeInput ?? 'doctor',
                 'name' => $user->full_name ?? $user->name,
+                'is_available' => true,
                 'is_active' => true,
-            ]);
-        } elseif ($roleCode === 'pharmacist') {
-            Pharmacy::create([
-                'user_id' => $user->id,
-                'name' => $user->full_name ?? $user->name,
-                'is_available' => true,
             ]);
         }
 
-        $token = $user->createToken($request->input('device_name', 'api'))->plainTextToken;
+        $token = $user->createToken('auth-token')->plainTextToken;
 
-        return response()->json(
-            $user->formatAuthResponse($token, 'Registered successfully.'),
-            201
-        );
+        return response()->json($user->formatAuthResponse($token, 'Registration successful'), 201);
     }
 }

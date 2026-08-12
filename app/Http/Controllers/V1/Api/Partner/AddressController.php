@@ -3,8 +3,7 @@
 namespace App\Http\Controllers\V1\Api\Partner;
 
 use App\Http\Controllers\Controller;
-use App\Models\Center;
-use App\Models\Professional;
+use App\Models\Partner;
 use App\Models\Wilaya;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -13,7 +12,7 @@ use Illuminate\Validation\Rule;
 class AddressController extends Controller
 {
     /**
-     * Show address details for authenticated provider (Professional or Center) and list of wilayas.
+     * Show address details for authenticated partner and list of wilayas.
      */
     public function show(Request $request): JsonResponse
     {
@@ -21,15 +20,11 @@ class AddressController extends Controller
         $provider = null;
 
         if ($user) {
-            if ($user->user_role_code === 'center' || $user->center) {
-                $provider = Center::with('wilaya')->where('user_id', $user->id)->first();
-            } else {
-                $provider = Professional::with('wilaya')->where('user_id', $user->id)->first();
-            }
+            $provider = Partner::with('wilaya')->where('user_id', $user->id)->first();
         }
 
         if (! $provider) {
-            $provider = Professional::with('wilaya')->first() ?? Center::with('wilaya')->first();
+            $provider = Partner::with('wilaya')->first();
         }
 
         $wilayas = Wilaya::orderBy('number', 'asc')->get()->map(function ($w) {
@@ -73,7 +68,7 @@ class AddressController extends Controller
     }
 
     /**
-     * Create or update (upsert) address details for authenticated provider.
+     * Create or update (upsert) address details for authenticated partner.
      */
     public function upsert(Request $request): JsonResponse
     {
@@ -81,19 +76,15 @@ class AddressController extends Controller
         $provider = null;
 
         if ($user) {
-            if ($user->user_role_code === 'center' || $user->center) {
-                $provider = Center::where('user_id', $user->id)->first();
-            } else {
-                $provider = Professional::where('user_id', $user->id)->first();
-            }
+            $provider = Partner::where('user_id', $user->id)->first();
         }
 
         if (! $provider) {
-            $provider = Professional::first() ?? Center::first();
+            $provider = Partner::first();
         }
 
         if (! $provider) {
-            return response()->json(['error' => 'Provider profile not found'], 404);
+            return response()->json(['error' => 'Partner profile not found'], 404);
         }
 
         $validated = $request->validate([

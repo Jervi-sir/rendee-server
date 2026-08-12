@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { api } from '@/utils/api-client';
+import { api } from '@/utils/auth';
 
 // ─────────────────────────────────────────────
 // Types
@@ -12,7 +12,19 @@ export type CatalogInclude =
     | 'wilayas'
     | 'statuses'
     | 'user_roles'
-    | 'professional_services';
+    | 'professional_services'
+    | 'registery_types';
+
+export interface RegisteryTypeItem {
+    id?: number;
+    code: string;
+    en: string;
+    fr: string;
+    ar: string;
+    source: 'user_role' | 'partner_type';
+    created_at?: string;
+    updated_at?: string;
+}
 
 export interface ProfessionalSpeciality {
     id: number;
@@ -47,7 +59,11 @@ export interface ServiceCatalogItem {
 export interface Wilaya {
     id: number;
     code: string;
-    name_ar: string;
+    number?: number | string | null;
+    en?: string | null;
+    fr?: string | null;
+    ar?: string | null;
+    name_ar?: string | null;
     name_en?: string | null;
     created_at?: string;
     updated_at?: string;
@@ -98,6 +114,7 @@ export interface GetCatalogsResponse {
     statuses?: StatusItem[];
     user_roles?: UserRoleItem[];
     professional_services?: ProfessionalServiceItem[];
+    registery_types?: RegisteryTypeItem[];
 }
 
 // ─────────────────────────────────────────────

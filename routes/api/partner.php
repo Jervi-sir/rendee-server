@@ -42,6 +42,7 @@ Route::middleware('auth:sanctum')->group(function () {
   // ──────────────────────────────────────────
   Route::prefix('partner')->group(function () {
     Route::get('profile', [ProfileController::class, 'show'])->name('api.v1.partner.profile.show');
+    Route::get('profile/preview', [ProfileController::class, 'preview'])->name('api.v1.partner.profile.preview');
     Route::put('profile', [ProfileController::class, 'update'])->name('api.v1.partner.profile.update');
   });
 
@@ -59,7 +60,7 @@ Route::middleware('auth:sanctum')->group(function () {
   // ──────────────────────────────────────────
   // Professional
   // ──────────────────────────────────────────
-  Route::prefix('pro')->name('api.v1.professional.')->group(function () {
+  Route::prefix('partner')->name('api.v1.professional.')->group(function () {
     // Dashboard
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
@@ -76,6 +77,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Onboarding
     Route::get('onboarding', [OnboardingController::class, 'index'])->name('onboarding.index');
+    Route::post('onboarding/complete', [OnboardingController::class, 'complete'])->name('onboarding.complete');
     Route::post('onboarding/step-speciality', [OnboardingController::class, 'stepSpeciality'])->name('onboarding.step-speciality');
     Route::post('onboarding/step-location', [OnboardingController::class, 'stepLocation'])->name('onboarding.step-location');
     Route::post('onboarding/step-services', [OnboardingController::class, 'stepServices'])->name('onboarding.step-services');
@@ -96,9 +98,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // Patients
     Route::get('patients', [PatientsController::class, 'index'])->name('patients.index');
     Route::get('patients/{id}', [PatientsController::class, 'show'])->name('patients.show');
+    Route::get('patients/{id}/history', [PatientsController::class, 'history'])->name('patients.history');
 
     // Bookings
     Route::get('bookings', [BookingController::class, 'index'])->name('bookings.index');
+    Route::get('bookings/{id}', [BookingController::class, 'show'])->name('bookings.show');
     Route::put('bookings/{id}', [BookingController::class, 'update'])->name('bookings.update');
     Route::post('bookings/{id}/suggest', [BookingController::class, 'suggest'])->name('bookings.suggest');
   });

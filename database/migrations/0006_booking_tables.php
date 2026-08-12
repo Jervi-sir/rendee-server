@@ -15,8 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('reference')->unique();
             $table->foreignId('patient_id')->nullable()->constrained('patients')->onDelete('set null');
-            $table->text('bookable_type')->nullable(); // doctor, center
-            $table->unsignedBigInteger('bookable_id');
+            $table->foreignId('partner_id')->nullable()->constrained('partners')->onDelete('cascade');
             $table->string('service_type')->nullable();
             $table->unsignedBigInteger('service_id')->nullable();
             $table->string('schedule_type')->nullable();
@@ -32,7 +31,7 @@ return new class extends Migration
             $table->boolean('has_pending_proposal')->default(false);
             $table->text('notes')->nullable();
             $table->timestamps();
-            $table->index(['bookable_type', 'bookable_id']);
+            $table->index(['partner_id']);
             $table->index(['service_type', 'service_id']);
             $table->index(['schedule_type', 'schedule_id']);
             $table->foreign('status_code')->references('code')->on('statuses')->nullOnDelete();

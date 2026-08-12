@@ -4,13 +4,11 @@ namespace App\Http\Controllers\V1\Api\Patient;
 
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
-use App\Models\Center;
-use App\Models\CenterService;
-use App\Models\CenterWorkingHour;
+use App\Models\Partner;
+use App\Models\PartnerSchedule;
+use App\Models\PartnerService;
 use App\Models\Patient;
-use App\Models\Professional;
-use App\Models\ProfessionalSchedule;
-use App\Models\ProfessionalService;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Http\JsonResponse;
@@ -36,13 +34,8 @@ class BookingController extends Controller
         $perPage = max(1, min(100, (int) $request->query('per_page', 10)));
 
         $query = Booking::with([
-            'bookable' => function (MorphTo $morphTo) {
-                $morphTo->morphWith([
-                    Professional::class => ['user', 'speciality', 'profession'],
-                    Center::class => ['user', 'catalog'],
-                ]);
-            },
-            'service.serviceCatalog',
+            'partner' => ['user', 'speciality', 'profession', 'catalog', 'wilaya'],
+            'service.catalog',
             'status',
         ])
             ->where('patient_id', $patientId);
@@ -51,8 +44,7 @@ class BookingController extends Controller
             $query->where('status_code', $request->query('status_code'));
         }
 
-        $paginator = $query->orderBy('booking_date', 'desc')
-            ->orderBy('booking_time', 'desc')
+        $paginator = $query->orderBy('updated_at', 'desc')
             ->paginate($perPage, ['*'], 'page', $page);
 
         $bookings = collect($paginator->items())->map(fn ($b) => $b->formatForPatient(false));
@@ -74,13 +66,8 @@ class BookingController extends Controller
         $patientId = $user && $user->patient ? $user->patient->id : null;
 
         $booking = Booking::with([
-            'bookable' => function (MorphTo $morphTo) {
-                $morphTo->morphWith([
-                    Professional::class => ['user', 'speciality', 'profession'],
-                    Center::class => ['user', 'catalog'],
-                ]);
-            },
-            'service.serviceCatalog',
+            'partner' => ['user', 'speciality', 'profession', 'catalog', 'wilaya'],
+            'service.catalog',
             'schedule',
             'status',
             'bookingHistories.changedBy',
@@ -103,19 +90,17 @@ class BookingController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'bookable_type' => ['required', 'string', 'in:professional,center'],
-            'bookable_id' => ['required', 'integer'],
+            'partner_id' => ['required', 'integer'],
             'date' => ['required', 'date_format:Y-m-d'],
             'time' => ['required', 'string'],
-            'service_id' => ['required', 'integer'],
+            'service_id' => ['nullable', 'integer'],
             'patient_name' => ['required', 'string', 'max:255'],
             'patient_phone' => ['required', 'string', 'max:30'],
             'notes' => ['nullable', 'string'],
         ]);
 
-        $bookableType = $validated['bookable_type'];
-        $bookableId = $validated['bookable_id'];
-        $serviceId = $validated['service_id'];
+        $partnerId = $validated['partner_id'];
+        $serviceId = $validated['service_id'] ?? null;
         $date = $validated['date'];
 
         $user = $request->user();
@@ -133,59 +118,44 @@ class BookingController extends Controller
             }
         }
 
-        $reference = ($bookableType === 'professional' ? 'PR-' : 'CT-').strtoupper(Str::random(8));
+        $partner = Partner::find($partnerId);
+
+        $reference = 'BK-'.strtoupper(Str::random(8));
 
         $bookingData = [
             'reference' => $reference,
             'patient_id' => $patientId,
-            'bookable_type' => $bookableType === 'professional' ? Professional::class : Center::class,
-            'bookable_id' => $bookableId,
+            'partner_id' => $partnerId,
             'booking_date' => $date,
             'booking_time' => $validated['time'],
             'patient_name' => $validated['patient_name'],
             'patient_phone' => $validated['patient_phone'],
             'status_code' => 'pending',
-            'is_center' => $bookableType === 'center',
+            'is_center' => $partner ? ($partner->partner_type_code === 'center') : false,
             'has_pending_proposal' => false,
             'notes' => $validated['notes'] ?? null,
         ];
 
-        // Resolve polymorphic service and schedule based on bookable type
-        if ($bookableType === 'center') {
-            $bookingData['service_type'] = CenterService::class;
+        if ($serviceId) {
+            $bookingData['service_type'] = PartnerService::class;
             $bookingData['service_id'] = $serviceId;
+        }
 
-            $workingHour = CenterWorkingHour::where('center_id', $bookableId)
-                ->where('slot_date', $date)
-                ->first();
-            if ($workingHour) {
-                $bookingData['schedule_type'] = CenterWorkingHour::class;
-                $bookingData['schedule_id'] = $workingHour->id;
-            }
-        } else {
-            $bookingData['service_type'] = ProfessionalService::class;
-            $bookingData['service_id'] = $serviceId;
+        $carbonDate = Carbon::parse($date);
+        $schedule = PartnerSchedule::where('partner_id', $partnerId)
+            ->where('day_of_week', $carbonDate->dayOfWeek)
+            ->first();
 
-            $carbonDate = Carbon::parse($date);
-            $schedule = ProfessionalSchedule::where('professional_id', $bookableId)
-                ->where('day_of_week', $carbonDate->dayOfWeek)
-                ->first();
-            if ($schedule) {
-                $bookingData['schedule_type'] = ProfessionalSchedule::class;
-                $bookingData['schedule_id'] = $schedule->id;
-            }
+        if ($schedule) {
+            $bookingData['schedule_type'] = PartnerSchedule::class;
+            $bookingData['schedule_id'] = $schedule->id;
         }
 
         $booking = Booking::create($bookingData);
 
         $booking->load([
-            'bookable' => function (MorphTo $morphTo) {
-                $morphTo->morphWith([
-                    Professional::class => ['user', 'speciality', 'profession'],
-                    Center::class => ['user', 'catalog'],
-                ]);
-            },
-            'service.serviceCatalog',
+            'partner' => ['user', 'speciality', 'profession', 'catalog', 'wilaya'],
+            'service.catalog',
             'status',
         ]);
 
@@ -194,5 +164,129 @@ class BookingController extends Controller
             'message' => 'Appointment booked successfully.',
             'booking' => $booking->formatForPatient(true),
         ], 201);
+    }
+
+    /**
+     * Retrieve options for attempting a booking: prefilled patient info, partner details, services, and schedules.
+     */
+    public function attemptBooking(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user) {
+            $user = User::first();
+        }
+
+        $partnerId = $request->query('partner_id') ?? $request->query('bookable_id');
+        $partner = null;
+
+        if ($partnerId) {
+            $partner = Partner::with(['user', 'services', 'schedules'])->find($partnerId);
+        }
+
+        if (! $partner) {
+            $partner = Partner::with(['user', 'services', 'schedules'])->first();
+        }
+
+        // Prefilled patient data from logged in user
+        $patientInfo = [
+            'full_name' => $user?->full_name ?? $user?->name ?? '',
+            'first_name' => $user?->full_name ? Str::before($user->full_name, ' ') : ($user?->name ?? ''),
+            'last_name' => $user?->full_name ? Str::after($user->full_name, ' ') : '',
+            'email' => $user?->email ?? '',
+            'phone' => $user?->phone_number ?? '',
+            'phone_number' => $user?->phone_number ?? '',
+        ];
+
+        // Partner details & services
+        $services = [];
+        if ($partner && $partner->services) {
+            $services = $partner->services->map(fn ($s) => [
+                'id' => $s->id,
+                'name' => $s->name,
+                'price' => $s->price,
+                'duration_minutes' => $s->duration_minutes,
+                'description' => $s->description,
+                'is_active' => $s->is_active,
+            ])->toArray();
+        }
+
+        // Partner Schedules
+        $daysOfWeek = [
+            0 => ['en' => 'Sunday', 'ar' => 'الأحد', 'fr' => 'Dimanche'],
+            1 => ['en' => 'Monday', 'ar' => 'الاثنين', 'fr' => 'Lundi'],
+            2 => ['en' => 'Tuesday', 'ar' => 'الثلاثاء', 'fr' => 'Mardi'],
+            3 => ['en' => 'Wednesday', 'ar' => 'الأربعاء', 'fr' => 'Mercredi'],
+            4 => ['en' => 'Thursday', 'ar' => 'الخميس', 'fr' => 'Jeudi'],
+            5 => ['en' => 'Friday', 'ar' => 'الجمعة', 'fr' => 'Vendresse'],
+            6 => ['en' => 'Saturday', 'ar' => 'السبت', 'fr' => 'Samedi'],
+        ];
+
+        $schedules = [];
+        if ($partner && $partner->schedules) {
+            $schedules = $partner->schedules->map(function ($sch) use ($daysOfWeek) {
+                $dayMeta = $daysOfWeek[$sch->day_of_week] ?? ['en' => 'Day ' . $sch->day_of_week, 'ar' => 'اليوم ' . $sch->day_of_week, 'fr' => 'Jour ' . $sch->day_of_week];
+                return [
+                    'id' => $sch->id,
+                    'day_of_week' => $sch->day_of_week,
+                    'day_name' => $dayMeta['ar'],
+                    'day_name_ar' => $dayMeta['ar'],
+                    'day_name_fr' => $dayMeta['fr'],
+                    'day_name_en' => $dayMeta['en'],
+                    'start_time' => $sch->start_time,
+                    'end_time' => $sch->end_time,
+                    'slot_duration_minutes' => 30,
+                    'is_active' => $sch->is_active,
+                ];
+            })->toArray();
+        }
+
+        $bookable = [
+            'id' => $partner?->id ?? 1,
+            'name' => $partner?->name ?? $partner?->user?->full_name ?? 'العيادة الطبية',
+            'partner_type' => $partner?->partner_type_code ?? 'doctor',
+            'is_center' => $partner ? ($partner->partner_type === 'center') : false,
+        ];
+
+        return response()->json([
+            'success' => true,
+            'patient_info' => $patientInfo,
+            'bookable' => $bookable,
+            'services' => $services,
+            'schedules' => $schedules,
+        ]);
+    }
+
+    /**
+     * Patient accepts/confirms a proposed booking schedule change by the partner.
+     */
+    public function confirmProposal(Request $request, int $id): JsonResponse
+    {
+        $booking = Booking::find($id);
+
+        if (! $booking) {
+            return response()->json(['message' => 'Booking not found.'], 404);
+        }
+
+        if ($booking->proposed_date) {
+            $booking->booking_date = $booking->proposed_date;
+        }
+
+        if ($booking->proposed_time) {
+            $booking->booking_time = $booking->proposed_time;
+        }
+
+        $booking->status_code = 'confirmed';
+        $booking->has_pending_proposal = false;
+        $booking->proposed_date = null;
+        $booking->proposed_time = null;
+        $booking->save();
+
+        $booking->load(['partner.user', 'service', 'status']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Proposal confirmed successfully.',
+            'booking' => $booking->formatForPatient(true),
+        ]);
     }
 }

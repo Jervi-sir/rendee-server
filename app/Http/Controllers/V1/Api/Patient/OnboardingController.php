@@ -30,7 +30,7 @@ class OnboardingController extends Controller
 
         return response()->json([
             'success' => true,
-            'is_completed' => (bool) $user->profile_complete,
+            'is_completed' => (bool) $user->profile_completed,
             'completion_percentage' => $completionPercentage,
             'user' => [
                 'id' => $user->id,
@@ -38,7 +38,7 @@ class OnboardingController extends Controller
                 'full_name' => $user->full_name ?? $user->name,
                 'email' => $user->email,
                 'phone' => $user->phone_number ?? '',
-                'profile_complete' => (bool) $user->profile_complete,
+                'profile_completed' => (bool) $user->profile_completed,
                 'image_url' => $user->image_url,
                 'patient' => $patient ? [
                     'id' => $patient->id,
@@ -124,7 +124,7 @@ class OnboardingController extends Controller
 
         $patient->save();
 
-        $user->profile_complete = true;
+        $user->profile_completed = true;
         $user->save();
 
         return response()->json([
@@ -137,7 +137,7 @@ class OnboardingController extends Controller
                 'full_name' => $user->full_name ?? $user->name,
                 'email' => $user->email,
                 'phone' => $user->phone_number ?? '',
-                'profile_complete' => true,
+                'profile_completed' => true,
                 'image_url' => $user->image_url,
                 'patient' => [
                     'id' => $patient->id,

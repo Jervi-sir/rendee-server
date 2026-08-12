@@ -7,26 +7,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // ─────────────────────────────────────────────
 
 /** Accepted role codes for registration. */
-export type UserRoleCode =
-    | 'patient'
-    | 'center'
-    | 'pharmacist'
-    | 'pharmacy'
-    | 'professional'
-    | 'doctor'
-    | 'psychologist'
-    | 'dentist';
-
-/** Profession codes (only relevant for professionals). */
-export type ProfessionCode = 'doctor' | 'psychologist' | 'dentist';
+export type UserRoleCode = 'patient' | 'partner';
 
 /** POST /api/v1/auth/register – request body. */
 export interface RegisterRequest {
     /** Required – the user's role. */
     user_role_code: UserRoleCode;
 
-    /** Optional – profession for professionals (doctor/psychologist/dentist). */
-    profession_code?: ProfessionCode | null;
+    /** Optional – partner type code when user_role_code is partner. */
+    partner_type?: string | null;
 
     /** Optional – short display name. */
     name?: string | null;
@@ -47,7 +36,7 @@ export interface RegisterRequest {
     password_confirmation: string;
 
     /** Optional – whether the profile is already complete. */
-    profile_complete?: boolean;
+    profile_completed?: boolean;
 }
 
 /** The user object returned after registration. */
@@ -58,7 +47,7 @@ export interface AuthUser {
     full_name: string | null;
     email: string;
     phone_number: string | null;
-    profile_complete: boolean;
+    profile_completed: boolean;
     [key: string]: unknown;
 }
 

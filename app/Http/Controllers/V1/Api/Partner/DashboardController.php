@@ -4,7 +4,7 @@ namespace App\Http\Controllers\V1\Api\Partner;
 
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
-use App\Models\Professional;
+use App\Models\Partner;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,23 +14,24 @@ class DashboardController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
-        $professional = null;
+        $partner = null;
 
         if ($user) {
-            $professional = Professional::with(['user', 'specialty'])->where('user_id', $user->id)->first();
+            $partner = Partner::with(['user', 'specialty', 'catalog'])->where('user_id', $user->id)->first();
         }
 
-        if (! $professional) {
-            $professional = Professional::with(['user', 'specialty'])->first();
+        if (! $partner) {
+            $partner = Partner::with(['user', 'specialty', 'catalog'])->first();
         }
 
         $page = max(1, (int) $request->query('page', 1));
         $perPage = max(1, min(100, (int) $request->query('per_page', 10)));
 
-        if (! $professional) {
+        if (! $partner) {
             return response()->json([
                 'header' => [
-                    'professional_name' => 'أخصائي تجريبي',
+                    'partner_name' => 'شريك تجريبي',
+                    'professional_name' => 'شريك تجريبي',
                     'speciality' => 'عام',
                     'date_label' => Carbon::now()->translatedFormat('l، d F Y'),
                 ],
@@ -55,42 +56,35 @@ class DashboardController extends Controller
         }
 
         // Header details
-        $prefix = $professional->profession_code === 'doctor' ? 'د. ' : '';
-        $professionalName = $prefix . ($professional->user->full_name ?? $professional->user->name ?? 'أخصائي');
-        $speciality = $professional->specialty?->ar ?? $professional->specialty?->en ?? 'عام';
+        $prefix = $partner->profession_code === 'doctor' ? 'د. ' : '';
+        $partnerName = $prefix . ($partner->name ?? $partner->user?->full_name ?? $partner->user?->name ?? 'شريك');
+        $speciality = $partner->specialty?->ar ?? $partner->catalog?->ar ?? $partner->specialty?->en ?? 'عام';
         $dateLabel = Carbon::now()->translatedFormat('l، d F Y');
 
         // Today's Stats
         $today = Carbon::today()->format('Y-m-d');
 
-        $todayBookingsCount = Booking::where('bookable_type', Professional::class)
-            ->where('bookable_id', $professional->id)
+        $todayBookingsCount = Booking::where('partner_id', $partner->id)
             ->where('booking_date', $today)
             ->count();
 
-        $completedTodayCount = Booking::where('bookable_type', Professional::class)
-            ->where('bookable_id', $professional->id)
+        $completedTodayCount = Booking::where('partner_id', $partner->id)
             ->where('booking_date', $today)
             ->where('status_code', 'completed')
             ->count();
 
-        $completedBookingsCount = Booking::where('bookable_type', Professional::class)
-            ->where('bookable_id', $professional->id)
+        $completedBookingsCount = Booking::where('partner_id', $partner->id)
             ->where('status_code', 'completed')
             ->count();
 
-        $pendingBookingsCount = Booking::where('bookable_type', Professional::class)
-            ->where('bookable_id', $professional->id)
+        $pendingBookingsCount = Booking::where('partner_id', $partner->id)
             ->where('status_code', 'pending')
             ->count();
 
         // Paginated Newest Appointments
-        $paginator = Booking::with(['service.serviceCatalog', 'patient.user', 'status'])
-            ->where('bookable_type', Professional::class)
-            ->where('bookable_id', $professional->id)
-            ->orderBy('created_at', 'desc')
-            ->orderBy('booking_date', 'desc')
-            ->orderBy('booking_time', 'desc')
+        $paginator = Booking::with(['service.catalog', 'patient.user', 'status'])
+            ->where('partner_id', $partner->id)
+            ->orderBy('updated_at', 'desc')
             ->paginate($perPage, ['*'], 'page', $page);
 
         $appointments = collect($paginator->items())->map(function ($booking) {
@@ -103,8 +97,8 @@ class DashboardController extends Controller
                 $statusLabel = 'مكتمل';
             }
 
-            $serviceName = $booking->service?->serviceCatalog?->ar
-                ?? $booking->service?->serviceCatalog?->en
+            $serviceName = $booking->service?->catalog?->ar
+                ?? $booking->service?->catalog?->en
                 ?? $booking->service?->name
                 ?? 'استشارة';
 
@@ -127,7 +121,8 @@ class DashboardController extends Controller
 
         return response()->json([
             'header' => [
-                'professional_name' => $professionalName,
+                'partner_name' => $partnerName,
+                'professional_name' => $partnerName,
                 'speciality' => $speciality,
                 'date_label' => $dateLabel,
             ],

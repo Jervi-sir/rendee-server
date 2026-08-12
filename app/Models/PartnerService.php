@@ -4,23 +4,19 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
-    'center_id',
+    'partner_id',
     'service_catalog_code',
+    'name',
     'description',
     'price',
     'duration_minutes',
     'is_active',
 ])]
-
-class CenterService extends Model
+class PartnerService extends Model
 {
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
@@ -30,18 +26,13 @@ class CenterService extends Model
         ];
     }
 
-    public function center()
+    public function partner(): BelongsTo
     {
-        return $this->belongsTo(Center::class);
+        return $this->belongsTo(Partner::class);
     }
 
-    public function serviceCatalog()
+    public function catalog(): BelongsTo
     {
         return $this->belongsTo(ServiceCatalog::class, 'service_catalog_code', 'code');
-    }
-
-    public function bookings()
-    {
-        return $this->hasMany(Booking::class, 'center_service_id');
     }
 }

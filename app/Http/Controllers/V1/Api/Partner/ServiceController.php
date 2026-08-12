@@ -3,10 +3,8 @@
 namespace App\Http\Controllers\V1\Api\Partner;
 
 use App\Http\Controllers\Controller;
-use App\Models\Center;
-use App\Models\CenterService;
-use App\Models\Professional;
-use App\Models\ProfessionalService;
+use App\Models\Partner;
+use App\Models\PartnerService;
 use App\Models\ServiceCatalog;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -17,7 +15,7 @@ use Illuminate\Validation\Rule;
 class ServiceController extends Controller
 {
   /**
-   * Get list of services provided by the authenticated partner (Professional or Center).
+   * Get list of services provided by the authenticated partner.
    */
   public function index(Request $request): JsonResponse
   {
@@ -30,60 +28,29 @@ class ServiceController extends Controller
       return response()->json(['success' => true, 'services' => []]);
     }
 
-    $roleCode = $user->user_role_code;
-
-    if ($roleCode === 'center' || $user->center) {
-      $center = Center::where('user_id', $user->id)->first();
-      if (! $center) {
-        $center = Center::first();
-      }
-
-      if (! $center) {
-        return response()->json(['success' => true, 'services' => []]);
-      }
-
-      $services = CenterService::with('serviceCatalog')
-        ->where('center_id', $center->id)
-        ->get()
-        ->map(fn($service) => [
-          'id' => $service->id,
-          'service_catalog_code' => $service->service_catalog_code,
-          'name' => $service->serviceCatalog?->ar ?? $service->serviceCatalog?->en ?? 'خدمة بدون عنوان',
-          'name_ar' => $service->serviceCatalog?->ar,
-          'name_en' => $service->serviceCatalog?->en,
-          'name_fr' => $service->serviceCatalog?->fr,
-          'description' => $service->description,
-          'price' => (float) $service->price,
-          'duration_minutes' => (int) ($service->duration_minutes ?? 30),
-          'is_active' => (bool) ($service->is_active ?? true),
-          'created_at' => $service->created_at?->toIso8601String(),
-        ]);
-
-      return response()->json(['success' => true, 'services' => $services]);
+    $partner = Partner::where('user_id', $user->id)->first();
+    if (! $partner) {
+      $partner = Partner::first();
     }
 
-    // Default to Professional
-    $professional = Professional::where('user_id', $user->id)->first();
-    if (! $professional) {
-      $professional = Professional::first();
-    }
-
-    if (! $professional) {
+    if (! $partner) {
       return response()->json(['success' => true, 'services' => []]);
     }
 
-    $services = ProfessionalService::with('serviceCatalog')
-      ->where('professional_id', $professional->id)
+    $services = PartnerService::with('catalog')
+      ->where('partner_id', $partner->id)
       ->get()
       ->map(fn($service) => [
         'id' => $service->id,
         'service_catalog_code' => $service->service_catalog_code,
-        'name' => $service->serviceCatalog?->ar ?? $service->serviceCatalog?->en ?? 'خدمة بدون عنوان',
-        'name_ar' => $service->serviceCatalog?->ar,
-        'name_en' => $service->serviceCatalog?->en,
-        'name_fr' => $service->serviceCatalog?->fr,
+        'name' => $service->catalog?->ar ?? $service->catalog?->en ?? $service->name ?? 'خدمة بدون عنوان',
+        'name_ar' => $service->catalog?->ar ?? $service->name,
+        'name_en' => $service->catalog?->en ?? $service->name,
+        'name_fr' => $service->catalog?->fr,
+        'description' => $service->description,
         'price' => (float) $service->price,
         'duration_minutes' => (int) ($service->duration_minutes ?? 30),
+        'is_active' => (bool) ($service->is_active ?? true),
         'created_at' => $service->created_at?->toIso8601String(),
       ]);
 
@@ -163,32 +130,28 @@ class ServiceController extends Controller
       );
     }
 
-    $roleCode = $user->user_role_code;
+    $partnerType = match ($user->user_role_code) {
+      'center' => 'CENTER',
+      'pharmacist' => 'PHARM',
+      default => 'PRO',
+    };
 
-    if ($roleCode === 'center' || $user->center) {
-      $center = Center::firstOrCreate(['user_id' => $user->id], ['name' => $user->full_name]);
-      $service = CenterService::create([
-        'center_id' => $center->id,
-        'service_catalog_code' => $serviceCatalogCode,
-        'description' => $validated['description'] ?? null,
-        'price' => $validated['price'],
-        'duration_minutes' => $validated['duration_minutes'] ?? 30,
-      ]);
-      $service->load('serviceCatalog');
-    } else {
-      $professional = Professional::firstOrCreate(
-        ['user_id' => $user->id],
-        ['profession_code' => 'doctor']
-      );
+    $partner = Partner::firstOrCreate(
+      ['user_id' => $user->id],
+      ['partner_type' => $partnerType, 'name' => $user->full_name]
+    );
 
-      $service = ProfessionalService::create([
-        'professional_id' => $professional->id,
-        'service_catalog_code' => $serviceCatalogCode,
-        'price' => $validated['price'],
-        'duration_minutes' => $validated['duration_minutes'] ?? 30,
-      ]);
-      $service->load('serviceCatalog');
-    }
+    $service = PartnerService::create([
+      'partner_id' => $partner->id,
+      'service_catalog_code' => $serviceCatalogCode,
+      'name' => $nameAr ?? $nameEn,
+      'description' => $validated['description'] ?? null,
+      'price' => $validated['price'],
+      'duration_minutes' => $validated['duration_minutes'] ?? 30,
+      'is_active' => true,
+    ]);
+
+    $service->load('catalog');
 
     return response()->json([
       'success' => true,
@@ -196,10 +159,10 @@ class ServiceController extends Controller
       'service' => [
         'id' => $service->id,
         'service_catalog_code' => $service->service_catalog_code,
-        'name' => $service->serviceCatalog?->ar ?? $service->serviceCatalog?->en ?? 'خدمة',
-        'name_ar' => $service->serviceCatalog?->ar,
-        'name_en' => $service->serviceCatalog?->en,
-        'name_fr' => $service->serviceCatalog?->fr,
+        'name' => $service->catalog?->ar ?? $service->catalog?->en ?? $service->name ?? 'خدمة',
+        'name_ar' => $service->catalog?->ar ?? $service->name,
+        'name_en' => $service->catalog?->en ?? $service->name,
+        'name_fr' => $service->catalog?->fr,
         'price' => (float) $service->price,
         'duration_minutes' => (int) $service->duration_minutes,
         'created_at' => $service->created_at?->toIso8601String(),
@@ -226,25 +189,19 @@ class ServiceController extends Controller
       'duration_minutes' => ['nullable', 'integer', 'min:5', 'max:480'],
     ]);
 
-    $roleCode = $user?->user_role_code;
-    $service = null;
-
-    if ($roleCode === 'center' || $user?->center) {
-      $service = CenterService::with('serviceCatalog')->find($id);
-    } else {
-      $service = ProfessionalService::with('serviceCatalog')->find($id);
-    }
+    $service = PartnerService::with('catalog')->find($id);
 
     if (! $service) {
       return response()->json(['error' => 'Service not found'], 404);
     }
 
     $service->update([
+      'name' => $validated['name_ar'] ?? $validated['name'] ?? $service->name,
       'price' => $validated['price'],
       'duration_minutes' => $validated['duration_minutes'] ?? $service->duration_minutes ?? 30,
     ]);
 
-    if ($service->serviceCatalog) {
+    if ($service->catalog) {
       $catalogUpdates = [];
       if (! empty($validated['name_ar'])) {
         $catalogUpdates['ar'] = $validated['name_ar'];
@@ -263,7 +220,7 @@ class ServiceController extends Controller
       }
 
       if (! empty($catalogUpdates)) {
-        $service->serviceCatalog->update($catalogUpdates);
+        $service->catalog->update($catalogUpdates);
       }
     }
 
@@ -275,10 +232,10 @@ class ServiceController extends Controller
       'service' => [
         'id' => $service->id,
         'service_catalog_code' => $service->service_catalog_code,
-        'name' => $service->serviceCatalog?->ar ?? $service->serviceCatalog?->en ?? 'خدمة',
-        'name_ar' => $service->serviceCatalog?->ar,
-        'name_en' => $service->serviceCatalog?->en,
-        'name_fr' => $service->serviceCatalog?->fr,
+        'name' => $service->catalog?->ar ?? $service->catalog?->en ?? $service->name ?? 'خدمة',
+        'name_ar' => $service->catalog?->ar ?? $service->name,
+        'name_en' => $service->catalog?->en ?? $service->name,
+        'name_fr' => $service->catalog?->fr,
         'price' => (float) $service->price,
         'duration_minutes' => (int) $service->duration_minutes,
         'created_at' => $service->created_at?->toIso8601String(),
@@ -291,15 +248,7 @@ class ServiceController extends Controller
    */
   public function destroy(Request $request, int $id): JsonResponse
   {
-    $user = $request->user();
-    $roleCode = $user?->user_role_code;
-    $service = null;
-
-    if ($roleCode === 'center' || $user?->center) {
-      $service = CenterService::find($id);
-    } else {
-      $service = ProfessionalService::find($id);
-    }
+    $service = PartnerService::find($id);
 
     if (! $service) {
       return response()->json(['error' => 'Service not found'], 404);

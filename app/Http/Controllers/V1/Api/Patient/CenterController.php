@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\V1\Api\Patient;
 
 use App\Http\Controllers\Controller;
-use App\Models\Center;
+use App\Models\Partner;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -14,7 +14,8 @@ class CenterController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Center::with(['catalog', 'user', 'wilaya']);
+        $query = Partner::with(['catalog', 'user', 'wilaya'])
+            ->whereIn('partner_type', ['CENTER', 'center']);
 
         if ($request->has('center_catalog_code')) {
             $query->where('center_catalog_code', $request->query('center_catalog_code'));
@@ -28,8 +29,8 @@ class CenterController extends Controller
             $query->where('city', 'like', '%'.$request->query('city').'%');
         }
 
-        $centers = $query->where('is_active', true)->get()->map(function ($center) {
-            return $center->formatForPatient(false);
+        $centers = $query->where('is_active', true)->get()->map(function ($partner) {
+            return $partner->formatForPatient(false);
         });
 
         return response()->json([
@@ -42,23 +43,23 @@ class CenterController extends Controller
      */
     public function show(Request $request, int $id): JsonResponse
     {
-        $center = Center::with([
+        $partner = Partner::with([
             'catalog',
             'user',
             'wilaya',
             'contacts',
-            'workingHours',
-            'services.serviceCatalog',
+            'schedules',
+            'services.catalog',
         ])->find($id);
 
-        if (! $center) {
+        if (! $partner) {
             return response()->json([
                 'message' => 'Center not found.',
             ], 404);
         }
 
         return response()->json([
-            'center' => $center->formatForPatient(true),
+            'center' => $partner->formatForPatient(true),
         ]);
     }
 }

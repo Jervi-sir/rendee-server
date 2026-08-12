@@ -20,7 +20,7 @@ export interface PatientProfileUser {
     full_name: string;
     email: string;
     phone: string;
-    profile_complete: boolean;
+    profile_completed: boolean;
     image_url: string | null;
     patient: PatientDetails | null;
 }

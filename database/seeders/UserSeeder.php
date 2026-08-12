@@ -15,24 +15,14 @@ class UserSeeder extends Seeder
 
     public function run(): void
     {
-        $roles = [
-            ['code' => 'admin', 'en' => 'Administrator', 'fr' => 'Administrateur', 'ar' => 'مسؤول'],
-            ['code' => 'patient', 'en' => 'Patient', 'fr' => 'Patient', 'ar' => 'مريض'],
-            ['code' => 'professional', 'en' => 'Professional', 'fr' => 'Professionnel', 'ar' => 'أخصائي/طبيب'],
-            ['code' => 'center', 'en' => 'Center', 'fr' => 'Centre', 'ar' => 'مركز'],
-            ['code' => 'pharmacist', 'en' => 'Pharmacist', 'fr' => 'Pharmacien', 'ar' => 'صيدلي'],
-        ];
-
-        foreach ($roles as $data) {
-            UserRole::query()->firstOrCreate(['code' => $data['code']], $data);
-        }
+        $this->call(UserRoleSeeder::class);
 
         $password = Hash::make('password');
 
         User::query()->firstOrCreate(
             ['email' => 'admin@rendee.dz'],
             [
-                'user_role_code' => 'admin',
+                'user_role_code' => UserRole::ADMIN,
                 'name' => 'Admin',
                 'full_name' => 'Admin User',
                 'image_url' => 'https://i.pravatar.cc/300?img=1',
@@ -40,11 +30,11 @@ class UserSeeder extends Seeder
                 'password' => $password,
                 'password_plaintext' => 'password',
                 'phone_number' => '+213555000000',
-                'profile_complete' => true,
+                'profile_completed' => true,
             ]
         );
 
-        $this->createUsersForRole('professional', 24, [
+        $this->createUsersForRole('pro', 24, [
             'prefix' => 'Dr.',
             'full_name_prefix' => 'Dr.',
             'email_domain' => 'rendee.dz',
@@ -56,85 +46,55 @@ class UserSeeder extends Seeder
             'email_domain' => 'rendee.dz',
         ], $password);
 
-        $this->createUsersForRole('pharmacist', 10, [
+        $this->createUsersForRole('pharm', 10, [
             'prefix' => 'Pharm',
             'full_name_prefix' => 'Pharmacist',
             'email_domain' => 'rendee.dz',
         ], $password);
 
-        $this->createUsersForRole('patient', 50, [
+        $this->createUsersForRole(UserRole::PATIENT, 50, [
             'prefix' => 'Patient',
             'full_name_prefix' => null,
             'email_domain' => 'rendee.dz',
         ], $password);
     }
 
-    private function createUsersForRole(string $roleCode, int $count, array $options, string $password): void
+    private function createUsersForRole(string $typePrefix, int $count, array $options, string $password): void
     {
         $firstNames = [
-            'Ahmed',
-            'Fatima',
-            'Rachid',
-            'Nadia',
-            'Samir',
-            'Amina',
-            'Karim',
-            'Lina',
-            'Yacine',
-            'Imane',
-            'Yasmine',
-            'Reda',
-            'Sofiane',
-            'Meriem',
-            'Walid',
-            'Sarah',
-            'Hakim',
-            'Nour',
-            'Hichem',
-            'Aya',
+            'Ahmed', 'Fatima', 'Rachid', 'Nadia', 'Samir', 'Amina', 'Karim', 'Lina', 'Yacine', 'Imane',
+            'Yasmine', 'Reda', 'Sofiane', 'Meriem', 'Walid', 'Sarah', 'Hakim', 'Nour', 'Hichem', 'Aya',
         ];
 
         $lastNames = [
-            'Benali',
-            'Bouzid',
-            'Khelifi',
-            'Mansouri',
-            'Ouali',
-            'Saidi',
-            'Meziane',
-            'Cherif',
-            'Benaissa',
-            'Mekki',
-            'Zidane',
-            'Belaid',
-            'Haddad',
-            'Boukerche',
-            'Boudiaf',
-            'Amrani',
-            'Ferhat',
-            'Gacem',
-            'Kaci',
-            'Tahar',
+            'Benali', 'Bouzid', 'Khelifi', 'Mansouri', 'Ouali', 'Saidi', 'Meziane', 'Cherif', 'Benaissa', 'Mekki',
+            'Zidane', 'Belaid', 'Haddad', 'Hamdi', 'Ferhat', 'Taleb', 'Slimani', 'Mahfouz', 'Yousef', 'Ghezal',
         ];
 
+        $userRoleCode = $typePrefix === UserRole::PATIENT ? UserRole::PATIENT : UserRole::PARTNER;
+
         for ($i = 1; $i <= $count; $i++) {
-            $firstName = fake()->randomElement($firstNames);
-            $lastName = fake()->randomElement($lastNames);
-            $fullName = trim(($options['full_name_prefix'] ? $options['full_name_prefix'].' ' : '').$firstName.' '.$lastName);
-            $emailPrefix = Str::slug($firstName.'.'.$lastName.'.'.$roleCode.'.'.$i);
+            $firstName = $firstNames[($i - 1) % count($firstNames)];
+            $lastName = $lastNames[($i - 1) % count($lastNames)];
+
+            $emailName = Str::slug($firstName . $lastName) . strtolower($typePrefix) . $i;
+            $email = "{$emailName}@{$options['email_domain']}";
+
+            $fullNamePrefix = $options['full_name_prefix'] ? $options['full_name_prefix'] . ' ' : '';
+            $fullName = "{$fullNamePrefix}{$firstName} {$lastName}";
 
             User::query()->firstOrCreate(
-                ['email' => $emailPrefix.'@'.$options['email_domain']],
+                ['email' => $email],
                 [
-                    'user_role_code' => $roleCode,
-                    'name' => $options['prefix'].' '.$firstName,
+                    'user_role_code' => $userRoleCode,
+                    'name' => "{$options['prefix']} {$firstName}",
                     'full_name' => $fullName,
-                    'image_url' => 'https://i.pravatar.cc/300?u='.rawurlencode($emailPrefix.'@'.$options['email_domain']),
+                    'image_url' => "https://i.pravatar.cc/300?u={$email}",
                     'email_verified_at' => now(),
                     'password' => $password,
                     'password_plaintext' => 'password',
-                    'phone_number' => fake()->unique()->phoneNumber(),
-                    'profile_complete' => true,
+                    'phone_number' => '+1' . fake()->numerify('##########'),
+                    'profile_completed' => true,
                 ]
             );
         }

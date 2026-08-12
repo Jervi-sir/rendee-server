@@ -37,7 +37,7 @@ return new class extends Migration
             $table->text('two_factor_recovery_codes')->after('two_factor_secret')->nullable();
             $table->timestamp('two_factor_confirmed_at')->after('two_factor_recovery_codes')->nullable();
 
-            $table->boolean('profile_complete')->default(false);
+            $table->boolean('profile_completed')->default(false);
 
             $table->softDeletes();
             $table->rememberToken();

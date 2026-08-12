@@ -8,8 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 #[Fillable([
     'reference',
     'patient_id',
-    'bookable_type',
-    'bookable_id',
+    'partner_id',
     'service_type',
     'service_id',
     'schedule_type',
@@ -48,15 +47,16 @@ class Booking extends Model
         return $this->belongsTo(Patient::class);
     }
 
+    public function partner()
+    {
+        return $this->belongsTo(Partner::class);
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Polymorphic Relations
     |--------------------------------------------------------------------------
     */
-    public function bookable()
-    {
-        return $this->morphTo();
-    }
 
     public function service()
     {
@@ -88,15 +88,15 @@ class Booking extends Model
      */
     public function formatForPatient(bool $detailed = false): array
     {
-        $bookableFormatted = null;
+        $partnerFormatted = null;
 
-        if ($this->relationLoaded('bookable') && $this->bookable) {
-            if (method_exists($this->bookable, 'formatForPatient')) {
-                $bookableFormatted = $this->bookable->formatForPatient(false);
+        if ($this->relationLoaded('partner') && $this->partner) {
+            if (method_exists($this->partner, 'formatForPatient')) {
+                $partnerFormatted = $this->partner->formatForPatient(false);
             } else {
-                $bookableFormatted = [
-                    'id' => $this->bookable->id,
-                    'name' => $this->bookable->name ?? $this->bookable->user?->name ?? '',
+                $partnerFormatted = [
+                    'id' => $this->partner->id,
+                    'name' => $this->partner->name ?? $this->partner->user?->name ?? '',
                 ];
             }
         }
@@ -119,9 +119,10 @@ class Booking extends Model
             'id' => $this->id,
             'reference' => $this->reference,
             'patient_id' => $this->patient_id,
+            'partner_id' => $this->partner_id,
             'bookable_type' => $this->is_center ? self::TYPE_CENTER : self::TYPE_PROFESSIONAL,
-            'bookable_id' => $this->bookable_id,
-            'provider' => $bookableFormatted,
+            'bookable_id' => $this->partner_id,
+            'provider' => $partnerFormatted,
             'service' => $serviceFormatted,
             'patient_name' => $this->patient_name,
             'patient_phone' => $this->patient_phone,

@@ -38,7 +38,7 @@ use Laravel\Sanctum\HasApiTokens;
     'full_name',
     'image_url',
     'phone_number',
-    'profile_complete',
+    'profile_completed',
 ])]
 #[Hidden(['password', 'password_plaintext', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable implements PasskeyUser
@@ -70,24 +70,14 @@ class User extends Authenticatable implements PasskeyUser
         return $this->hasOne(UserDevice::class);
     }
 
-    public function professional(): HasOne
-    {
-        return $this->hasOne(Professional::class);
-    }
-
-    public function center(): HasOne
-    {
-        return $this->hasOne(Center::class);
-    }
-
     public function patient(): HasOne
     {
         return $this->hasOne(Patient::class);
     }
 
-    public function pharmacy(): HasOne
+    public function partner(): HasOne
     {
-        return $this->hasOne(Pharmacy::class);
+        return $this->hasOne(Partner::class);
     }
 
     /**
@@ -100,10 +90,8 @@ class User extends Authenticatable implements PasskeyUser
         return $this->load([
             'userRole',
             'userDevice',
-            'professional',
-            'center',
             'patient',
-            'pharmacy',
+            'partner',
         ]);
     }
 
@@ -123,7 +111,7 @@ class User extends Authenticatable implements PasskeyUser
             'full_name' => $this->full_name,
             'email' => $this->email,
             'phone_number' => $this->phone_number,
-            'profile_complete' => (bool) $this->profile_complete,
+            'profile_completed' => (bool) $this->profile_completed,
             'image_url' => $this->image_url,
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
@@ -133,7 +121,7 @@ class User extends Authenticatable implements PasskeyUser
                 'fr' => $this->userRole->fr,
                 'ar' => $this->userRole->ar,
             ] : null,
-        ], fn ($value) => $value !== null);
+        ], fn($value) => $value !== null);
     }
 
     /**

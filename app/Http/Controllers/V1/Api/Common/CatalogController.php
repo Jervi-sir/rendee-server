@@ -4,13 +4,12 @@ namespace App\Http\Controllers\V1\Api\Common;
 
 use App\Http\Controllers\Controller;
 use App\Models\ContactPlatform;
-use App\Models\ProfessionalService;
+use App\Models\PartnerService;
 use App\Models\ProfessionalSpeciality;
 use App\Models\ServiceCatalog;
 use App\Models\Status;
 use App\Models\UserRole;
 use App\Models\Wilaya;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -28,30 +27,51 @@ class CatalogController extends Controller
         'wilayas' => Wilaya::class,
         'statuses' => Status::class,
         'user_roles' => UserRole::class,
-        'professional_services' => ProfessionalService::class,
+        'partner_services' => PartnerService::class,
+        'registery_types' => null,
     ];
 
     /**
      * Get catalog data.
      *
-     * Usage: GET /catalogs?includes=professional_specialities,wilayas,service_catalogs&source=doctor
-     *
-     * The `source` filter only applies to `service_catalogs`.
+     * Usage: GET /catalogs?includes=professional_specialities,wilayas,user_roles,registery_types&source=doctor
      */
     public function index(Request $request): JsonResponse
     {
-        $includes = $this->parseIncludes($request->query('includes', ''));
-
-        if ($includes === []) {
-            return response()->json([
-                'message' => 'No includes specified. Available: '.implode(', ', array_keys(self::CATALOG_MAP)),
-            ], 422);
+        $rawIncludes = $request->query('includes', '');
+        if ($rawIncludes === '' || $rawIncludes === 'all') {
+            $includes = array_keys(self::CATALOG_MAP);
+        } else {
+            $includes = $this->parseIncludes($rawIncludes);
         }
 
         $data = [];
 
         foreach ($includes as $include) {
-            if (! isset(self::CATALOG_MAP[$include])) {
+            if ($include === 'registery_types') {
+                $userRoles = UserRole::where('code', UserRole::PATIENT)
+                    ->get()
+                    ->map(function ($role) {
+                        $roleArr = $role->toArray();
+                        $roleArr['source'] = 'user_role';
+
+                        return $roleArr;
+                    });
+
+                $partnerTypes = \App\Models\PartnerType::all()
+                    ->map(function ($type) {
+                        $typeArr = $type->toArray();
+                        $typeArr['source'] = 'partner_type';
+
+                        return $typeArr;
+                    });
+
+                $data['registery_types'] = $userRoles->merge($partnerTypes)->values();
+
+                continue;
+            }
+
+            if (! isset(self::CATALOG_MAP[$include]) || self::CATALOG_MAP[$include] === null) {
                 continue;
             }
 
@@ -63,9 +83,9 @@ class CatalogController extends Controller
                 $query->where('source', $request->query('source'));
             }
 
-            // Exclude admin role from user_roles
+            // Filter admin role out if user_roles
             if ($include === 'user_roles') {
-                $query->where('code', '!=', 'admin');
+                $query->where('code', '!=', UserRole::ADMIN);
             }
 
             $data[$include] = $query->get();
@@ -87,7 +107,7 @@ class CatalogController extends Controller
 
         return array_values(array_filter(
             array_map('trim', explode(',', $raw)),
-            fn (string $value): bool => $value !== '' && isset(self::CATALOG_MAP[$value]),
+            fn(string $value): bool => $value !== '' && array_key_exists($value, self::CATALOG_MAP),
         ));
     }
 }

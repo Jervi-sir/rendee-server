@@ -4,9 +4,7 @@ namespace App\Http\Controllers\V1\Api\Patient;
 
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
-use App\Models\Center;
-use App\Models\Pharmacy;
-use App\Models\Professional;
+use App\Models\Partner;
 use App\Models\ProfessionalSpeciality;
 use App\Models\RecentSearch;
 use Carbon\Carbon;
@@ -24,21 +22,21 @@ class SearchController extends Controller
 
         // 1. Fetch Popular Specialities
         $popularSpecialities = [];
-        $specialties = ProfessionalSpeciality::withCount([
-            'professionals' => function ($query) {
-                $query->where('is_available', true);
-            },
-        ])
-            ->orderBy('professionals_count', 'desc')
+        $specialties = ProfessionalSpeciality::orderBy('id', 'asc')
             ->limit(8)
             ->get();
 
         foreach ($specialties as $specialty) {
+            $count = Partner::where('partner_type', 'professional')
+                ->where('professional_speciality_code', $specialty->code)
+                ->where('is_available', true)
+                ->count();
+
             $popularSpecialities[] = [
                 'id' => $specialty->id,
                 'label' => $specialty->ar ?? $specialty->en ?? $specialty->code,
                 'slug' => $specialty->code,
-                'professionals_count' => $specialty->professionals_count,
+                'professionals_count' => $count,
             ];
         }
 
@@ -59,7 +57,7 @@ class SearchController extends Controller
                     'city' => $search->city,
                     'speciality' => $search->speciality ? [
                         'id' => $search->speciality->id,
-                        'label' => $search->speciality->ar ?? $specialty->en ?? $specialty->code,
+                        'label' => $search->speciality->ar ?? $search->speciality->en ?? $search->speciality->code,
                         'slug' => $search->speciality->code,
                     ] : null,
                     'created_at' => $search->created_at?->toIso8601String(),
@@ -67,109 +65,70 @@ class SearchController extends Controller
             }
         }
 
-        // 3. Perform Global Search (excluding patients)
+        // 3. Perform Global Search (Partners)
         $results = [];
 
         if ($query || $specialityId) {
-
-            // Search Professionals
-            $profQuery = Professional::with(['user', 'speciality'])->where('is_available', true);
+            $partnerQuery = Partner::with(['user', 'speciality', 'catalog', 'wilaya'])
+                ->where('is_active', true)
+                ->where('is_available', true);
 
             if ($specialityId) {
-                $profQuery->whereHas('speciality', function ($q) use ($specialityId) {
+                $partnerQuery->whereHas('speciality', function ($q) use ($specialityId) {
                     $q->where('id', $specialityId);
                 });
             }
 
             if ($query) {
-                $profQuery->where(function ($q) use ($query) {
-                    $q->whereHas('user', function ($uq) use ($query) {
-                        $uq->where('full_name', 'like', "%{$query}%")
-                            ->orWhere('name', 'like', "%{$query}%");
-                    })->orWhereHas('speciality', function ($sq) use ($query) {
-                        $sq->where('ar', 'like', "%{$query}%")
-                            ->orWhere('en', 'like', "%{$query}%");
-                    })->orWhere('profession_code', 'like', "%{$query}%");
+                $partnerQuery->where(function ($q) use ($query) {
+                    $q->where('name', 'like', "%{$query}%")
+                        ->orWhere('city', 'like', "%{$query}%")
+                        ->orWhere('address', 'like', "%{$query}%")
+                        ->orWhere('bio', 'like', "%{$query}%")
+                        ->orWhereHas('user', function ($uq) use ($query) {
+                            $uq->where('full_name', 'like', "%{$query}%")
+                                ->orWhere('name', 'like', "%{$query}%");
+                        })->orWhereHas('speciality', function ($sq) use ($query) {
+                            $sq->where('ar', 'like', "%{$query}%")
+                                ->orWhere('en', 'like', "%{$query}%");
+                        })->orWhereHas('catalog', function ($cq) use ($query) {
+                            $cq->where('ar', 'like', "%{$query}%")
+                                ->orWhere('en', 'like', "%{$query}%");
+                        });
                 });
-                $professionals = $profQuery->get();
-                foreach ($professionals as $prof) {
-                    $distance = $this->calculateDistance($userLatitude, $userLongitude, $prof->latitude, $prof->longitude);
-                    $results[] = [
-                        'type' => 'professional',
-                        'id' => $prof->id,
-                        'name' => ($prof->profession_code === 'doctor' ? 'د. ' : '').($prof->user->full_name ?? $prof->user->name ?? ''),
-                        'subtitle' => $prof->speciality?->ar ?? $prof->speciality?->en ?? ucfirst($prof->profession_code),
-                        'city' => $prof->city,
-                        'rating' => 4.8,
-                        'reviews_count' => 120,
-                        'image' => null,
-                        'distance' => $distance,
-                        'distance_text' => $distance !== null ? "{$distance} كم" : null,
-                    ];
-                }
             }
 
-            // Search Centers
-            if (! $specialityId) {
-                $centerQuery = Center::with(['user', 'catalog'])->where('is_active', true);
+            $partners = $partnerQuery->get();
 
-                if ($query) {
-                    $centerQuery->where(function ($q) use ($query) {
-                        $q->where('name', 'like', "%{$query}%")
-                            ->orWhere('description', 'like', "%{$query}%")
-                            ->orWhereHas('catalog', function ($cq) use ($query) {
-                                $cq->where('ar', 'like', "%{$query}%")
-                                    ->orWhere('en', 'like', "%{$query}%");
-                            });
-                    });
+            foreach ($partners as $partner) {
+                $distance = $this->calculateDistance($userLatitude, $userLongitude, $partner->latitude, $partner->longitude);
+
+                $partnerName = $partner->name ?? $partner->user?->full_name ?? $partner->user?->name ?? 'شريك';
+                if ($partner->partner_type === 'professional' && ! str_starts_with($partnerName, 'د.')) {
+                    $partnerName = 'د. '.$partnerName;
                 }
 
-                $centers = $centerQuery->get();
-                foreach ($centers as $center) {
-                    $distance = $this->calculateDistance($userLatitude, $userLongitude, $center->latitude, $center->longitude);
-                    $results[] = [
-                        'type' => 'center',
-                        'id' => $center->id,
-                        'name' => $center->name ?? $center->user?->name ?? 'مركز طبي',
-                        'subtitle' => $center->catalog?->ar ?? $center->catalog?->en ?? 'مركز طبي',
-                        'city' => $center->city,
-                        'rating' => 4.9,
-                        'reviews_count' => 127,
-                        'image' => null,
-                        'distance' => $distance,
-                        'distance_text' => $distance !== null ? "{$distance} كم" : null,
-                    ];
-                }
-            }
-
-            // Search Pharmacies
-            if (! $specialityId) {
-                $pharmacyQuery = Pharmacy::with(['user'])->where('is_available', true);
-
-                if ($query) {
-                    $pharmacyQuery->where(function ($q) use ($query) {
-                        $q->where('name', 'like', "%{$query}%")
-                            ->orWhere('location', 'like', "%{$query}%")
-                            ->orWhere('bio', 'like', "%{$query}%");
-                    });
+                $subtitle = 'أخصائي';
+                if ($partner->partner_type === 'center') {
+                    $subtitle = $partner->catalog?->ar ?? $partner->catalog?->en ?? 'مركز طبي';
+                } elseif ($partner->partner_type === 'pharmacist') {
+                    $subtitle = 'صيدلية';
+                } else {
+                    $subtitle = $partner->speciality?->ar ?? $partner->speciality?->en ?? 'أخصائي';
                 }
 
-                $pharmacies = $pharmacyQuery->get();
-                foreach ($pharmacies as $pharmacy) {
-                    $distance = $this->calculateDistance($userLatitude, $userLongitude, $pharmacy->latitude, $pharmacy->longitude);
-                    $results[] = [
-                        'type' => 'pharmacy',
-                        'id' => $pharmacy->id,
-                        'name' => $pharmacy->name ?? $pharmacy->user?->name ?? 'صيدلية',
-                        'subtitle' => 'صيدلية',
-                        'city' => $pharmacy->location,
-                        'rating' => 4.7,
-                        'reviews_count' => 84,
-                        'image' => null,
-                        'distance' => $distance,
-                        'distance_text' => $distance !== null ? "{$distance} كم" : null,
-                    ];
-                }
+                $results[] = [
+                    'type' => $partner->partner_type === 'pharmacist' ? 'pharmacy' : $partner->partner_type,
+                    'id' => $partner->id,
+                    'name' => $partnerName,
+                    'subtitle' => $subtitle,
+                    'city' => $partner->city ?? $partner->address,
+                    'rating' => 4.8,
+                    'reviews_count' => 120,
+                    'image' => $partner->user?->image_url,
+                    'distance' => $distance,
+                    'distance_text' => $distance !== null ? "{$distance} كم" : null,
+                ];
             }
         }
 
@@ -226,23 +185,18 @@ class SearchController extends Controller
 
             foreach ($bookings as $booking) {
                 $bookableName = 'N/A';
-                $bookableType = $booking->bookable_type;
                 $bookableLat = null;
                 $bookableLon = null;
 
-                if ($bookableType === Professional::class) {
-                    $prof = Professional::find($booking->bookable_id);
-                    if ($prof) {
-                        $bookableName = ($prof->profession_code === 'doctor' ? 'د. ' : '').($prof->user->full_name ?? $prof->user->name ?? '');
-                        $bookableLat = $prof->latitude;
-                        $bookableLon = $prof->longitude;
-                    }
-                } elseif ($bookableType === Center::class) {
-                    $center = Center::find($booking->bookable_id);
-                    if ($center) {
-                        $bookableName = $center->name ?? $center->user?->name ?? 'مركز طبي';
-                        $bookableLat = $center->latitude;
-                        $bookableLon = $center->longitude;
+                if ($booking->bookable_type === Partner::class || str_contains($booking->bookable_type ?? '', 'Partner')) {
+                    $partner = Partner::find($booking->bookable_id);
+                    if ($partner) {
+                        $bookableName = $partner->name ?? $partner->user?->full_name ?? $partner->user?->name ?? 'شريك';
+                        if ($partner->partner_type === 'professional' && ! str_starts_with($bookableName, 'د.')) {
+                            $bookableName = 'د. '.$bookableName;
+                        }
+                        $bookableLat = $partner->latitude;
+                        $bookableLon = $partner->longitude;
                     }
                 }
 
@@ -252,8 +206,8 @@ class SearchController extends Controller
                     'feed_type' => 'booking',
                     'id' => $booking->id,
                     'reference' => $booking->reference,
-                    'date' => $booking->booking_date,
-                    'time' => $booking->booking_time,
+                    'date' => $booking->booking_date ? (is_string($booking->booking_date) ? $booking->booking_date : $booking->booking_date->format('Y-m-d')) : '',
+                    'time' => $booking->booking_time ? Carbon::parse($booking->booking_time)->format('H:i') : '',
                     'status' => $booking->status?->ar ?? $booking->status?->en ?? $booking->status_code,
                     'type' => $booking->is_center ? 'center' : 'professional',
                     'bookable_name' => $bookableName,
@@ -264,66 +218,31 @@ class SearchController extends Controller
             }
         }
 
-        // 2. Professionals
-        $professionals = Professional::with(['user', 'speciality'])
-            ->where('is_available', true)
-            ->orderBy('created_at', 'desc')
-            ->limit(100)
-            ->get();
-
-        foreach ($professionals as $prof) {
-            $distance = $this->calculateDistance($userLatitude, $userLongitude, $prof->latitude, $prof->longitude);
-            $feedItems[] = [
-                'feed_type' => 'professional',
-                'id' => $prof->id,
-                'name' => ($prof->profession_code === 'doctor' ? 'د. ' : '').($prof->user->full_name ?? $prof->user->name ?? ''),
-                'speciality' => $prof->speciality?->ar ?? $prof->speciality?->en ?? $prof->profession_code,
-                'city' => $prof->city,
-                'image' => null,
-                'created_at' => $prof->created_at,
-                'distance' => $distance,
-                'distance_text' => $distance !== null ? "{$distance} كم" : null,
-            ];
-        }
-
-        // 3. Centers
-        $centers = Center::with(['user', 'catalog'])
+        // 2. Partners Feed
+        $partners = Partner::with(['user', 'speciality', 'catalog'])
             ->where('is_active', true)
-            ->orderBy('created_at', 'desc')
-            ->limit(100)
-            ->get();
-
-        foreach ($centers as $center) {
-            $distance = $this->calculateDistance($userLatitude, $userLongitude, $center->latitude, $center->longitude);
-            $feedItems[] = [
-                'feed_type' => 'center',
-                'id' => $center->id,
-                'name' => $center->name ?? $center->user?->name ?? 'مركز طبي',
-                'type' => $center->catalog?->ar ?? $center->catalog?->en ?? 'مركز طبي',
-                'city' => $center->city,
-                'image' => null,
-                'created_at' => $center->created_at,
-                'distance' => $distance,
-                'distance_text' => $distance !== null ? "{$distance} كم" : null,
-            ];
-        }
-
-        // 4. Pharmacies
-        $pharmacies = Pharmacy::with(['user'])
             ->where('is_available', true)
             ->orderBy('created_at', 'desc')
             ->limit(100)
             ->get();
 
-        foreach ($pharmacies as $pharm) {
-            $distance = $this->calculateDistance($userLatitude, $userLongitude, $pharm->latitude, $pharm->longitude);
+        foreach ($partners as $partner) {
+            $distance = $this->calculateDistance($userLatitude, $userLongitude, $partner->latitude, $partner->longitude);
+            $name = $partner->name ?? $partner->user?->full_name ?? $partner->user?->name ?? 'شريك';
+            if ($partner->partner_type === 'professional' && ! str_starts_with($name, 'د.')) {
+                $name = 'د. '.$name;
+            }
+
+            $feedType = $partner->partner_type === 'pharmacist' ? 'pharmacy' : $partner->partner_type;
+
             $feedItems[] = [
-                'feed_type' => 'pharmacy',
-                'id' => $pharm->id,
-                'name' => $pharm->name ?? $pharm->user?->name ?? 'صيدلية',
-                'city' => $pharm->location,
-                'image' => null,
-                'created_at' => $pharm->created_at,
+                'feed_type' => $feedType,
+                'id' => $partner->id,
+                'name' => $name,
+                'speciality' => $partner->speciality?->ar ?? $partner->catalog?->ar ?? $partner->speciality?->en ?? $partner->partner_type,
+                'city' => $partner->city ?? $partner->address,
+                'image' => $partner->user?->image_url,
+                'created_at' => $partner->created_at,
                 'distance' => $distance,
                 'distance_text' => $distance !== null ? "{$distance} كم" : null,
             ];
@@ -344,7 +263,7 @@ class SearchController extends Controller
             return $bTime <=> $aTime;
         });
 
-        // Format created_at to ISO string and clean up reference before response
+        // Format created_at to ISO string
         foreach ($feedItems as &$item) {
             if ($item['created_at'] instanceof Carbon) {
                 $item['created_at'] = $item['created_at']->toIso8601String();

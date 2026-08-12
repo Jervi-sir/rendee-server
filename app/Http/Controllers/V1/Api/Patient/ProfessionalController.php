@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\V1\Api\Patient;
 
 use App\Http\Controllers\Controller;
-use App\Models\Professional;
+use App\Models\Partner;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -14,7 +14,8 @@ class ProfessionalController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Professional::with(['user', 'profession', 'specialty', 'wilaya']);
+        $query = Partner::with(['user', 'profession', 'specialty', 'wilaya'])
+            ->whereIn('partner_type', ['PRO', 'professional', 'doctor']);
 
         if ($request->has('profession_code')) {
             $query->where('profession_code', $request->query('profession_code'));
@@ -35,8 +36,8 @@ class ProfessionalController extends Controller
             $query->where('city', 'like', '%'.$request->query('city').'%');
         }
 
-        $professionals = $query->where('is_available', true)->get()->map(function ($professional) {
-            return $professional->formatForPatient(false);
+        $professionals = $query->where('is_available', true)->get()->map(function ($partner) {
+            return $partner->formatForPatient(false);
         });
 
         return response()->json([
@@ -49,24 +50,24 @@ class ProfessionalController extends Controller
      */
     public function show(Request $request, int $id): JsonResponse
     {
-        $professional = Professional::with([
+        $partner = Partner::with([
             'user',
             'profession',
             'specialty',
             'wilaya',
             'schedules',
             'contacts',
-            'services.serviceCatalog',
+            'services.catalog',
         ])->find($id);
 
-        if (! $professional) {
+        if (! $partner) {
             return response()->json([
                 'message' => 'Professional not found.',
             ], 404);
         }
 
         return response()->json([
-            'professional' => $professional->formatForPatient(true),
+            'professional' => $partner->formatForPatient(true),
         ]);
     }
 }

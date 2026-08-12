@@ -3,10 +3,8 @@
 namespace App\Http\Controllers\V1\Api\Patient;
 
 use App\Http\Controllers\Controller;
-use App\Models\Center;
 use App\Models\LikeItem;
-use App\Models\Pharmacy;
-use App\Models\Professional;
+use App\Models\Partner;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -31,256 +29,152 @@ class FeedController extends Controller
         $nearMe = filter_var($request->query('near_me', false), FILTER_VALIDATE_BOOLEAN);
 
         $userWilaya = $request->query('wilaya');
-        $userType = $request->query('user_type'); // 'doctor' | 'professional' | 'center' | 'pharmacy'
+        $userType = $request->query('user_type'); // partner type code or category
         $onDuty = $request->query('on_duty') ? filter_var($request->query('on_duty'), FILTER_VALIDATE_BOOLEAN) : null;
         $minRating = $request->query('min_rating') ? (float) $request->query('min_rating') : null;
 
-        $results = [];
+        $partnerQuery = Partner::with(['user', 'speciality', 'profession', 'catalog', 'wilaya', 'partnerType'])
+            ->where('is_active', true)
+            ->where('is_available', true);
 
-        // 1. Fetch Professionals
-        if (! $userType || in_array($userType, ['professional', 'doctor'])) {
-            $profQuery = Professional::with(['user', 'speciality', 'wilaya'])->where('is_available', true);
+        if ($userType) {
+            if (in_array($userType, ['professional', 'doctor'])) {
+                $partnerQuery->whereIn('partner_type_code', ['doctor', 'professional', 'dentist', 'psy']);
+            } elseif ($userType === 'center') {
+                $partnerQuery->where('partner_type_code', 'center');
+            } elseif (in_array($userType, ['pharmacy', 'pharmacist'])) {
+                $partnerQuery->where('partner_type_code', 'pharmacist');
+            } else {
+                $partnerQuery->where('partner_type_code', $userType);
+            }
+        }
 
-            if ($query) {
-                $profQuery->where(function ($q) use ($query) {
-                    $q->whereHas('user', function ($uq) use ($query) {
+        if ($query) {
+            $partnerQuery->where(function ($q) use ($query) {
+                $q->where('name', 'like', "%{$query}%")
+                    ->orWhere('bio', 'like', "%{$query}%")
+                    ->orWhere('address', 'like', "%{$query}%")
+                    ->orWhere('city', 'like', "%{$query}%")
+                    ->orWhereHas('user', function ($uq) use ($query) {
                         $uq->where('full_name', 'like', "%{$query}%")
                             ->orWhere('name', 'like', "%{$query}%");
-                    })->orWhereHas('speciality', function ($sq) use ($query) {
+                    })
+                    ->orWhereHas('speciality', function ($sq) use ($query) {
                         $sq->where('ar', 'like', "%{$query}%")
                             ->orWhere('en', 'like', "%{$query}%");
-                    })->orWhere('profession_code', 'like', "%{$query}%");
-                });
-            }
-
-            if ($userWilaya && $userWilaya !== 'all') {
-                $profQuery->where(function ($q) use ($userWilaya) {
-                    $q->where('wilaya_code', $userWilaya)
-                        ->orWhere('city', 'like', "%{$userWilaya}%")
-                        ->orWhereHas('wilaya', function ($wq) use ($userWilaya) {
-                            $wq->where('code', $userWilaya)
-                                ->orWhere('number', $userWilaya)
-                                ->orWhere('ar', 'like', "%{$userWilaya}%")
-                                ->orWhere('en', 'like', "%{$userWilaya}%");
-                        });
-                });
-            }
-
-            foreach ($profQuery->get() as $prof) {
-                $distance = $this->calculateDistance($userLatitude, $userLongitude, $prof->latitude, $prof->longitude);
-
-                if ($nearMe && $distance === null) {
-                    continue;
-                }
-
-                $fullName = $prof->user?->full_name ?? $prof->user?->name ?? '';
-                if ($prof->profession_code === 'doctor' && ! str_starts_with($fullName, 'د.')) {
-                    $fullName = 'د. '.$fullName;
-                }
-
-                $rating = isset($prof->rating) ? (float) $prof->rating : 4.8;
-                $reviewsCount = isset($prof->reviews_count) ? (int) $prof->reviews_count : 0;
-                $isOnDuty = (bool) ($prof->is_on_duty ?? false);
-
-                if ($onDuty && ! $isOnDuty) {
-                    continue;
-                }
-                if ($minRating !== null && $rating < $minRating) {
-                    continue;
-                }
-
-                $isLiked = isset($userLikedMap[Professional::class.':'.$prof->id]);
-
-                $results[] = [
-                    'id' => $prof->id,
-                    'name' => $fullName,
-                    'fullname' => $fullName,
-                    'type' => 'doctor',
-                    'user_type' => 'professional',
-                    'typeLabel' => $prof->profession_code === 'doctor' ? 'طبيب أخصائي' : 'أخصائي',
-                    'type_label' => $prof->profession_code === 'doctor' ? 'طبيب أخصائي' : 'أخصائي',
-                    'specialty' => $prof->speciality?->ar ?? $prof->speciality?->en ?? ucfirst((string) $prof->profession_code),
-                    'speciality' => $prof->speciality?->ar ?? $prof->speciality?->en ?? ucfirst((string) $prof->profession_code),
-                    'distance' => $distance,
-                    'distance_text' => $distance !== null ? "{$distance} كم" : null,
-                    'rating' => $rating,
-                    'reviews_count' => $reviewsCount,
-                    'isOnDuty' => $isOnDuty,
-                    'is_on_duty' => $isOnDuty,
-                    'is_liked' => $isLiked,
-                    'is_favorite' => $isLiked,
-                    'wilaya' => $prof->wilaya?->ar ?? $prof->wilaya?->en ?? $prof->city,
-                    'address' => $prof->address ?? $prof->city,
-                    'location' => [
-                        'wilaya_name' => $prof->wilaya?->ar ?? $prof->wilaya?->en ?? $prof->city,
-                        'wilaya_number' => $prof->wilaya?->number ? (int) $prof->wilaya->number : null,
-                        'address' => $prof->address ?? $prof->city,
-                    ],
-                    'images' => $prof->user?->image_url ? [$prof->user->image_url] : [],
-                    'created_at' => $prof->created_at?->toIso8601String(),
-                ];
-            }
+                    })
+                    ->orWhereHas('catalog', function ($cq) use ($query) {
+                        $cq->where('ar', 'like', "%{$query}%")
+                            ->orWhere('en', 'like', "%{$query}%");
+                    });
+            });
         }
 
-        // 2. Fetch Centers
-        if (! $userType || $userType === 'center') {
-            $centerQuery = Center::with(['user', 'catalog', 'wilaya'])->where('is_active', true);
-
-            if ($query) {
-                $centerQuery->where(function ($q) use ($query) {
-                    $q->where('name', 'like', "%{$query}%")
-                        ->orWhere('description', 'like', "%{$query}%")
-                        ->orWhereHas('catalog', function ($cq) use ($query) {
-                            $cq->where('ar', 'like', "%{$query}%")
-                                ->orWhere('en', 'like', "%{$query}%");
-                        });
-                });
-            }
-
-            if ($userWilaya && $userWilaya !== 'all') {
-                $centerQuery->where(function ($q) use ($userWilaya) {
-                    $q->where('city', 'like', "%{$userWilaya}%")
-                        ->orWhereHas('wilaya', function ($wq) use ($userWilaya) {
-                            $wq->where('code', $userWilaya)
-                                ->orWhere('number', $userWilaya)
-                                ->orWhere('ar', 'like', "%{$userWilaya}%")
-                                ->orWhere('en', 'like', "%{$userWilaya}%");
-                        });
-                });
-            }
-
-            foreach ($centerQuery->get() as $center) {
-                $distance = $this->calculateDistance($userLatitude, $userLongitude, $center->latitude, $center->longitude);
-
-                if ($nearMe && $distance === null) {
-                    continue;
-                }
-
-                $rating = isset($center->rating) ? (float) $center->rating : 4.7;
-                $reviewsCount = isset($center->reviews_count) ? (int) $center->reviews_count : 0;
-                $isOnDuty = (bool) ($center->is_on_duty ?? false);
-
-                if ($onDuty && ! $isOnDuty) {
-                    continue;
-                }
-                if ($minRating !== null && $rating < $minRating) {
-                    continue;
-                }
-
-                $centerName = $center->name ?? $center->user?->full_name ?? $center->user?->name ?? 'مركز طبي';
-                $isLiked = isset($userLikedMap[Center::class.':'.$center->id]);
-
-                $results[] = [
-                    'id' => $center->id,
-                    'name' => $centerName,
-                    'fullname' => $centerName,
-                    'type' => 'center',
-                    'user_type' => 'center',
-                    'typeLabel' => 'مركز طبي متكامل',
-                    'type_label' => 'مركز طبي متكامل',
-                    'specialty' => $center->catalog?->ar ?? $center->catalog?->en ?? 'مركز طبي',
-                    'speciality' => $center->catalog?->ar ?? $center->catalog?->en ?? 'مركز طبي',
-                    'distance' => $distance,
-                    'distance_text' => $distance !== null ? "{$distance} كم" : null,
-                    'rating' => $rating,
-                    'reviews_count' => $reviewsCount,
-                    'isOnDuty' => $isOnDuty,
-                    'is_on_duty' => $isOnDuty,
-                    'is_liked' => $isLiked,
-                    'is_favorite' => $isLiked,
-                    'wilaya' => $center->wilaya?->ar ?? $center->wilaya?->en ?? $center->city,
-                    'address' => $center->address ?? $center->city,
-                    'location' => [
-                        'wilaya_name' => $center->wilaya?->ar ?? $center->wilaya?->en ?? $center->city,
-                        'wilaya_number' => $center->wilaya?->number ? (int) $center->wilaya->number : null,
-                        'address' => $center->address ?? $center->city,
-                    ],
-                    'images' => $center->user?->image_url ? [$center->user->image_url] : [],
-                    'created_at' => $center->created_at?->toIso8601String(),
-                ];
-            }
+        if ($userWilaya && $userWilaya !== 'all') {
+            $partnerQuery->where(function ($q) use ($userWilaya) {
+                $q->where('wilaya_code', $userWilaya)
+                    ->orWhere('city', 'like', "%{$userWilaya}%")
+                    ->orWhere('address', 'like', "%{$userWilaya}%")
+                    ->orWhereHas('wilaya', function ($wq) use ($userWilaya) {
+                        $wq->where('code', $userWilaya)
+                            ->orWhere('number', $userWilaya)
+                            ->orWhere('ar', 'like', "%{$userWilaya}%")
+                            ->orWhere('en', 'like', "%{$userWilaya}%");
+                    });
+            });
         }
 
-        // 3. Fetch Pharmacies
-        if (! $userType || $userType === 'pharmacy') {
-            $pharmacyQuery = Pharmacy::with(['user', 'wilaya'])->where('is_available', true);
+        $results = [];
 
-            if ($query) {
-                $pharmacyQuery->where(function ($q) use ($query) {
-                    $q->where('name', 'like', "%{$query}%")
-                        ->orWhere('address', 'like', "%{$query}%")
-                        ->orWhere('city', 'like', "%{$query}%")
-                        ->orWhere('bio', 'like', "%{$query}%");
-                });
+        foreach ($partnerQuery->get() as $partner) {
+            $distance = $this->calculateDistance($userLatitude, $userLongitude, $partner->latitude, $partner->longitude);
+
+            if ($nearMe && $distance === null) {
+                continue;
             }
 
-            if ($userWilaya && $userWilaya !== 'all') {
-                $pharmacyQuery->where(function ($q) use ($userWilaya) {
-                    $q->where('wilaya_code', $userWilaya)
-                        ->orWhere('city', 'like', "%{$userWilaya}%")
-                        ->orWhere('address', 'like', "%{$userWilaya}%")
-                        ->orWhereHas('wilaya', function ($wq) use ($userWilaya) {
-                            $wq->where('code', $userWilaya)
-                                ->orWhere('number', $userWilaya)
-                                ->orWhere('ar', 'like', "%{$userWilaya}%")
-                                ->orWhere('en', 'like', "%{$userWilaya}%");
-                        });
-                });
+            $rating = isset($partner->rating) ? (float) $partner->rating : 4.8;
+            $reviewsCount = isset($partner->reviews_count) ? (int) $partner->reviews_count : 0;
+            $isOnDuty = (bool) ($partner->is_on_duty || $partner->emergency_24_7);
+
+            if ($onDuty && ! $isOnDuty) {
+                continue;
+            }
+            if ($minRating !== null && $rating < $minRating) {
+                continue;
             }
 
-            foreach ($pharmacyQuery->get() as $pharmacy) {
-                $distance = $this->calculateDistance($userLatitude, $userLongitude, $pharmacy->latitude, $pharmacy->longitude);
-
-                if ($nearMe && $distance === null) {
-                    continue;
-                }
-
-                $rating = isset($pharmacy->rating) ? (float) $pharmacy->rating : 4.9;
-                $reviewsCount = isset($pharmacy->reviews_count) ? (int) $pharmacy->reviews_count : 0;
-                $isOnDuty = (bool) ($pharmacy->is_on_duty ?? false);
-
-                if ($onDuty && ! $isOnDuty) {
-                    continue;
-                }
-                if ($minRating !== null && $rating < $minRating) {
-                    continue;
-                }
-
-                $pharmacyName = $pharmacy->name ?? $pharmacy->user?->full_name ?? $pharmacy->user?->name ?? 'صيدلية';
-                $isLiked = isset($userLikedMap[Pharmacy::class.':'.$pharmacy->id]);
-
-                $results[] = [
-                    'id' => $pharmacy->id,
-                    'name' => $pharmacyName,
-                    'fullname' => $pharmacyName,
-                    'type' => 'pharmacy',
-                    'user_type' => 'pharmacy',
-                    'typeLabel' => $isOnDuty ? 'صيدلية مناوبة' : 'صيدلية',
-                    'type_label' => $isOnDuty ? 'صيدلية مناوبة' : 'صيدلية',
-                    'specialty' => 'صيدلية',
-                    'speciality' => 'صيدلية',
-                    'distance' => $distance,
-                    'distance_text' => $distance !== null ? "{$distance} كم" : null,
-                    'rating' => $rating,
-                    'reviews_count' => $reviewsCount,
-                    'isOnDuty' => $isOnDuty,
-                    'is_on_duty' => $isOnDuty,
-                    'is_liked' => $isLiked,
-                    'is_favorite' => $isLiked,
-                    'wilaya' => $pharmacy->wilaya?->ar ?? $pharmacy->wilaya?->en ?? $pharmacy->location,
-                    'address' => $pharmacy->location,
-                    'location' => [
-                        'wilaya_name' => $pharmacy->wilaya?->ar ?? $pharmacy->wilaya?->en ?? $pharmacy->location,
-                        'wilaya_number' => $pharmacy->wilaya?->number ? (int) $pharmacy->wilaya->number : null,
-                        'address' => $pharmacy->location,
-                    ],
-                    'images' => $pharmacy->user?->image_url ? [$pharmacy->user->image_url] : [],
-                    'created_at' => $pharmacy->created_at?->toIso8601String(),
-                ];
+            $partnerName = $partner->name ?? $partner->user?->full_name ?? $partner->user?->name ?? 'شريك';
+            $partnerTypeCode = $partner->partner_type_code ?? 'doctor';
+            if (in_array($partnerTypeCode, ['doctor', 'professional']) && ! str_starts_with($partnerName, 'د.')) {
+                $partnerName = 'د. '.$partnerName;
             }
+
+            $typeLabel = 'شريك مخصص';
+            if ($partnerTypeCode === 'center') {
+                $typeLabel = 'مركز طبي متكامل';
+            } elseif ($partnerTypeCode === 'pharmacist') {
+                $typeLabel = $isOnDuty ? 'صيدلية مناوبة' : 'صيدلية';
+            } else {
+                $typeLabel = $partner->profession_code === 'doctor' ? 'طبيب أخصائي' : 'أخصائي';
+            }
+
+            $specialty = 'عام';
+            if ($partnerTypeCode === 'center') {
+                $specialty = $partner->catalog?->ar ?? $partner->catalog?->en ?? 'مركز طبي';
+            } elseif ($partnerTypeCode === 'pharmacist') {
+                $specialty = 'صيدلية';
+            } else {
+                $specialty = $partner->speciality?->ar ?? $partner->speciality?->en ?? 'استشارة طبية';
+            }
+
+            $isLiked = isset($userLikedMap[Partner::class.':'.$partner->id]);
+
+            $partnerTypeJson = $partner->partnerType ? [
+                'code' => $partner->partnerType->code,
+                'en' => $partner->partnerType->en,
+                'fr' => $partner->partnerType->fr,
+                'ar' => $partner->partnerType->ar,
+            ] : [
+                'code' => $partnerTypeCode,
+                'en' => ucfirst($partnerTypeCode),
+                'fr' => ucfirst($partnerTypeCode),
+                'ar' => $typeLabel,
+            ];
+
+            $results[] = [
+                'id' => $partner->id,
+                'name' => $partnerName,
+                'fullname' => $partnerName,
+                'type' => $partnerTypeCode,
+                'user_type' => $partnerTypeCode,
+                'partner_type_code' => $partnerTypeCode,
+                'partner_type' => $partnerTypeJson,
+                'typeLabel' => $typeLabel,
+                'type_label' => $typeLabel,
+                'specialty' => $specialty,
+                'speciality' => $specialty,
+                'distance' => $distance,
+                'distance_text' => $distance !== null ? "{$distance} كم" : null,
+                'rating' => $rating,
+                'reviews_count' => $reviewsCount,
+                'isOnDuty' => $isOnDuty,
+                'is_on_duty' => $isOnDuty,
+                'is_liked' => $isLiked,
+                'is_favorite' => $isLiked,
+                'wilaya' => $partner->wilaya?->ar ?? $partner->wilaya?->en ?? $partner->city,
+                'address' => $partner->address ?? $partner->city,
+                'location' => [
+                    'wilaya_name' => $partner->wilaya?->ar ?? $partner->wilaya?->en ?? $partner->city,
+                    'wilaya_number' => $partner->wilaya?->number ? (int) $partner->wilaya->number : null,
+                    'address' => $partner->address ?? $partner->city,
+                ],
+                'images' => $partner->user?->image_url ? [$partner->user->image_url] : [],
+                'created_at' => $partner->created_at?->toIso8601String(),
+            ];
         }
 
-        // 4. Sort Results (by distance if coordinates provided, else created_at desc)
+        // Sort Results (by distance if coordinates provided, else created_at desc)
         usort($results, function ($a, $b) use ($userLatitude, $userLongitude, $nearMe) {
             if (($userLatitude !== null && $userLongitude !== null) || $nearMe) {
                 $distA = $a['distance'] ?? INF;
@@ -296,7 +190,7 @@ class FeedController extends Controller
             return $timeB <=> $timeA;
         });
 
-        // 5. Pagination
+        // Pagination
         $page = max((int) $request->query('page', 1), 1);
         $perPage = max((int) $request->query('per_page', 10), 1);
         $total = count($results);

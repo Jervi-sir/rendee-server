@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\V1\Api\Patient;
 
 use App\Http\Controllers\Controller;
-use App\Models\Pharmacy;
+use App\Models\Partner;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -14,7 +14,8 @@ class PharmacistController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Pharmacy::with(['user']);
+        $query = Partner::with(['user', 'wilaya'])
+            ->whereIn('partner_type', ['PHARM', 'pharmacist', 'pharmacy']);
 
         if ($request->has('wilaya_code')) {
             $query->where('wilaya_code', $request->query('wilaya_code'));
@@ -28,8 +29,8 @@ class PharmacistController extends Controller
             });
         }
 
-        $pharmacies = $query->where('is_available', true)->get()->map(function ($pharmacy) {
-            return $pharmacy->formatForPatient(false);
+        $pharmacies = $query->where('is_available', true)->get()->map(function ($partner) {
+            return $partner->formatForPatient(false);
         });
 
         return response()->json([
@@ -42,16 +43,17 @@ class PharmacistController extends Controller
      */
     public function show(Request $request, int $id): JsonResponse
     {
-        $pharmacy = Pharmacy::with(['user', 'contacts', 'wilaya'])->find($id);
+        $partner = Partner::with(['user', 'contacts', 'wilaya', 'schedules'])
+            ->find($id);
 
-        if (! $pharmacy) {
+        if (! $partner) {
             return response()->json([
                 'message' => 'Pharmacy not found.',
             ], 404);
         }
 
         return response()->json([
-            'pharmacy' => $pharmacy->formatForPatient(true),
+            'pharmacy' => $partner->formatForPatient(true),
         ]);
     }
 }

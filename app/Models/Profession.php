@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Profession extends Model
 {
@@ -26,8 +27,13 @@ class Profession extends Model
         'hex',
     ];
 
-    public function professionals()
+    public function partners(): HasMany
     {
-        return $this->hasMany(Professional::class, 'profession_code', 'code');
+        return $this->hasMany(Partner::class, 'profession_code', 'code');
+    }
+
+    public function professionals(): HasMany
+    {
+        return $this->partners();
     }
 }

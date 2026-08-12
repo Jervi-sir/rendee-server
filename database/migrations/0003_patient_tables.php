@@ -18,6 +18,11 @@ return new class extends Migration
             $table->text('gender')->nullable();
             $table->string('address')->nullable();
             $table->string('city')->nullable();
+            $table->string('blood_type', 10)->nullable();
+            $table->json('allergies')->nullable();
+            $table->json('chronic_diseases')->nullable();
+            $table->json('medications')->nullable();
+            $table->json('emergency_contacts')->nullable();
             $table->text('medical_notes')->nullable();
             $table->softDeletes();
             $table->timestamps();

@@ -4,30 +4,30 @@ namespace App\Http\Controllers\V1\Api\Partner;
 
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
+use App\Models\Partner;
 use App\Models\Patient;
-use App\Models\Professional;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class PatientsController extends Controller
 {
     /**
-     * Get list of unique patients for the professional.
+     * Get list of unique patients for the partner.
      */
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
-        $professional = null;
+        $partner = null;
 
         if ($user) {
-            $professional = Professional::where('user_id', $user->id)->first();
+            $partner = Partner::where('user_id', $user->id)->first();
         }
 
-        if (! $professional) {
-            $professional = Professional::first();
+        if (! $partner) {
+            $partner = Partner::first();
         }
 
-        if (! $professional) {
+        if (! $partner) {
             return response()->json([
                 'patients' => [],
                 'total' => 0,
@@ -36,9 +36,8 @@ class PatientsController extends Controller
 
         $search = $request->query('search');
 
-        // Fetch distinct patient IDs from bookings for this professional
-        $patientIds = Booking::where('bookable_type', Professional::class)
-            ->where('bookable_id', $professional->id)
+        // Fetch distinct patient IDs from bookings for this partner
+        $patientIds = Booking::where('partner_id', $partner->id)
             ->whereNotNull('patient_id')
             ->distinct()
             ->pluck('patient_id');
@@ -55,15 +54,13 @@ class PatientsController extends Controller
             });
         }
 
-        $patientsList = $query->get()->map(function ($patient) use ($professional) {
-            $lastBooking = Booking::where('bookable_type', Professional::class)
-                ->where('bookable_id', $professional->id)
+        $patientsList = $query->get()->map(function ($patient) use ($partner) {
+            $lastBooking = Booking::where('partner_id', $partner->id)
                 ->where('patient_id', $patient->id)
                 ->orderBy('booking_date', 'desc')
                 ->first();
 
-            $totalVisits = Booking::where('bookable_type', Professional::class)
-                ->where('bookable_id', $professional->id)
+            $totalVisits = Booking::where('partner_id', $partner->id)
                 ->where('patient_id', $patient->id)
                 ->count();
 
@@ -105,26 +102,24 @@ class PatientsController extends Controller
         }
 
         $user = $request->user();
-        $professional = null;
+        $partner = null;
         if ($user) {
-            $professional = Professional::where('user_id', $user->id)->first();
+            $partner = Partner::where('user_id', $user->id)->first();
         }
-        if (! $professional) {
-            $professional = Professional::first();
+        if (! $partner) {
+            $partner = Partner::first();
         }
 
         $lastBooking = null;
         $totalVisits = 0;
 
-        if ($professional) {
-            $lastBooking = Booking::where('bookable_type', Professional::class)
-                ->where('bookable_id', $professional->id)
+        if ($partner) {
+            $lastBooking = Booking::where('partner_id', $partner->id)
                 ->where('patient_id', $patient->id)
                 ->orderBy('booking_date', 'desc')
                 ->first();
 
-            $totalVisits = Booking::where('bookable_type', Professional::class)
-                ->where('bookable_id', $professional->id)
+            $totalVisits = Booking::where('partner_id', $partner->id)
                 ->where('patient_id', $patient->id)
                 ->count();
         }
@@ -148,6 +143,73 @@ class PatientsController extends Controller
                 'total_visits' => $totalVisits,
                 'last_visit' => $lastBooking ? (is_string($lastBooking->booking_date) ? $lastBooking->booking_date : $lastBooking->booking_date->format('Y-m-d')) : null,
             ],
+        ]);
+    }
+
+    /**
+     * Get patient booking history / past visits.
+     */
+    public function history(Request $request, int $id): JsonResponse
+    {
+        $patient = Patient::find($id);
+
+        if (! $patient) {
+            return response()->json(['error' => 'Patient not found'], 404);
+        }
+
+        $user = $request->user();
+        $partner = null;
+        if ($user) {
+            $partner = Partner::where('user_id', $user->id)->first();
+        }
+        if (! $partner) {
+            $partner = Partner::first();
+        }
+
+        $query = Booking::with(['service.catalog', 'status'])
+            ->where('patient_id', $patient->id);
+
+        if ($partner) {
+            $query->where('partner_id', $partner->id);
+        }
+
+        $history = $query->orderBy('booking_date', 'desc')
+            ->orderBy('booking_time', 'desc')
+            ->get()
+            ->map(function ($booking) {
+                $statusLabel = 'مؤكد';
+                if ($booking->status_code === 'pending') {
+                    $statusLabel = 'قيد الانتظار';
+                } elseif ($booking->status_code === 'cancelled') {
+                    $statusLabel = 'ملغي';
+                } elseif ($booking->status_code === 'completed') {
+                    $statusLabel = 'مكتمل';
+                }
+
+                $serviceName = $booking->service?->catalog?->ar
+                    ?? $booking->service?->catalog?->en
+                    ?? $booking->service?->name
+                    ?? 'فحص طبي';
+
+                return [
+                    'id' => $booking->id,
+                    'reference' => $booking->reference,
+                    'date' => $booking->booking_date ? (is_string($booking->booking_date) ? $booking->booking_date : $booking->booking_date->format('Y-m-d')) : '',
+                    'time' => $booking->booking_time ? \Carbon\Carbon::parse($booking->booking_time)->format('H:i') : '',
+                    'doctor_name' => 'د. ' . ($booking->bookable?->name ?? 'طبيب'),
+                    'specialty' => $booking->bookable?->specialty?->ar ?? 'عام',
+                    'service_name' => $serviceName,
+                    'visit_type' => $serviceName,
+                    'status' => $booking->status_code,
+                    'status_label' => $statusLabel,
+                    'notes' => $booking->notes ?? 'لا توجد ملاحظات إضافية',
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'history' => $history,
+            'total' => count($history),
         ]);
     }
 }

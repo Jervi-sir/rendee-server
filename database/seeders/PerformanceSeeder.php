@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Booking;
+use App\Models\Partner;
 use App\Models\ProfessionalSpeciality;
 use App\Models\Rating;
 use App\Models\RecentSearch;
@@ -50,8 +51,8 @@ class PerformanceSeeder extends Seeder
                     'patient_id' => $booking->patient_id,
                     'rating' => fake()->numberBetween(1, 5),
                     'review' => fake()->optional(0.7)->sentence(10),
-                    'reviewable_type' => $booking->bookable_type,
-                    'reviewable_id' => $booking->bookable_id,
+                    'reviewable_type' => Partner::class,
+                    'reviewable_id' => $booking->partner_id,
                 ]
             );
         }

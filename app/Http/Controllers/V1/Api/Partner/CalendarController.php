@@ -4,54 +4,29 @@ namespace App\Http\Controllers\V1\Api\Partner;
 
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
-use App\Models\Center;
-use App\Models\Professional;
+use App\Models\Partner;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class CalendarController extends Controller
 {
     /**
-     * Get agenda bookings and appointment counts by date for Professionals and Centers.
+     * Get agenda bookings and appointment counts by date for Partners.
      */
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
-        $providerType = null;
-        $providerId = null;
+        $partner = null;
 
         if ($user) {
-            if ($user->user_role_code === 'center' || $user->center) {
-                $center = Center::where('user_id', $user->id)->first();
-                if ($center) {
-                    $providerType = Center::class;
-                    $providerId = $center->id;
-                }
-            } elseif ($user->professional) {
-                $professional = Professional::where('user_id', $user->id)->first();
-                if ($professional) {
-                    $providerType = Professional::class;
-                    $providerId = $professional->id;
-                }
-            }
+            $partner = Partner::where('user_id', $user->id)->first();
         }
 
-        // Fallbacks for unauthenticated / testing environments
-        if (! $providerId) {
-            $professional = Professional::first();
-            if ($professional) {
-                $providerType = Professional::class;
-                $providerId = $professional->id;
-            } else {
-                $center = Center::first();
-                if ($center) {
-                    $providerType = Center::class;
-                    $providerId = $center->id;
-                }
-            }
+        if (! $partner) {
+            $partner = Partner::first();
         }
 
-        if (! $providerId || ! $providerType) {
+        if (! $partner) {
             return response()->json([
                 'success' => true,
                 'message' => 'Agenda bookings retrieved successfully.',
@@ -62,25 +37,13 @@ class CalendarController extends Controller
             ]);
         }
 
-        // Optional date filter parameters (e.g., date range or specific month YYYY-MM)
+        // Optional date filter parameters
         $startDate = $request->query('start_date');
         $endDate = $request->query('end_date');
         $month = $request->query('month');
 
-        $query = Booking::with(['patient.user', 'service.serviceCatalog'])
-            ->where(function ($q) use ($providerType, $providerId) {
-                $q->where(function ($sub) use ($providerType, $providerId) {
-                    $sub->where('bookable_type', $providerType)
-                        ->where('bookable_id', $providerId);
-                });
-
-                // Also match string alias (e.g. 'professional' or 'center')
-                $alias = $providerType === Center::class ? 'center' : 'professional';
-                $q->orWhere(function ($sub) use ($alias, $providerId) {
-                    $sub->where('bookable_type', $alias)
-                        ->where('bookable_id', $providerId);
-                });
-            });
+        $query = Booking::with(['patient.user', 'service.catalog'])
+            ->where('partner_id', $partner->id);
 
         if ($startDate && $endDate) {
             $query->whereBetween('booking_date', [$startDate, $endDate]);
@@ -112,18 +75,30 @@ class CalendarController extends Controller
                 ?? $booking->patient?->user?->phone_number
                 ?? null;
 
+            $serviceFormatted = null;
+            if ($booking->service) {
+                $serviceName = $booking->service->catalog?->ar
+                    ?? $booking->service->catalog?->en
+                    ?? $booking->service->name
+                    ?? 'استشارة';
+                $serviceFormatted = [
+                    'id' => $booking->service->id,
+                    'name' => $serviceName,
+                    'price' => $booking->service->price ?? null,
+                    'duration_minutes' => $booking->service->duration_minutes ?? null,
+                ];
+            }
+
             $formattedBookings[] = [
                 'id' => $booking->id,
                 'reference' => $booking->reference,
                 'patient_id' => $booking->patient_id,
-                'bookable_type' => $booking->is_center ? 'center' : 'professional',
-                'bookable_id' => $booking->bookable_id,
-                'service_type' => $booking->service_type,
-                'service_id' => $booking->service_id,
-                'schedule_type' => $booking->schedule_type,
-                'schedule_id' => $booking->schedule_id,
+                'partner_id' => $booking->partner_id,
                 'patient_name' => $patientName,
                 'patient_phone' => $patientPhone,
+                'service' => $serviceFormatted,
+                'service_name' => $serviceFormatted ? $serviceFormatted['name'] : 'استشارة',
+                'price' => $booking->service?->price ?? null,
                 'booking_date' => $dateStr,
                 'booking_time' => $booking->booking_time,
                 'status_code' => $booking->status_code,

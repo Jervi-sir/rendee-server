@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\V1\Api\Partner;
 
 use App\Http\Controllers\Controller;
-use App\Models\Professional;
-use App\Models\ProfessionalSchedule;
-use App\Models\ProfessionalService;
+use App\Models\Partner;
+use App\Models\PartnerSchedule;
+use App\Models\PartnerService;
 use App\Models\ProfessionalSpeciality;
 use App\Models\ServiceCatalog;
 use App\Models\User;
@@ -24,34 +24,34 @@ class OnboardingController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
-        $professional = null;
+        $partner = null;
 
         if ($user) {
-            $professional = Professional::with(['specialty', 'wilaya', 'services', 'schedules', 'contacts'])
+            $partner = Partner::with(['specialty', 'wilaya', 'services', 'schedules', 'contacts'])
                 ->where('user_id', $user->id)
                 ->first();
         }
 
-        if (! $professional) {
-            $professional = Professional::with(['specialty', 'wilaya', 'services', 'schedules', 'contacts'])->first();
-            if ($professional) {
-                $user = User::find($professional->user_id);
+        if (! $partner) {
+            $partner = Partner::with(['specialty', 'wilaya', 'services', 'schedules', 'contacts'])->first();
+            if ($partner) {
+                $user = User::find($partner->user_id);
             }
         }
 
-        if (! $professional || ! $user) {
+        if (! $partner || ! $user) {
             return response()->json([
                 'success' => false,
-                'error' => 'Professional profile not found',
+                'error' => 'Partner profile not found',
             ], 404);
         }
 
-        $stepStatus = $this->calculateStepStatus($user, $professional);
+        $stepStatus = $this->calculateStepStatus($user, $partner);
         $isComplete = $stepStatus['is_completed'];
 
-        // Update profile_complete flag if changed
-        if ($user->profile_complete !== $isComplete) {
-            $user->profile_complete = $isComplete;
+        // Update profile_completed flag if changed
+        if ($user->profile_completed !== $isComplete) {
+            $user->profile_completed = $isComplete;
             $user->save();
         }
 
@@ -62,32 +62,62 @@ class OnboardingController extends Controller
             'total_steps' => 5,
             'steps' => $stepStatus['steps'],
             'data' => [
-                'speciality_code' => $professional->professional_speciality_code,
-                'speciality_name' => $professional->specialty?->ar ?? $professional->specialty?->en ?? null,
-                'license_number' => $professional->license_number,
-                'years_experience' => $professional->years_experience,
-                'bio' => $professional->bio,
-                'wilaya_code' => $professional->wilaya_code,
-                'wilaya_name' => $professional->wilaya?->ar ?? $professional->wilaya?->en ?? null,
-                'city' => $professional->city,
-                'address' => $professional->address,
-                'latitude' => $professional->latitude ? (float) $professional->latitude : null,
-                'longitude' => $professional->longitude ? (float) $professional->longitude : null,
-                'services_count' => $professional->services->count(),
-                'schedules_count' => $professional->schedules->where('is_active', true)->count(),
-                'contacts_count' => $professional->contacts->count(),
+                'speciality_code' => $partner->professional_speciality_code,
+                'speciality_name' => $partner->specialty?->ar ?? $partner->specialty?->en ?? null,
+                'license_number' => $partner->license_number,
+                'years_experience' => $partner->years_experience,
+                'bio' => $partner->bio,
+                'wilaya_code' => $partner->wilaya_code,
+                'wilaya_name' => $partner->wilaya?->ar ?? $partner->wilaya?->en ?? null,
+                'city' => $partner->city,
+                'address' => $partner->address,
+                'latitude' => $partner->latitude ? (float) $partner->latitude : null,
+                'longitude' => $partner->longitude ? (float) $partner->longitude : null,
+                'services_count' => $partner->services->count(),
+                'schedules_count' => $partner->schedules->where('is_active', true)->count(),
+                'contacts_count' => $partner->contacts->count(),
             ],
         ]);
     }
 
     /**
-     * Step 1: Upsert Specialty and Professional Information.
+     * POST endpoint to verify and save onboarding completion status.
+     */
+    public function complete(Request $request): JsonResponse
+    {
+        [$user, $partner] = $this->resolveUserAndPartner($request);
+
+        if (! $partner || ! $user) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Partner profile not found',
+            ], 404);
+        }
+
+        $stepStatus = $this->calculateStepStatus($user, $partner);
+        $isComplete = $stepStatus['is_completed'];
+
+        $user->profile_completed = $isComplete;
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => $isComplete ? 'Onboarding completed successfully' : 'Onboarding saved',
+            'is_completed' => $isComplete,
+            'current_step' => $stepStatus['current_step'],
+            'total_steps' => 5,
+            'steps' => $stepStatus['steps'],
+        ]);
+    }
+
+    /**
+     * Step 1: Upsert Specialty and Partner Information.
      */
     public function stepSpeciality(Request $request): JsonResponse
     {
-        [$user, $professional] = $this->resolveUserAndProfessional($request);
-        if (! $professional || ! $user) {
-            return response()->json(['error' => 'Professional profile not found'], 404);
+        [$user, $partner] = $this->resolveUserAndPartner($request);
+        if (! $partner || ! $user) {
+            return response()->json(['error' => 'Partner profile not found'], 404);
         }
 
         $validated = $request->validate([
@@ -107,20 +137,20 @@ class OnboardingController extends Controller
         }
 
         if ($specialityCode) {
-            $professional->professional_speciality_code = $specialityCode;
+            $partner->professional_speciality_code = $specialityCode;
         }
         if (array_key_exists('license_number', $validated)) {
-            $professional->license_number = $validated['license_number'];
+            $partner->license_number = $validated['license_number'];
         }
         if (array_key_exists('years_experience', $validated)) {
-            $professional->years_experience = $validated['years_experience'];
+            $partner->years_experience = $validated['years_experience'];
         }
         if (array_key_exists('bio', $validated)) {
-            $professional->bio = $validated['bio'];
+            $partner->bio = $validated['bio'];
         }
-        $professional->save();
+        $partner->save();
 
-        return $this->buildOnboardingResponse($user, $professional, 'Speciality details saved successfully.');
+        return $this->buildOnboardingResponse($user, $partner, 'Speciality details saved successfully.');
     }
 
     /**
@@ -128,9 +158,9 @@ class OnboardingController extends Controller
      */
     public function stepLocation(Request $request): JsonResponse
     {
-        [$user, $professional] = $this->resolveUserAndProfessional($request);
-        if (! $professional || ! $user) {
-            return response()->json(['error' => 'Professional profile not found'], 404);
+        [$user, $partner] = $this->resolveUserAndPartner($request);
+        if (! $partner || ! $user) {
+            return response()->json(['error' => 'Partner profile not found'], 404);
         }
 
         $validated = $request->validate([
@@ -141,18 +171,18 @@ class OnboardingController extends Controller
             'longitude' => ['nullable', 'numeric'],
         ]);
 
-        $professional->wilaya_code = $validated['wilaya_code'];
-        $professional->city = $validated['city'];
-        $professional->address = $validated['address'];
+        $partner->wilaya_code = $validated['wilaya_code'];
+        $partner->city = $validated['city'];
+        $partner->address = $validated['address'];
         if (array_key_exists('latitude', $validated)) {
-            $professional->latitude = $validated['latitude'];
+            $partner->latitude = $validated['latitude'];
         }
         if (array_key_exists('longitude', $validated)) {
-            $professional->longitude = $validated['longitude'];
+            $partner->longitude = $validated['longitude'];
         }
-        $professional->save();
+        $partner->save();
 
-        return $this->buildOnboardingResponse($user, $professional, 'Location details saved successfully.');
+        return $this->buildOnboardingResponse($user, $partner, 'Location details saved successfully.');
     }
 
     /**
@@ -160,9 +190,9 @@ class OnboardingController extends Controller
      */
     public function stepServices(Request $request): JsonResponse
     {
-        [$user, $professional] = $this->resolveUserAndProfessional($request);
-        if (! $professional || ! $user) {
-            return response()->json(['error' => 'Professional profile not found'], 404);
+        [$user, $partner] = $this->resolveUserAndPartner($request);
+        if (! $partner || ! $user) {
+            return response()->json(['error' => 'Partner profile not found'], 404);
         }
 
         $validated = $request->validate([
@@ -179,21 +209,22 @@ class OnboardingController extends Controller
             $name = $svcItem['name'] ?? null;
 
             if (! $catalogCode && $name) {
-                $baseCode = 'pro_' . Str::slug($name, '_');
+                $baseCode = 'partner_' . Str::slug($name, '_');
                 $catalog = ServiceCatalog::firstOrCreate(
                     ['code' => $baseCode],
-                    ['source' => 'professional', 'ar' => $name, 'en' => $name]
+                    ['source' => 'partner', 'ar' => $name, 'en' => $name]
                 );
                 $catalogCode = $catalog->code;
             }
 
             if ($catalogCode) {
-                ProfessionalService::updateOrCreate(
+                PartnerService::updateOrCreate(
                     [
-                        'professional_id' => $professional->id,
+                        'partner_id' => $partner->id,
                         'service_catalog_code' => $catalogCode,
                     ],
                     [
+                        'name' => $name,
                         'price' => $svcItem['price'],
                         'duration_minutes' => $svcItem['duration_minutes'] ?? 30,
                     ]
@@ -201,7 +232,7 @@ class OnboardingController extends Controller
             }
         }
 
-        return $this->buildOnboardingResponse($user, $professional, 'Services saved successfully.');
+        return $this->buildOnboardingResponse($user, $partner, 'Services saved successfully.');
     }
 
     /**
@@ -209,9 +240,9 @@ class OnboardingController extends Controller
      */
     public function stepSchedule(Request $request): JsonResponse
     {
-        [$user, $professional] = $this->resolveUserAndProfessional($request);
-        if (! $professional || ! $user) {
-            return response()->json(['error' => 'Professional profile not found'], 404);
+        [$user, $partner] = $this->resolveUserAndPartner($request);
+        if (! $partner || ! $user) {
+            return response()->json(['error' => 'Partner profile not found'], 404);
         }
 
         $validated = $request->validate([
@@ -223,9 +254,9 @@ class OnboardingController extends Controller
         ]);
 
         foreach ($validated['schedules'] as $sch) {
-            ProfessionalSchedule::updateOrCreate(
+            PartnerSchedule::updateOrCreate(
                 [
-                    'professional_id' => $professional->id,
+                    'partner_id' => $partner->id,
                     'day_of_week' => (int) $sch['day_of_week'],
                 ],
                 [
@@ -236,7 +267,7 @@ class OnboardingController extends Controller
             );
         }
 
-        return $this->buildOnboardingResponse($user, $professional, 'Schedule saved successfully.');
+        return $this->buildOnboardingResponse($user, $partner, 'Schedule saved successfully.');
     }
 
     /**
@@ -244,9 +275,9 @@ class OnboardingController extends Controller
      */
     public function stepContacts(Request $request): JsonResponse
     {
-        [$user, $professional] = $this->resolveUserAndProfessional($request);
-        if (! $professional || ! $user) {
-            return response()->json(['error' => 'Professional profile not found'], 404);
+        [$user, $partner] = $this->resolveUserAndPartner($request);
+        if (! $partner || ! $user) {
+            return response()->json(['error' => 'Partner profile not found'], 404);
         }
 
         $validated = $request->validate([
@@ -257,8 +288,8 @@ class OnboardingController extends Controller
         ]);
 
         if (! empty($validated['phone_public'])) {
-            $professional->phone_public = $validated['phone_public'];
-            $professional->save();
+            $partner->phone_public = $validated['phone_public'];
+            $partner->save();
         }
 
         if (! empty($validated['contacts'])) {
@@ -270,47 +301,47 @@ class OnboardingController extends Controller
                     ],
                     [
                         'url' => $c['url'],
-                        'target_user_type' => 'professional',
+                        'target_user_type' => 'partner',
                     ]
                 );
             }
         }
 
-        return $this->buildOnboardingResponse($user, $professional, 'Contacts saved successfully.');
+        return $this->buildOnboardingResponse($user, $partner, 'Contacts saved successfully.');
     }
 
     /**
-     * Helper to resolve current user and associated professional.
+     * Helper to resolve current user and associated partner.
      */
-    private function resolveUserAndProfessional(Request $request): array
+    private function resolveUserAndPartner(Request $request): array
     {
         $user = $request->user();
-        $professional = null;
+        $partner = null;
 
         if ($user) {
-            $professional = Professional::where('user_id', $user->id)->first();
+            $partner = Partner::where('user_id', $user->id)->first();
         }
 
-        if (! $professional) {
-            $professional = Professional::first();
-            if ($professional) {
-                $user = User::find($professional->user_id);
+        if (! $partner) {
+            $partner = Partner::first();
+            if ($partner) {
+                $user = User::find($partner->user_id);
             }
         }
 
-        return [$user, $professional];
+        return [$user, $partner];
     }
 
     /**
      * Calculate step-by-step completion status.
      */
-    private function calculateStepStatus(User $user, Professional $professional): array
+    private function calculateStepStatus(User $user, Partner $partner): array
     {
-        $step1Speciality = ! empty($professional->professional_speciality_code) && ! empty($professional->license_number);
-        $step2Location = ! empty($professional->wilaya_code) && ! empty($professional->city) && ! empty($professional->address);
-        $step3Services = $professional->services()->count() > 0;
-        $step4Schedule = $professional->schedules()->where('is_active', true)->count() > 0;
-        $step5Contacts = ! empty($professional->phone_public) || $professional->contacts()->count() > 0 || ! empty($user->phone_number);
+        $step1Speciality = ! empty($partner->professional_speciality_code) || ! empty($partner->license_number) || ! empty($partner->center_catalog_code);
+        $step2Location = ! empty($partner->wilaya_code) && ! empty($partner->city) && ! empty($partner->address);
+        $step3Services = $partner->services()->count() > 0;
+        $step4Schedule = $partner->schedules()->where('is_active', true)->count() > 0;
+        $step5Contacts = ! empty($partner->phone_public) || $partner->contacts()->count() > 0 || ! empty($user->phone_number);
 
         $steps = [
             1 => [
@@ -363,13 +394,13 @@ class OnboardingController extends Controller
     /**
      * Helper to return standard onboarding step response.
      */
-    private function buildOnboardingResponse(User $user, Professional $professional, string $message): JsonResponse
+    private function buildOnboardingResponse(User $user, Partner $partner, string $message): JsonResponse
     {
-        $professional->load(['specialty', 'wilaya', 'services', 'schedules', 'contacts']);
-        $stepStatus = $this->calculateStepStatus($user, $professional);
+        $partner->load(['specialty', 'wilaya', 'services', 'schedules', 'contacts']);
+        $stepStatus = $this->calculateStepStatus($user, $partner);
         $isComplete = $stepStatus['is_completed'];
 
-        $user->profile_complete = $isComplete;
+        $user->profile_completed = $isComplete;
         $user->save();
 
         return response()->json([

@@ -4,33 +4,27 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
-    'professional_id',
+    'partner_id',
     'day_of_week',
     'start_time',
     'end_time',
     'is_active',
 ])]
-class ProfessionalSchedule extends Model
+class PartnerSchedule extends Model
 {
     protected function casts(): array
     {
         return [
             'day_of_week' => 'integer',
-            'start_time' => 'string',
-            'end_time' => 'string',
             'is_active' => 'boolean',
         ];
     }
 
-    public function professional()
+    public function partner(): BelongsTo
     {
-        return $this->belongsTo(Professional::class);
-    }
-
-    public function bookings()
-    {
-        return $this->hasMany(Booking::class, 'schedule_id');
+        return $this->belongsTo(Partner::class);
     }
 }

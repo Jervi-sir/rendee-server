@@ -13,14 +13,13 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             CatalogSeeder::class,
+            PartnerTypeSeeder::class,
             UserSeeder::class,
             PatientSeeder::class,
-            ProfessionalSeeder::class,
-            CenterSeeder::class,
+            PartnerSeeder::class,
             BookingSeeder::class,
             NotificationSeeder::class,
             PerformanceSeeder::class,
-            PharmacistSeeder::class,
         ]);
     }
 }

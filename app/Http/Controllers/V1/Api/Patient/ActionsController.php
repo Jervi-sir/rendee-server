@@ -3,11 +3,9 @@
 namespace App\Http\Controllers\V1\Api\Patient;
 
 use App\Http\Controllers\Controller;
-use App\Models\Center;
 use App\Models\LikeItem;
+use App\Models\Partner;
 use App\Models\Patient;
-use App\Models\Pharmacy;
-use App\Models\Professional;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,33 +13,42 @@ use Illuminate\Http\Request;
 class ActionsController extends Controller
 {
     /**
-     * Toggle like state for a morphable entity (Professional, Center, Pharmacy, etc.).
+     * Toggle like state for a morphable entity (Partner by default).
      *
      * **Endpoint:** `POST /api/v1/patient/like/toggle` or `POST /api/v1/patient/toggle-like`
      */
     public function toggleLike(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'likeable_type' => ['required', 'string'],
-            'likeable_id' => ['required', 'integer', 'min:1'],
+            'likeable_type' => ['nullable', 'string'],
+            'likeable_id' => ['nullable', 'integer', 'min:1'],
+            'partner_id' => ['nullable', 'integer', 'min:1'],
+            'id' => ['nullable', 'integer', 'min:1'],
         ]);
 
-        $modelClass = match (strtolower($validated['likeable_type'])) {
-            'professional', 'doctor' => Professional::class,
-            'center' => Center::class,
-            'pharmacy', 'pharmacist' => Pharmacy::class,
+        $likeableId = $validated['likeable_id'] ?? $validated['partner_id'] ?? $validated['id'] ?? null;
+
+        if (! $likeableId) {
+            return response()->json([
+                'message' => 'The likeable_id, partner_id, or id field is required.',
+            ], 422);
+        }
+
+        $typeInput = strtolower($validated['likeable_type'] ?? 'partner');
+
+        $modelClass = match ($typeInput) {
             'patient' => Patient::class,
-            default => $validated['likeable_type'],
+            default => Partner::class,
         };
 
         if (! class_exists($modelClass) || ! is_subclass_of($modelClass, Model::class)) {
             return response()->json([
-                'message' => 'Invalid or unsupported likeable model type: ' . $validated['likeable_type'],
+                'message' => 'Invalid or unsupported likeable model type: ' . $typeInput,
             ], 422);
         }
 
         /** @var Model|null $likeable */
-        $likeable = $modelClass::find($validated['likeable_id']);
+        $likeable = $modelClass::find($likeableId);
 
         if (! $likeable) {
             return response()->json([
@@ -78,7 +85,7 @@ class ActionsController extends Controller
             'message' => $message,
             'is_liked' => $isLiked,
             'likes_count' => $likesCount,
-            'likeable_type' => $validated['likeable_type'],
+            'likeable_type' => $typeInput,
             'likeable_id' => $likeable->id,
         ]);
     }

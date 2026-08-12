@@ -3,10 +3,8 @@
 namespace App\Http\Controllers\V1\Api\Partner;
 
 use App\Http\Controllers\Controller;
-use App\Models\Center;
-use App\Models\CenterWorkingHour;
-use App\Models\Professional;
-use App\Models\ProfessionalSchedule;
+use App\Models\Partner;
+use App\Models\PartnerSchedule;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,7 +12,7 @@ use Illuminate\Http\Request;
 class ScheduleController extends Controller
 {
   /**
-   * Display weekly working schedule for the authenticated partner (Professional or Center).
+   * Display weekly working schedule for the authenticated partner.
    */
   public function show(Request $request): JsonResponse
   {
@@ -30,39 +28,16 @@ class ScheduleController extends Controller
       ]);
     }
 
-    $roleCode = $user->user_role_code;
-
-    if ($roleCode === 'center' || $user->center) {
-      $center = Center::where('user_id', $user->id)->first();
-      if (! $center) {
-        $center = Center::first();
-      }
-
-      if (! $center) {
-        return response()->json(['success' => true, 'schedules' => $this->getDefaultWeeklyStructure([])]);
-      }
-
-      $existingHours = CenterWorkingHour::where('center_id', $center->id)
-        ->get()
-        ->keyBy('day_of_week');
-
-      return response()->json([
-        'success' => true,
-        'schedules' => $this->getDefaultWeeklyStructure($existingHours),
-      ]);
+    $partner = Partner::where('user_id', $user->id)->first();
+    if (! $partner) {
+      $partner = Partner::first();
     }
 
-    // Default Professional
-    $professional = Professional::where('user_id', $user->id)->first();
-    if (! $professional) {
-      $professional = Professional::first();
-    }
-
-    if (! $professional) {
+    if (! $partner) {
       return response()->json(['success' => true, 'schedules' => $this->getDefaultWeeklyStructure([])]);
     }
 
-    $existingSchedules = ProfessionalSchedule::where('professional_id', $professional->id)
+    $existingSchedules = PartnerSchedule::where('partner_id', $partner->id)
       ->get()
       ->keyBy('day_of_week');
 
@@ -94,46 +69,24 @@ class ScheduleController extends Controller
       'schedules.*.is_active' => ['required', 'boolean'],
     ]);
 
-    $roleCode = $user->user_role_code;
+    $partnerType = match ($user->user_role_code) {
+      'center' => 'CENTER',
+      'pharmacist' => 'PHARM',
+      default => 'PRO',
+    };
 
-    if ($roleCode === 'center' || $user->center) {
-      $center = Center::firstOrCreate(['user_id' => $user->id], ['name' => $user->full_name]);
-
-      foreach ($validated['schedules'] as $item) {
-        CenterWorkingHour::updateOrCreate(
-          [
-            'center_id' => $center->id,
-            'day_of_week' => (int) $item['day_of_week'],
-          ],
-          [
-            'start_time' => $item['start_time'] ?? '08:00',
-            'end_time' => $item['end_time'] ?? '17:00',
-            'is_active' => (bool) $item['is_active'],
-          ]
-        );
-      }
-
-      $fullSchedules = $this->getDefaultWeeklyStructure(
-        CenterWorkingHour::where('center_id', $center->id)->get()->keyBy('day_of_week')
-      );
-
-      return response()->json([
-        'success' => true,
-        'message' => 'Weekly schedule updated successfully.',
-        'schedules' => $fullSchedules,
-      ]);
-    }
-
-    // Default Professional
-    $professional = Professional::firstOrCreate(
+    $partner = Partner::firstOrCreate(
       ['user_id' => $user->id],
-      ['profession_code' => 'doctor']
+      [
+        'partner_type' => $partnerType,
+        'name' => $user->full_name,
+      ]
     );
 
     foreach ($validated['schedules'] as $item) {
-      ProfessionalSchedule::updateOrCreate(
+      PartnerSchedule::updateOrCreate(
         [
-          'professional_id' => $professional->id,
+          'partner_id' => $partner->id,
           'day_of_week' => (int) $item['day_of_week'],
         ],
         [
@@ -145,7 +98,7 @@ class ScheduleController extends Controller
     }
 
     $fullSchedules = $this->getDefaultWeeklyStructure(
-      ProfessionalSchedule::where('professional_id', $professional->id)->get()->keyBy('day_of_week')
+      PartnerSchedule::where('partner_id', $partner->id)->get()->keyBy('day_of_week')
     );
 
     return response()->json([

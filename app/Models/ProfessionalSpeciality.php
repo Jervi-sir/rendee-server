@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'code',
@@ -13,8 +14,13 @@ use Illuminate\Database\Eloquent\Model;
 ])]
 class ProfessionalSpeciality extends Model
 {
-    public function professionals()
+    public function partners(): HasMany
     {
-        return $this->hasMany(Professional::class, 'professional_speciality_code', 'code');
+        return $this->hasMany(Partner::class, 'professional_speciality_code', 'code');
+    }
+
+    public function professionals(): HasMany
+    {
+        return $this->partners();
     }
 }
