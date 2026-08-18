@@ -1,68 +1,86 @@
 // @ts-nocheck
-import { api } from '@/utils/api-client';
+import { api } from '@/utils/auth';
+
+/**
+ * ============================================================================
+ * RENDEE PATIENT - MAP API CLIENT
+ * ============================================================================
+ * 
+ * Provides typed access to patient map search and geo-markers for healthcare entities.
+ */
 
 // ─────────────────────────────────────────────
-// Types
+// Types & Interfaces
 // ─────────────────────────────────────────────
 
-export type MapEntityType = 'professional' | 'center' | 'pharmacy';
-
-export interface MapMarkerItem {
-    id: number;
-    title: string;
-    latitude: number;
-    longitude: number;
-    entity_type: MapEntityType;
-    entity_id: number;
-    city?: string;
-    address?: string;
+export interface PartnerMarkerType {
+    code: string;
+    label: string;
 }
 
-export interface MapSelectedCard {
+export interface PartnerMarker {
+    id: number;
+    lat: number;
+    lng: number;
     title: string;
-    subtitle: string;
-    entity_type: MapEntityType;
-    entity_id: number;
-    latitude: number;
-    longitude: number;
+    address: string;
+    partner_type: PartnerMarkerType;
+    pin_color: string;
+}
+
+export interface MapFilterOption {
+    key: string;
+    label: string;
+    count: number;
+}
+
+export interface MapWilayaOption {
+    code: string;
+    number?: string | number;
+    en?: string;
+    fr?: string;
+    ar?: string;
+    lat?: number;
+    lng?: number;
 }
 
 export interface GetMapDataParams {
-    /** Filter markers by entity type ('professional', 'center', 'pharmacy', or 'all') */
-    entity_type?: MapEntityType | 'all';
+    /** Filter markers by partner type ('doctor', 'center', 'pharmacy', 'dentist', or 'all') */
+    partner_type?: string;
+    /** Alias for partner_type */
+    user_type?: string;
+    /** Alias for partner_type */
+    entity_type?: string;
     /** Filter markers by wilaya code */
     wilaya_code?: string;
-    /** Limit items per category (default: 10, max: 50) */
-    limit?: number;
-    /** User's current latitude */
-    latitude?: number | string;
-    /** User's current longitude */
-    longitude?: number | string;
-    /** Filter strictly near me */
-    near_me?: boolean;
+    /** Alias for wilaya_code */
+    wilaya?: string;
+    /** Search query */
+    query?: string;
 }
 
-
 export interface GetMapDataResponse {
-    markers: MapMarkerItem[];
-    selected_card: MapSelectedCard | null;
+    markers: PartnerMarker[];
+    filters: MapFilterOption[];
+    wilayas: MapWilayaOption[];
 }
 
 // ─────────────────────────────────────────────
-// API Calls
+// API Methods
 // ─────────────────────────────────────────────
 
 /**
- * Fetch patient map markers and default selected card for healthcare entities (doctors, centers, pharmacies).
+ * Fetch patient map markers, category filters, and active wilayas.
  *
- * **Endpoint:** `GET /patient/map`
+ * **HTTP Route:** `GET /api/v1/patient/map`
  *
  * @example
  * ```ts
- * const { markers, selected_card } = await getMapData({
- *   latitude: 35.6971,
- *   longitude: -0.6308,
+ * const { markers, filters, wilayas } = await getMapData({
+ *   partner_type: 'doctor',
+ *   wilaya_code: '16',
  * });
+ * console.log(markers);
  * ```
  */
 export async function getMapData(
@@ -73,3 +91,7 @@ export async function getMapData(
     });
     return response.data;
 }
+
+export default {
+    getMapData,
+};

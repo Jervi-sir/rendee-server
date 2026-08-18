@@ -3,11 +3,67 @@
 namespace App\Http\Controllers\V1\Api\Patient;
 
 use App\Http\Controllers\Controller;
+use App\Models\LikedPartner;
+use App\Models\Partner;
+use App\Models\PartnerType;
+use App\Models\Wilaya;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class FeedController extends Controller
 {
+    /**
+     * GET /api/v1/patient/feed
+     *
+     * Query Parameters:
+     * - `query` (string, optional): Search keyword for name, speciality, city, or bio
+     * - `wilaya_code` (string, optional): Filter by Wilaya code (e.g. "16", "31")
+     * - `partner_type` (string, optional): Filter by PartnerType code ("doctor", "center", "dentist", "pharmacist", "psy")
+     * - `profession` (string, optional): Filter by Profession code ("doctor", "dentist", "psychologist", etc.)
+     * - `speciality` (string, optional): Filter by Speciality code ("cardiology", "pediatrics", etc.)
+     * - `on_duty` (boolean, optional): Filter for on-duty / emergency partners
+     * - `near_me` (boolean, optional): Filter within 50 km of user's coordinates
+     * - `latitude` (float, optional): User latitude
+     * - `longitude` (float, optional): User longitude
+     * - `page` (integer, default: 1)
+     * - `per_page` (integer, default: 10)
+     *
+     * Response JSON:
+     * {
+     *   "results": [
+     *     {
+     *       "id": 4,
+     *       "name": "د. كريم عمراني",
+     *       "profile_pic": "https://...",
+     *       "partner_type": {
+     *         "code": "doctor",
+     *         "label": "طبيب / أخصائي"
+     *       },
+     *       "speciality": "أمراض القلب",
+     *       "distance": 3.2,
+     *       "rating": 4.8,
+     *       "reviews_count": 120,
+     *       "is_liked": true,
+     *       "location": {
+     *         "wilaya_name": "الجزائر",
+     *         "wilaya_number": "16",
+     *         "address": "12 Rue Didouche Mourad",
+     *         "lat": 36.7538,
+     *         "lng": 3.0588
+     *       },
+     *       "is_on_duty": false
+     *     }
+     *   ],
+     *   "filters": [
+     *     { "key": "all", "label": "الكل", "count": 24 },
+     *     { "key": "doctor", "label": "أطباء", "count": 12 }
+     *   ],
+     *   "wilayas": [ ... ],
+     *   "current_page": 1,
+     *   "next_page": 2,
+     *   "total": 24
+     * }
+     */
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -16,6 +72,8 @@ class FeedController extends Controller
         $query = $request->query('query');
         $wilayaCode = $request->query('wilaya_code') ?? $request->query('wilaya');
         $partnerType = $request->query('partner_type') ?? $request->query('user_type');
+        $professionCode = $request->query('profession_code') ?? $request->query('profession');
+        $specialityCode = $request->query('speciality_code') ?? $request->query('speciality');
         $onDuty = $request->boolean('on_duty');
         $nearMe = $request->boolean('near_me');
 
@@ -30,14 +88,13 @@ class FeedController extends Controller
         // Fetch liked partner IDs for authenticated user
         $likedPartnerIds = [];
         if ($user) {
-            $likedPartnerIds = \App\Models\LikeItem::where('user_id', $user->id)
-                ->where('likeable_type', \App\Models\Partner::class)
-                ->pluck('likeable_id')
+            $likedPartnerIds = LikedPartner::where('user_id', $user->id)
+                ->pluck('partner_id')
                 ->toArray();
         }
 
         // 2. Build base query for active & available partners
-        $partnerQuery = \App\Models\Partner::with(['user', 'partnerType', 'speciality', 'catalog', 'wilaya'])
+        $partnerQuery = Partner::with(['user', 'partnerType', 'profession', 'speciality', 'catalog', 'wilaya'])
             ->where('is_active', true)
             ->where('is_available', true);
 
@@ -54,11 +111,13 @@ class FeedController extends Controller
                     ->orWhereHas('speciality', function ($sq) use ($query) {
                         $sq->where('ar', 'like', "%{$query}%")
                             ->orWhere('en', 'like', "%{$query}%")
+                            ->orWhere('fr', 'like', "%{$query}%")
                             ->orWhere('code', 'like', "%{$query}%");
                     })
                     ->orWhereHas('catalog', function ($cq) use ($query) {
                         $cq->where('ar', 'like', "%{$query}%")
                             ->orWhere('en', 'like', "%{$query}%")
+                            ->orWhere('fr', 'like', "%{$query}%")
                             ->orWhere('code', 'like', "%{$query}%");
                     });
             });
@@ -70,6 +129,20 @@ class FeedController extends Controller
 
         if ($partnerType && $partnerType !== 'all') {
             $partnerQuery->where('partner_type_code', $partnerType);
+        }
+
+        if ($professionCode && $professionCode !== 'all') {
+            $partnerQuery->where(function ($pq) use ($professionCode) {
+                $pq->where('profession_code', $professionCode)
+                    ->orWhere('partner_type_code', $professionCode);
+            });
+        }
+
+        if ($specialityCode && $specialityCode !== 'all') {
+            $partnerQuery->where(function ($sq) use ($specialityCode) {
+                $sq->where('speciality_code', $specialityCode)
+                    ->orWhere('center_catalog_code', $specialityCode);
+            });
         }
 
         if ($onDuty) {
@@ -98,20 +171,24 @@ class FeedController extends Controller
             }
 
             $specialityName = $partner->speciality?->ar
+                ?? $partner->speciality?->fr
                 ?? $partner->speciality?->en
                 ?? $partner->catalog?->ar
+                ?? $partner->catalog?->fr
                 ?? $partner->catalog?->en
                 ?? $partner->profession?->ar
+                ?? $partner->profession?->fr
                 ?? $partner->profession?->en
                 ?? 'أخصائي';
 
             $partnerTypeCode = $partner->partner_type_code ?? 'doctor';
             $partnerTypeLabel = $partner->partnerType?->ar
+                ?? $partner->partnerType?->fr
                 ?? $partner->partnerType?->en
                 ?? ($partnerTypeCode === 'pharmacist' ? 'صيدلية' : ($partnerTypeCode === 'center' ? 'مركز طبي' : 'طبيب'));
 
             $results[] = [
-                'id' => $partner->id,
+                'id' => (int) $partner->id,
                 'name' => $name,
                 'profile_pic' => $partner->user?->image_url,
                 'partner_type' => [
@@ -124,8 +201,8 @@ class FeedController extends Controller
                 'reviews_count' => 120,
                 'is_liked' => in_array($partner->id, $likedPartnerIds),
                 'location' => [
-                    'wilaya_name' => $partner->wilaya?->ar ?? $partner->wilaya?->en ?? $partner->city ?? 'وهران',
-                    'wilaya_number' => (string) ($partner->wilaya?->number ?? $partner->wilaya_code ?? '31'),
+                    'wilaya_name' => $partner->wilaya?->ar ?? $partner->wilaya?->fr ?? $partner->city ?? 'الجزائر',
+                    'wilaya_number' => (string) ($partner->wilaya?->number ?? $partner->wilaya_code ?? '16'),
                     'address' => $partner->address ?? $partner->city,
                     'lat' => $partner->latitude ? (float) $partner->latitude : null,
                     'lng' => $partner->longitude ? (float) $partner->longitude : null,
@@ -134,7 +211,7 @@ class FeedController extends Controller
             ];
         }
 
-        // 4. Sort results by distance if location provided, otherwise created_at / default
+        // 4. Sort results by distance if location provided, otherwise by default
         if ($userLat !== null && $userLng !== null) {
             usort($results, function ($a, $b) {
                 $distA = $a['distance'] ?? INF;
@@ -144,13 +221,13 @@ class FeedController extends Controller
             });
         }
 
-        // 5. Generate counts for filters dynamically from PartnerType or all type codes
+        // 5. Generate counts for filters dynamically
         $typeLabels = [
             'doctor' => 'أطباء',
             'dentist' => 'أطباء الأسنان',
             'pharmacist' => 'صيدليات',
             'center' => 'مراكز طبية',
-            'psy' => 'أطباء نفسيون',
+            'psy' => 'أخصائي نفساني',
             'professional' => 'مهنيون',
         ];
 
@@ -163,8 +240,8 @@ class FeedController extends Controller
         ];
 
         foreach ($typeLabels as $code => $defaultLabel) {
-            $partnerTypeObj = \App\Models\PartnerType::find($code);
-            $label = $partnerTypeObj?->ar ?? $partnerTypeObj?->en ?? $defaultLabel;
+            $partnerTypeObj = PartnerType::find($code);
+            $label = $partnerTypeObj?->ar ?? $partnerTypeObj?->fr ?? $defaultLabel;
             $count = count(array_filter($results, fn($i) => $i['partner_type']['code'] === $code));
 
             $filters[] = [
@@ -183,7 +260,7 @@ class FeedController extends Controller
         return response()->json([
             'results' => array_values($pagedResults),
             'filters' => $filters,
-            'wilayas' => \App\Models\Wilaya::getActiveWilayas(),
+            'wilayas' => Wilaya::getActiveWilayas(),
             'current_page' => $page,
             'next_page' => $nextPage,
             'total' => $total,

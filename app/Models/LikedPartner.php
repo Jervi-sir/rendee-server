@@ -5,20 +5,20 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
 
-class LikeItem extends Model
+class LikedPartner extends Model
 {
     use HasFactory;
 
+    protected $table = 'liked_partners';
+
     protected $fillable = [
         'user_id',
-        'likeable_type',
-        'likeable_id',
+        'partner_id',
     ];
 
     /**
-     * Get the user who liked the item.
+     * Get the user who liked the partner.
      */
     public function user(): BelongsTo
     {
@@ -26,10 +26,10 @@ class LikeItem extends Model
     }
 
     /**
-     * Get the parent likeable model (professional, center, pharmacy, etc.).
+     * Get the liked partner.
      */
-    public function likeable(): MorphTo
+    public function partner(): BelongsTo
     {
-        return $this->morphTo();
+        return $this->belongsTo(Partner::class);
     }
 }

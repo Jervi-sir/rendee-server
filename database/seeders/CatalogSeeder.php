@@ -2,11 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\CenterCatalog;
 use App\Models\ContactPlatform;
-use App\Models\Profession;
-use App\Models\ProfessionalSpeciality;
-use App\Models\ServiceCatalog;
 use App\Models\Status;
 use App\Models\Wilaya;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -18,98 +14,102 @@ class CatalogSeeder extends Seeder
 
     public function run(): void
     {
-        // Professions
-        $professions = [
-            ['code' => 'doctor', 'en' => 'Doctor', 'fr' => 'Médecin', 'ar' => 'طبيب', 'hex' => '#0ea5e9'],
-            ['code' => 'psychologist', 'en' => 'Psychologist', 'fr' => 'Psychologue', 'ar' => 'أخصائي نفساني', 'hex' => '#8b5cf6'],
-            ['code' => 'dentist', 'en' => 'Dentist', 'fr' => 'Dentiste', 'ar' => 'طبيب أسنان', 'hex' => '#10b981'],
-        ];
-        foreach ($professions as $data) {
-            Profession::firstOrCreate(['code' => $data['code']], $data);
-        }
-
-        // Professional Specialities
-        $specialities = [
-            ['code' => 'general', 'en' => 'General Practitioner', 'fr' => 'Médecin Généraliste', 'ar' => 'طبيب عام'],
-            ['code' => 'cardiology', 'en' => 'Cardiology', 'fr' => 'Cardiologie', 'ar' => 'طب القلب'],
-            ['code' => 'dermatology', 'en' => 'Dermatology', 'fr' => 'Dermatologie', 'ar' => 'طب الجلدية'],
-            ['code' => 'pediatrics', 'en' => 'Pediatrics', 'fr' => 'Pédiatrie', 'ar' => 'طب الأطفال'],
-            ['code' => 'orthopedics', 'en' => 'Orthopedics', 'fr' => 'Orthopédie', 'ar' => 'جراحة العظام'],
-            ['code' => 'ophthalmology', 'en' => 'Ophthalmology', 'fr' => 'Ophtalmologie', 'ar' => 'طب العيون'],
-            ['code' => 'neurology', 'en' => 'Neurology', 'fr' => 'Neurologie', 'ar' => 'طب الأعصاب'],
-            ['code' => 'psychiatry', 'en' => 'Psychiatry', 'fr' => 'Psychiatrie', 'ar' => 'طب النفسي'],
-            ['code' => 'dentistry', 'en' => 'General Dentistry', 'fr' => 'Dentisterie Générale', 'ar' => 'طب أسنان عام'],
-            ['code' => 'orthodontics', 'en' => 'Orthodontics', 'fr' => 'Orthodontie', 'ar' => 'تقويم الأسنان'],
-        ];
-        foreach ($specialities as $data) {
-            ProfessionalSpeciality::firstOrCreate(['code' => $data['code']], $data);
-        }
-
-        // Service Catalogs
-        $services = [
-            ['code' => 'consultation', 'source' => 'professional', 'en' => 'Consultation', 'fr' => 'Consultation', 'ar' => 'استشارة'],
-            ['code' => 'checkup', 'source' => 'professional', 'en' => 'Medical Checkup', 'fr' => 'Bilan de Santé', 'ar' => 'فحص طبي'],
-            ['code' => 'surgery', 'source' => 'center', 'en' => 'Surgery', 'fr' => 'Chirurgie', 'ar' => 'جراحة'],
-            ['code' => 'vaccination', 'source' => 'center', 'en' => 'Vaccination', 'fr' => 'Vaccination', 'ar' => 'تلقيح'],
-            ['code' => 'lab_test', 'source' => 'center', 'en' => 'Lab Test', 'fr' => 'Analyse', 'ar' => 'تحليل مخبري'],
-            ['code' => 'radiology', 'source' => 'center', 'en' => 'Radiology', 'fr' => 'Radiologie', 'ar' => 'أشعة'],
-            ['code' => 'dental', 'source' => 'professional', 'en' => 'Dental Care', 'fr' => 'Soins Dentaires', 'ar' => 'رعاية الأسنان'],
-            ['code' => 'physiotherapy', 'source' => 'professional', 'en' => 'Physiotherapy', 'fr' => 'Kinésithérapie', 'ar' => 'علاج طبيعي'],
-        ];
-        foreach ($services as $data) {
-            ServiceCatalog::firstOrCreate(['code' => $data['code']], $data);
-        }
-
-        // Wilayas
+        // 1. Wilayas (58 Algerian Wilayas)
         $wilayas = [
-            ['code' => '16', 'number' => '16', 'en' => 'Algiers', 'fr' => 'Alger', 'ar' => 'الجزائر'],
-            ['code' => '31', 'number' => '31', 'en' => 'Oran', 'fr' => 'Oran', 'ar' => 'وهران'],
-            ['code' => '06', 'number' => '06', 'en' => 'Bejaia', 'fr' => 'Bejaia', 'ar' => 'بجاية'],
-            ['code' => '23', 'number' => '23', 'en' => 'Annaba', 'fr' => 'Annaba', 'ar' => 'عنابة'],
+            ['code' => '01', 'number' => '01', 'en' => 'Adrar', 'fr' => 'Adrar', 'ar' => 'أدرار'],
+            ['code' => '02', 'number' => '02', 'en' => 'Chlef', 'fr' => 'Chlef', 'ar' => 'الشلف'],
+            ['code' => '03', 'number' => '03', 'en' => 'Laghouat', 'fr' => 'Laghouat', 'ar' => 'الأغواط'],
+            ['code' => '04', 'number' => '04', 'en' => 'Oum El Bouaghi', 'fr' => 'Oum El Bouaghi', 'ar' => 'أم البواقي'],
+            ['code' => '05', 'number' => '05', 'en' => 'Batna', 'fr' => 'Batna', 'ar' => 'باتنة'],
+            ['code' => '06', 'number' => '06', 'en' => 'Béjaïa', 'fr' => 'Béjaïa', 'ar' => 'بجاية'],
+            ['code' => '07', 'number' => '07', 'en' => 'Biskra', 'fr' => 'Biskra', 'ar' => 'بسكرة'],
+            ['code' => '08', 'number' => '08', 'en' => 'Béchar', 'fr' => 'Béchar', 'ar' => 'بشار'],
+            ['code' => '09', 'number' => '09', 'en' => 'Blida', 'fr' => 'Blida', 'ar' => 'البليدة'],
+            ['code' => '10', 'number' => '10', 'en' => 'Bouira', 'fr' => 'Bouira', 'ar' => 'البويرة'],
+            ['code' => '11', 'number' => '11', 'en' => 'Tamanrasset', 'fr' => 'Tamanrasset', 'ar' => 'تمنراست'],
+            ['code' => '12', 'number' => '12', 'en' => 'Tébessa', 'fr' => 'Tébessa', 'ar' => 'تبسة'],
             ['code' => '13', 'number' => '13', 'en' => 'Tlemcen', 'fr' => 'Tlemcen', 'ar' => 'تلمسان'],
-            ['code' => '19', 'number' => '19', 'en' => 'Setif', 'fr' => 'Sétif', 'ar' => 'سطيف'],
+            ['code' => '14', 'number' => '14', 'en' => 'Tiaret', 'fr' => 'Tiaret', 'ar' => 'تيارت'],
+            ['code' => '15', 'number' => '15', 'en' => 'Tizi Ouzou', 'fr' => 'Tizi Ouzou', 'ar' => 'تيزي وزو'],
+            ['code' => '16', 'number' => '16', 'en' => 'Algiers', 'fr' => 'Alger', 'ar' => 'الجزائر'],
+            ['code' => '17', 'number' => '17', 'en' => 'Djelfa', 'fr' => 'Djelfa', 'ar' => 'الجلفة'],
+            ['code' => '18', 'number' => '18', 'en' => 'Jijel', 'fr' => 'Jijel', 'ar' => 'جيجل'],
+            ['code' => '19', 'number' => '19', 'en' => 'Sétif', 'fr' => 'Sétif', 'ar' => 'سطيف'],
+            ['code' => '20', 'number' => '20', 'en' => 'Saïda', 'fr' => 'Saïda', 'ar' => 'سعيدة'],
+            ['code' => '21', 'number' => '21', 'en' => 'Skikda', 'fr' => 'Skikda', 'ar' => 'سكيكدة'],
+            ['code' => '22', 'number' => '22', 'en' => 'Sidi Bel Abbès', 'fr' => 'Sidi Bel Abbès', 'ar' => 'سيدي بلعباس'],
+            ['code' => '23', 'number' => '23', 'en' => 'Annaba', 'fr' => 'Annaba', 'ar' => 'عنابة'],
+            ['code' => '24', 'number' => '24', 'en' => 'Guelma', 'fr' => 'Guelma', 'ar' => 'قالمة'],
             ['code' => '25', 'number' => '25', 'en' => 'Constantine', 'fr' => 'Constantine', 'ar' => 'قسنطينة'],
-            ['code' => '46', 'number' => '46', 'en' => 'Ain Temouchent', 'fr' => 'Ain Témouchent', 'ar' => 'عين تموشنت'],
+            ['code' => '26', 'number' => '26', 'en' => 'Médéa', 'fr' => 'Médéa', 'ar' => 'المدية'],
+            ['code' => '27', 'number' => '27', 'en' => 'Mostaganem', 'fr' => 'Mostaganem', 'ar' => 'مستغانم'],
+            ['code' => '28', 'number' => '28', 'en' => 'M\'Sila', 'fr' => 'M\'Sila', 'ar' => 'المسيلة'],
+            ['code' => '29', 'number' => '29', 'en' => 'Mascara', 'fr' => 'Mascara', 'ar' => 'معسكر'],
+            ['code' => '30', 'number' => '30', 'en' => 'Ouargla', 'fr' => 'Ouargla', 'ar' => 'ورقلة'],
+            ['code' => '31', 'number' => '31', 'en' => 'Oran', 'fr' => 'Oran', 'ar' => 'وهران'],
+            ['code' => '32', 'number' => '32', 'en' => 'El Bayadh', 'fr' => 'El Bayadh', 'ar' => 'البيض'],
+            ['code' => '33', 'number' => '33', 'en' => 'Illizi', 'fr' => 'Illizi', 'ar' => 'إليزي'],
+            ['code' => '34', 'number' => '34', 'en' => 'Bordj Bou Arréridj', 'fr' => 'Bordj Bou Arréridj', 'ar' => 'برج بوعريريج'],
+            ['code' => '35', 'number' => '35', 'en' => 'Boumerdès', 'fr' => 'Boumerdès', 'ar' => 'بومرداس'],
+            ['code' => '36', 'number' => '36', 'en' => 'El Tarf', 'fr' => 'El Tarf', 'ar' => 'الطارف'],
+            ['code' => '37', 'number' => '37', 'en' => 'Tindouf', 'fr' => 'Tindouf', 'ar' => 'تندوف'],
+            ['code' => '38', 'number' => '38', 'en' => 'Tissemsilt', 'fr' => 'Tissemsilt', 'ar' => 'تيسمسيلت'],
+            ['code' => '39', 'number' => '39', 'en' => 'El Oued', 'fr' => 'El Oued', 'ar' => 'الوادي'],
+            ['code' => '40', 'number' => '40', 'en' => 'Khenchela', 'fr' => 'Khenchela', 'ar' => 'خنشلة'],
+            ['code' => '41', 'number' => '41', 'en' => 'Souk Ahras', 'fr' => 'Souk Ahras', 'ar' => 'سوق أهراس'],
+            ['code' => '42', 'number' => '42', 'en' => 'Tipaza', 'fr' => 'Tipaza', 'ar' => 'تيبازة'],
+            ['code' => '43', 'number' => '43', 'en' => 'Mila', 'fr' => 'Mila', 'ar' => 'ميلة'],
+            ['code' => '44', 'number' => '44', 'en' => 'Aïn Defla', 'fr' => 'Aïn Defla', 'ar' => 'عين الدفلى'],
+            ['code' => '45', 'number' => '45', 'en' => 'Naâma', 'fr' => 'Naâma', 'ar' => 'النعامة'],
+            ['code' => '46', 'number' => '46', 'en' => 'Aïn Témouchent', 'fr' => 'Aïn Témouchent', 'ar' => 'عين تموشنت'],
+            ['code' => '47', 'number' => '47', 'en' => 'Ghardaïa', 'fr' => 'Ghardaïa', 'ar' => 'غرداية'],
+            ['code' => '48', 'number' => '48', 'en' => 'Relizane', 'fr' => 'Relizane', 'ar' => 'غليزان'],
+            ['code' => '49', 'number' => '49', 'en' => 'Timimoun', 'fr' => 'Timimoun', 'ar' => 'تيميمون'],
+            ['code' => '50', 'number' => '50', 'en' => 'Bordj Badji Mokhtar', 'fr' => 'Bordj Badji Mokhtar', 'ar' => 'برج باجي مختار'],
+            ['code' => '51', 'number' => '51', 'en' => 'Ouled Djellal', 'fr' => 'Ouled Djellal', 'ar' => 'أولاد جلال'],
+            ['code' => '52', 'number' => '52', 'en' => 'Béni Abbès', 'fr' => 'Béni Abbès', 'ar' => 'بني عباس'],
+            ['code' => '53', 'number' => '53', 'en' => 'In Salah', 'fr' => 'In Salah', 'ar' => 'عين صالح'],
+            ['code' => '54', 'number' => '54', 'en' => 'In Guezzam', 'fr' => 'In Guezzam', 'ar' => 'عين قزام'],
+            ['code' => '55', 'number' => '55', 'en' => 'Touggourt', 'fr' => 'Touggourt', 'ar' => 'تقرت'],
+            ['code' => '56', 'number' => '56', 'en' => 'Djanet', 'fr' => 'Djanet', 'ar' => 'جانت'],
+            ['code' => '57', 'number' => '57', 'en' => 'El M\'Ghair', 'fr' => 'El M\'Ghair', 'ar' => 'المغير'],
+            ['code' => '58', 'number' => '58', 'en' => 'El Meniaa', 'fr' => 'El Meniaa', 'ar' => 'المنيعة'],
         ];
+
         foreach ($wilayas as $data) {
-            Wilaya::firstOrCreate(['code' => $data['code']], $data);
+            Wilaya::updateOrCreate(['code' => $data['code']], $data);
         }
 
-        // Contact Platforms
-        $platforms = [
-            ['code' => 'phone', 'en' => 'Phone', 'fr' => 'Téléphone', 'ar' => 'هاتف'],
-            ['code' => 'email', 'en' => 'Email', 'fr' => 'Email', 'ar' => 'البريد الإلكتروني'],
+        // 2. Contact Platforms
+        $contactPlatforms = [
+            ['code' => 'phone', 'en' => 'Phone', 'fr' => 'Téléphone', 'ar' => 'الهاتف'],
             ['code' => 'whatsapp', 'en' => 'WhatsApp', 'fr' => 'WhatsApp', 'ar' => 'واتساب'],
+            ['code' => 'viber', 'en' => 'Viber', 'fr' => 'Viber', 'ar' => 'فايبر'],
+            ['code' => 'telegram', 'en' => 'Telegram', 'fr' => 'Telegram', 'ar' => 'تيليجرام'],
             ['code' => 'facebook', 'en' => 'Facebook', 'fr' => 'Facebook', 'ar' => 'فيسبوك'],
-            ['code' => 'website', 'en' => 'Website', 'fr' => 'Site Web', 'ar' => 'موقع إلكتروني'],
+            ['code' => 'instagram', 'en' => 'Instagram', 'fr' => 'Instagram', 'ar' => 'إنستغرام'],
+            ['code' => 'linkedin', 'en' => 'LinkedIn', 'fr' => 'LinkedIn', 'ar' => 'لينكد إن'],
+            ['code' => 'website', 'en' => 'Website', 'fr' => 'Site Web', 'ar' => 'الموقع الإلكتروني'],
+            ['code' => 'email', 'en' => 'Email', 'fr' => 'Email', 'ar' => 'البريد الإلكتروني'],
         ];
-        foreach ($platforms as $data) {
-            ContactPlatform::firstOrCreate(['code' => $data['code']], $data);
+
+        foreach ($contactPlatforms as $data) {
+            ContactPlatform::updateOrCreate(['code' => $data['code']], $data);
         }
 
-        // Center Catalogs
-        $centerCatalogs = [
-            ['code' => 'clinic', 'en' => 'Clinic', 'fr' => 'Clinique', 'ar' => 'عيادة'],
-            ['code' => 'hospital', 'en' => 'Hospital', 'fr' => 'Hôpital', 'ar' => 'مستشفى'],
-            ['code' => 'diagnostic', 'en' => 'Diagnostic Center', 'fr' => 'Centre de Diagnostic', 'ar' => 'مركز تشخيص'],
-            ['code' => 'lab', 'en' => 'Laboratory', 'fr' => 'Laboratoire', 'ar' => 'مخبر'],
-            ['code' => 'pharmacy', 'en' => 'Pharmacy', 'fr' => 'Pharmacie', 'ar' => 'صيدلية'],
-        ];
-        foreach ($centerCatalogs as $data) {
-            CenterCatalog::firstOrCreate(['code' => $data['code']], $data);
-        }
-
-        // Statuses
+        // 3. Statuses
         $statuses = [
-            ['code' => 'pending', 'en' => 'Pending', 'fr' => 'En Attente', 'ar' => 'قيد الانتظار'],
+            ['code' => 'pending', 'en' => 'Pending', 'fr' => 'En attente', 'ar' => 'قيد الانتظار'],
             ['code' => 'confirmed', 'en' => 'Confirmed', 'fr' => 'Confirmé', 'ar' => 'مؤكد'],
-            ['code' => 'cancelled', 'en' => 'Cancelled', 'fr' => 'Annulé', 'ar' => 'ملغي'],
+            ['code' => 'in_progress', 'en' => 'In Progress', 'fr' => 'En cours', 'ar' => 'جاري الموعد'],
             ['code' => 'completed', 'en' => 'Completed', 'fr' => 'Terminé', 'ar' => 'مكتمل'],
-            ['code' => 'rescheduled', 'en' => 'Rescheduled', 'fr' => 'Reporté', 'ar' => 'معاد جدولته'],
+            ['code' => 'cancelled', 'en' => 'Cancelled', 'fr' => 'Annulé', 'ar' => 'ملغى'],
+            ['code' => 'rescheduled', 'en' => 'Rescheduled', 'fr' => 'Reporté', 'ar' => 'مؤجل'],
             ['code' => 'no_show', 'en' => 'No Show', 'fr' => 'Absent', 'ar' => 'لم يحضر'],
         ];
+
         foreach ($statuses as $data) {
-            Status::firstOrCreate(['code' => $data['code']], $data);
+            Status::updateOrCreate(['code' => $data['code']], $data);
         }
     }
 }

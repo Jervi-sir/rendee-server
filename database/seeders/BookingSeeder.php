@@ -5,11 +5,10 @@ namespace Database\Seeders;
 use App\Models\Booking;
 use App\Models\BookingHistory;
 use App\Models\Partner;
-use App\Models\PartnerSchedule;
-use App\Models\PartnerService;
 use App\Models\Patient;
 use App\Models\Status;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
@@ -20,58 +19,63 @@ class BookingSeeder extends Seeder
 
     public function run(): void
     {
-        $patients = Patient::inRandomOrder()->get();
-        $statuses = Status::inRandomOrder()->get();
-        $partners = Partner::inRandomOrder()->get();
+        $patients = Patient::with('user')->get();
+        $partners = Partner::with(['services', 'schedules'])->get();
+        $statuses = Status::all();
+        $allUsers = User::all();
 
-        if ($patients->isEmpty() || $statuses->isEmpty() || $partners->isEmpty()) {
+        if ($patients->isEmpty() || $partners->isEmpty()) {
             return;
         }
 
-        foreach ($partners as $partner) {
-            $schedules = PartnerSchedule::where('partner_id', $partner->id)
-                ->where('is_active', true)
-                ->inRandomOrder()
-                ->get();
-            $services = PartnerService::where('partner_id', $partner->id)
-                ->inRandomOrder()
-                ->get();
+        $statusList = ['pending', 'confirmed', 'completed', 'cancelled', 'rescheduled'];
 
-            if ($schedules->isEmpty() || $services->isEmpty()) {
-                continue;
-            }
+        for ($i = 1; $i <= 20; $i++) {
+            $patient = $patients->random();
+            $partner = $partners->random();
+            $statusCode = fake()->randomElement($statusList);
+            $service = $partner->services->isNotEmpty() ? $partner->services->random() : null;
+            $schedule = $partner->schedules->where('is_active', true)->first();
 
-            foreach (range(1, fake()->numberBetween(1, 4)) as $i) {
-                $patient = $patients->random();
-                $schedule = $schedules->random();
-                $service = $services->random();
-                $status = $statuses->random();
+            $bookingDate = Carbon::today()->addDays(fake()->numberBetween(-14, 14))->format('Y-m-d');
+            $bookingTime = fake()->randomElement(['09:00:00', '10:30:00', '11:00:00', '14:00:00', '15:30:00', '16:00:00']);
 
-                $booking = Booking::create([
-                    'reference' => 'BK-' . strtoupper(Str::random(8)),
-                    'patient_id' => $patient->id,
-                    'partner_id' => $partner->id,
-                    'service_type' => PartnerService::class,
-                    'service_id' => $service->id,
-                    'schedule_type' => PartnerSchedule::class,
-                    'schedule_id' => $schedule->id,
-                    'patient_name' => $patient->user?->full_name ?? $patient->user?->name ?? 'Patient',
-                    'patient_phone' => $patient->user?->phone_number ?? fake()->phoneNumber(),
-                    'booking_date' => now()->addDays(fake()->numberBetween(-10, 30))->format('Y-m-d'),
-                    'booking_time' => $schedule->start_time,
-                    'status_code' => $status->code,
-                    'is_center' => $partner->partner_type === 'CENTER',
-                    'proposed_date' => null,
-                    'proposed_time' => null,
-                    'has_pending_proposal' => false,
-                    'notes' => fake()->optional(0.4)->sentence(),
-                ]);
+            $booking = Booking::create([
+                'reference' => 'BK-' . strtoupper(Str::random(8)),
+                'patient_id' => $patient->id,
+                'partner_id' => $partner->id,
+                'service_type' => 'partner_service',
+                'service_id' => $service?->id,
+                'schedule_type' => 'partner_schedule',
+                'schedule_id' => $schedule?->id,
+                'patient_name' => $patient->user?->name ?? 'Patient ' . $i,
+                'patient_phone' => $patient->user?->phone_number ?? ('05' . fake()->numerify('########')),
+                'booking_date' => $bookingDate,
+                'booking_time' => $bookingTime,
+                'status_code' => $statusCode,
+                'is_center' => $partner->partner_type_code === 'center',
+                'proposed_date' => $statusCode === 'rescheduled' ? Carbon::parse($bookingDate)->addDays(2)->format('Y-m-d') : null,
+                'proposed_time' => $statusCode === 'rescheduled' ? '11:00:00' : null,
+                'has_pending_proposal' => $statusCode === 'rescheduled',
+                'notes' => fake()->boolean(40) ? 'Consultation médicale de suivi.' : null,
+            ]);
 
+            // 2. Booking Histories (Isolated)
+            // Initial creation history
+            BookingHistory::create([
+                'booking_id' => $booking->id,
+                'status_code' => 'pending',
+                'notes' => 'Rendez-vous créé par le patient.',
+                'changed_by' => $patient->user_id,
+            ]);
+
+            // Current status history if progressed
+            if ($statusCode !== 'pending') {
                 BookingHistory::create([
                     'booking_id' => $booking->id,
-                    'status_code' => $status->code,
-                    'notes' => 'Booking created',
-                    'changed_by' => User::inRandomOrder()->first()?->id,
+                    'status_code' => $statusCode,
+                    'notes' => 'Statut mis à jour: ' . $statusCode,
+                    'changed_by' => $allUsers->isNotEmpty() ? $allUsers->random()->id : $partner->user_id,
                 ]);
             }
         }

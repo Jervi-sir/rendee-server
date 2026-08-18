@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Partner;
 use App\Models\PartnerSchedule;
 use App\Models\PartnerService;
-use App\Models\ProfessionalSpeciality;
 use App\Models\ServiceCatalog;
+use App\Models\Speciality;
 use App\Models\User;
 use App\Models\UserContact;
 use App\Models\Wilaya;
@@ -63,8 +63,9 @@ class OnboardingController extends Controller
             'sections' => $stepStatus['sections'],
             'steps' => $stepStatus['steps'],
             'data' => [
-                'speciality_code' => $partner->professional_speciality_code,
-                'speciality_name' => $partner->specialty?->ar ?? $partner->specialty?->en ?? null,
+                'speciality_code' => $partner->speciality_code,
+                'custom_speciality' => $partner->custom_speciality,
+                'speciality_name' => $partner->display_speciality,
                 'license_number' => $partner->license_number,
                 'years_experience' => $partner->years_experience,
                 'bio' => $partner->bio,
@@ -122,23 +123,22 @@ class OnboardingController extends Controller
         }
 
         $validated = $request->validate([
-            'professional_speciality_code' => ['nullable', 'string', Rule::exists('professional_specialities', 'code')],
-            'specialty_id' => ['nullable', 'integer'],
+            'speciality_code' => ['nullable', 'string', Rule::exists('specialities', 'code')],
+            'professional_speciality_code' => ['nullable', 'string', Rule::exists('specialities', 'code')],
+            'custom_speciality' => ['nullable', 'string', 'max:255'],
+            'specialty_id' => ['nullable', 'string'],
             'license_number' => ['nullable', 'string', 'max:100'],
             'years_experience' => ['nullable', 'string', 'max:10'],
             'bio' => ['nullable', 'string'],
         ]);
 
-        $specialityCode = $validated['professional_speciality_code'] ?? null;
-        if (! $specialityCode && ! empty($validated['specialty_id'])) {
-            $speciality = ProfessionalSpeciality::find($validated['specialty_id']);
-            if ($speciality) {
-                $specialityCode = $speciality->code;
-            }
-        }
+        $specialityCode = $validated['speciality_code'] ?? $validated['professional_speciality_code'] ?? $validated['specialty_id'] ?? null;
 
-        if ($specialityCode) {
-            $partner->professional_speciality_code = $specialityCode;
+        if (array_key_exists('speciality_code', $validated) || array_key_exists('professional_speciality_code', $validated) || array_key_exists('specialty_id', $validated)) {
+            $partner->speciality_code = $specialityCode;
+        }
+        if (array_key_exists('custom_speciality', $validated)) {
+            $partner->custom_speciality = $validated['custom_speciality'];
         }
         if (array_key_exists('license_number', $validated)) {
             $partner->license_number = $validated['license_number'];
@@ -362,7 +362,7 @@ class OnboardingController extends Controller
             ],
         ];
 
-        $step1Speciality = ! empty($partner->professional_speciality_code) || ! empty($partner->license_number) || ! empty($partner->center_catalog_code);
+        $step1Speciality = ! empty($partner->speciality_code) || ! empty($partner->custom_speciality) || ! empty($partner->license_number) || ! empty($partner->center_catalog_code);
         $step2Location = $hasLocation;
         $step3Services = $hasServices;
         $step4Schedule = $hasSchedule;

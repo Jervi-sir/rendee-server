@@ -31,4 +31,9 @@ class PartnerType extends Model
     {
         return $this->hasMany(Partner::class, 'partner_type_code', 'code');
     }
+
+    public function professions(): HasMany
+    {
+        return $this->hasMany(Profession::class, 'partner_type_code', 'code');
+    }
 }

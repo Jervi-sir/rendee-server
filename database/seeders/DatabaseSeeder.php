@@ -12,14 +12,13 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            CatalogSeeder::class,
-            PartnerTypeSeeder::class,
-            UserSeeder::class,
-            PatientSeeder::class,
-            PartnerSeeder::class,
-            BookingSeeder::class,
-            NotificationSeeder::class,
-            PerformanceSeeder::class,
+            CatalogSeeder::class,      // 0001_catalog_tables
+            UserSeeder::class,         // 0002_user_tables
+            PatientSeeder::class,      // 0003_patient_tables
+            PartnerSeeder::class,      // 0005_partner_tables
+            BookingSeeder::class,      // 0006_booking_tables
+            NotificationSeeder::class, // 0007_notification_tables
+            PerformanceSeeder::class,  // 0008_performance_tables
         ]);
     }
 }

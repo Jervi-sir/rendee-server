@@ -10,7 +10,6 @@ use App\Models\PartnerService;
 use App\Models\Patient;
 use App\Models\User;
 use Carbon\Carbon;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -18,7 +17,43 @@ use Illuminate\Support\Str;
 class BookingController extends Controller
 {
     /**
-     * Display a paginated list of the patient's bookings.
+     * GET /api/v1/patient/bookings
+     *
+     * Response JSON:
+     * {
+     *   "bookings": [
+     *     {
+     *       "id": 1,
+     *       "reference": "BK-A1B2C3D4",
+     *       "patient_id": 2,
+     *       "partner_id": 4,
+     *       "patient_name": "Ahmed Benali",
+     *       "patient_phone": "0551111111",
+     *       "booking_date": "2026-08-25",
+     *       "booking_time": "10:30:00",
+     *       "status_code": "confirmed",
+     *       "is_center": false,
+     *       "proposed_date": null,
+     *       "proposed_time": null,
+     *       "has_pending_proposal": false,
+     *       "notes": "Consultation générale",
+     *       "created_at": "2026-08-18T00:30:00.000000Z",
+     *       "provider": {
+     *         "id": 4,
+     *         "name": "Dr. Karim Amrani"
+     *       },
+     *       "service": {
+     *         "id": 1,
+     *         "name": "Consultation Générale",
+     *         "price": 2000,
+     *         "duration_minutes": 30
+     *       }
+     *     }
+     *   ],
+     *   "current_page": 1,
+     *   "next_page": null,
+     *   "total": 1
+     * }
      */
     public function index(Request $request): JsonResponse
     {
@@ -34,8 +69,8 @@ class BookingController extends Controller
         $perPage = max(1, min(100, (int) $request->query('per_page', 10)));
 
         $query = Booking::with([
-            'partner' => ['user', 'speciality', 'profession', 'catalog', 'wilaya'],
-            'service.catalog',
+            'partner' => ['user', 'speciality', 'profession', 'centerCatalog', 'wilaya'],
+            'service.serviceCatalog',
             'status',
         ])
             ->where('patient_id', $patientId);
@@ -47,7 +82,7 @@ class BookingController extends Controller
         $paginator = $query->orderBy('updated_at', 'desc')
             ->paginate($perPage, ['*'], 'page', $page);
 
-        $bookings = collect($paginator->items())->map(fn ($b) => $b->formatForPatient(false));
+        $bookings = collect($paginator->items())->map(fn($b) => $b->formatForPatient(false));
 
         return response()->json([
             'bookings' => $bookings,
@@ -58,7 +93,58 @@ class BookingController extends Controller
     }
 
     /**
-     * Display detailed profile for a specific booking.
+     * GET /api/v1/patient/bookings/{id}
+     *
+     * Response JSON:
+     * {
+     *   "booking": {
+     *     "id": 1,
+     *     "reference": "BK-A1B2C3D4",
+     *     "patient_id": 2,
+     *     "partner_id": 4,
+     *     "patient_name": "Ahmed Benali",
+     *     "patient_phone": "0551111111",
+     *     "booking_date": "2026-08-25",
+     *     "booking_time": "10:30:00",
+     *     "status_code": "confirmed",
+     *     "is_center": false,
+     *     "proposed_date": null,
+     *     "proposed_time": null,
+     *     "has_pending_proposal": false,
+     *     "notes": "Consultation générale",
+     *     "created_at": "2026-08-18T00:30:00.000000Z",
+     *     "provider": {
+     *       "id": 4,
+     *       "name": "Dr. Karim Amrani"
+     *     },
+     *     "service": {
+     *       "id": 1,
+     *       "name": "Consultation Générale",
+     *       "price": 2000,
+     *       "duration_minutes": 30
+     *     },
+     *     "status": {
+     *       "code": "confirmed",
+     *       "en": "Confirmed",
+     *       "ar": "مؤكد",
+     *       "fr": "Confirmé"
+     *     },
+     *     "schedule": {
+     *       "id": 1,
+     *       "day_of_week": 0,
+     *       "start_time": "08:30:00",
+     *       "end_time": "17:00:00"
+     *     },
+     *     "histories": [
+     *       {
+     *         "id": 1,
+     *         "status_code": "pending",
+     *         "notes": "Rendez-vous créé.",
+     *         "created_at": "2026-08-18T00:30:00.000000Z"
+     *       }
+     *     ]
+     *   }
+     * }
      */
     public function show(Request $request, int $id): JsonResponse
     {
@@ -66,8 +152,8 @@ class BookingController extends Controller
         $patientId = $user && $user->patient ? $user->patient->id : null;
 
         $booking = Booking::with([
-            'partner' => ['user', 'speciality', 'profession', 'catalog', 'wilaya'],
-            'service.catalog',
+            'partner' => ['user', 'speciality', 'profession', 'centerCatalog', 'wilaya'],
+            'service.serviceCatalog',
             'schedule',
             'status',
             'bookingHistories.changedBy',
@@ -85,12 +171,31 @@ class BookingController extends Controller
     }
 
     /**
-     * Create a new booking request.
+     * POST /api/v1/patient/bookings
+     *
+     * Request JSON:
+     * {
+     *   "partner_id": 4,
+     *   "date": "2026-08-25",
+     *   "time": "10:30:00",
+     *   "service_id": 1,
+     *   "patient_name": "Ahmed Benali",
+     *   "patient_phone": "0551111111",
+     *   "notes": "Consultation de suivi"
+     * }
+     *
+     * Response JSON:
+     * {
+     *   "success": true,
+     *   "message": "Appointment booked successfully.",
+     *   "booking": { ... }
+     * }
      */
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'partner_id' => ['required', 'integer'],
+            'partner_id' => ['nullable', 'integer'],
+            'bookable_id' => ['nullable', 'integer'],
             'date' => ['required', 'date_format:Y-m-d'],
             'time' => ['required', 'string'],
             'service_id' => ['nullable', 'integer'],
@@ -99,7 +204,14 @@ class BookingController extends Controller
             'notes' => ['nullable', 'string'],
         ]);
 
-        $partnerId = $validated['partner_id'];
+        $partnerId = $validated['partner_id'] ?? $validated['bookable_id'] ?? null;
+
+        if (! $partnerId) {
+            return response()->json([
+                'message' => 'The partner_id field is required.',
+            ], 422);
+        }
+
         $serviceId = $validated['service_id'] ?? null;
         $date = $validated['date'];
 
@@ -120,7 +232,7 @@ class BookingController extends Controller
 
         $partner = Partner::find($partnerId);
 
-        $reference = 'BK-'.strtoupper(Str::random(8));
+        $reference = 'BK-' . strtoupper(Str::random(8));
 
         $bookingData = [
             'reference' => $reference,
@@ -154,8 +266,8 @@ class BookingController extends Controller
         $booking = Booking::create($bookingData);
 
         $booking->load([
-            'partner' => ['user', 'speciality', 'profession', 'catalog', 'wilaya'],
-            'service.catalog',
+            'partner' => ['user', 'speciality', 'profession', 'centerCatalog', 'wilaya'],
+            'service.serviceCatalog',
             'status',
         ]);
 
@@ -167,7 +279,28 @@ class BookingController extends Controller
     }
 
     /**
-     * Retrieve options for attempting a booking: prefilled patient info, partner details, services, and schedules.
+     * GET /api/v1/patient/bookings/attempt?partner_id=4
+     *
+     * Response JSON:
+     * {
+     *   "success": true,
+     *   "patient_info": {
+     *     "full_name": "Ahmed Benali",
+     *     "first_name": "Ahmed",
+     *     "last_name": "Benali",
+     *     "email": "patient@rendee.dz",
+     *     "phone": "0551111111",
+     *     "phone_number": "0551111111"
+     *   },
+     *   "bookable": {
+     *     "id": 4,
+     *     "name": "Dr. Karim Amrani",
+     *     "partner_type": "doctor",
+     *     "is_center": false
+     *   },
+     *   "services": [ ... ],
+     *   "schedules": [ ... ]
+     * }
      */
     public function attemptBooking(Request $request): JsonResponse
     {
@@ -200,7 +333,7 @@ class BookingController extends Controller
         // Partner details & services
         $services = [];
         if ($partner && $partner->services) {
-            $services = $partner->services->map(fn ($s) => [
+            $services = $partner->services->map(fn($s) => [
                 'id' => $s->id,
                 'name' => $s->name,
                 'price' => $s->price,
@@ -217,7 +350,7 @@ class BookingController extends Controller
             2 => ['en' => 'Tuesday', 'ar' => 'الثلاثاء', 'fr' => 'Mardi'],
             3 => ['en' => 'Wednesday', 'ar' => 'الأربعاء', 'fr' => 'Mercredi'],
             4 => ['en' => 'Thursday', 'ar' => 'الخميس', 'fr' => 'Jeudi'],
-            5 => ['en' => 'Friday', 'ar' => 'الجمعة', 'fr' => 'Vendresse'],
+            5 => ['en' => 'Friday', 'ar' => 'الجمعة', 'fr' => 'Vendredi'],
             6 => ['en' => 'Saturday', 'ar' => 'السبت', 'fr' => 'Samedi'],
         ];
 
@@ -244,7 +377,7 @@ class BookingController extends Controller
             'id' => $partner?->id ?? 1,
             'name' => $partner?->name ?? $partner?->user?->full_name ?? 'العيادة الطبية',
             'partner_type' => $partner?->partner_type_code ?? 'doctor',
-            'is_center' => $partner ? ($partner->partner_type === 'center') : false,
+            'is_center' => $partner ? ($partner->partner_type_code === 'center') : false,
         ];
 
         return response()->json([
@@ -257,7 +390,14 @@ class BookingController extends Controller
     }
 
     /**
-     * Patient accepts/confirms a proposed booking schedule change by the partner.
+     * POST /api/v1/patient/bookings/{id}/confirm-proposal
+     *
+     * Response JSON:
+     * {
+     *   "success": true,
+     *   "message": "Proposal confirmed successfully.",
+     *   "booking": { ... }
+     * }
      */
     public function confirmProposal(Request $request, int $id): JsonResponse
     {

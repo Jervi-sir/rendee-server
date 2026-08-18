@@ -4,7 +4,7 @@ namespace App\Http\Controllers\V1\Api\Partner;
 
 use App\Http\Controllers\Controller;
 use App\Models\Partner;
-use App\Models\ProfessionalSpeciality;
+use App\Models\Speciality;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -63,22 +63,15 @@ class ProfileController extends Controller
     }
 
     /**
-     * Retrieve authenticated partner's profile.
+     * Fetch complete unified profile data for authenticated user/partner.
      */
     public function show(Request $request): JsonResponse
     {
-        $user = $request->user();
-        if (! $user) {
-            $user = User::first();
-        }
+        [$user, $partner] = $this->resolveUserAndPartner($request);
 
         if (! $user) {
             return response()->json(['error' => 'User not found'], 404);
         }
-
-        $partner = Partner::with(['specialty', 'profession', 'catalog', 'wilaya', 'contacts'])
-            ->where('user_id', $user->id)
-            ->first();
 
         if (! $partner) {
             $partnerType = match ($user->user_role_code) {
@@ -91,28 +84,36 @@ class ProfileController extends Controller
                 ['user_id' => $user->id],
                 [
                     'partner_type' => $partnerType,
-                    'name' => $user->full_name ?? $user->name,
-                    'is_available' => true,
-                    'is_active' => true,
+                    'name' => $user->full_name,
                 ]
             );
-            $partner->load(['specialty', 'profession', 'catalog', 'wilaya', 'contacts']);
         }
 
-        $profile = [
-            'partner_type_code' => '',
-            'full_name' => $user->full_name ?? $user->name ?? '',
+        $partner->load([
+            'profession',
+            'speciality',
+            'catalog',
+            'wilaya',
+            'schedules',
+            'services',
+            'contacts.platform',
+        ]);
+
+        $profileData = [
+            'id' => $user->id,
+            'partner_id' => $partner->id,
+            'name' => $user->name ?? '',
+            'full_name' => $user->full_name ?? '',
             'email' => $user->email ?? '',
             'phone_number' => $user->phone_number ?? '',
             'image_url' => $user->image_url,
             'profile_completed' => (bool) $user->profile_completed,
 
-
             'profession_code' => $partner->profession_code,
             'profession_label' => $partner->profession?->ar ?? $partner->profession?->en ?? 'أخصائي',
-            'professional_speciality_code' => $partner->professional_speciality_code,
-            'specialty_id' => $partner->specialty?->id,
-            'specialty' => $partner->specialty?->ar ?? $partner->specialty?->en ?? 'عام',
+            'speciality_code' => $partner->speciality_code,
+            'custom_speciality' => $partner->custom_speciality,
+            'specialty' => $partner->display_speciality ?? 'عام',
             'center_catalog_code' => $partner->center_catalog_code,
             'catalog_label' => $partner->catalog?->ar ?? $partner->catalog?->en ?? 'مركز طبي',
             'license_number' => $partner->license_number,
@@ -128,35 +129,35 @@ class ProfileController extends Controller
             'emergency_24_7' => (bool) $partner->emergency_24_7,
             'is_available' => (bool) $partner->is_available,
             'is_active' => (bool) $partner->is_active,
-            'contacts' => $partner->contacts ?? [],
+            'is_on_duty' => (bool) $partner->is_on_duty,
+            'phone_public' => $partner->phone_public,
+            'user_role_code' => $user->user_role_code,
+            'partner_type_code' => $partner->partner_type_code,
+            'services' => $partner->services,
+            'schedules' => $partner->schedules,
+            'contacts' => $partner->contacts,
         ];
 
-        return response()->json([
-            'success' => true,
-            'profile' => $profile,
-        ]);
+        return response()->json($profileData);
     }
 
     /**
-     * Update authenticated partner's profile.
+     * Unified update for all partner & user profile information.
      */
     public function update(Request $request): JsonResponse
     {
-        $user = $request->user();
-        if (! $user) {
-            $user = User::first();
-        }
+        [$user, $partner] = $this->resolveUserAndPartner($request);
 
         if (! $user) {
-            return response()->json(['error' => 'User profile not found'], 404);
+            return response()->json(['error' => 'User not found'], 404);
         }
 
         $validated = $request->validate([
             'full_name' => ['required', 'string', 'max:255'],
             'name' => ['nullable', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email,' . $user->id],
-            'phone' => ['nullable', 'string', 'max:30'],
+            'email' => ['required', 'email', 'max:255'],
             'phone_number' => ['nullable', 'string', 'max:30'],
+            'phone' => ['nullable', 'string', 'max:30'],
             'phone_public' => ['nullable', 'string', 'max:30'],
             'image_url' => ['nullable', 'string', 'max:500'],
             'bio' => ['nullable', 'string'],
@@ -166,8 +167,10 @@ class ProfileController extends Controller
             'license_number' => ['nullable', 'string', 'max:100'],
             'years_experience' => ['nullable', 'string', 'max:10'],
             'profession_code' => ['nullable', 'string'],
+            'speciality_code' => ['nullable', 'string'],
             'professional_speciality_code' => ['nullable', 'string'],
-            'specialty_id' => ['nullable', 'integer'],
+            'custom_speciality' => ['nullable', 'string', 'max:255'],
+            'specialty_id' => ['nullable', 'string'],
             'center_catalog_code' => ['nullable', 'string'],
             'emergency_24_7' => ['nullable', 'boolean'],
             'latitude' => ['nullable', 'numeric'],
@@ -202,13 +205,7 @@ class ProfileController extends Controller
             ]
         );
 
-        $specialityCode = $validated['professional_speciality_code'] ?? null;
-        if (! $specialityCode && ! empty($validated['specialty_id'])) {
-            $speciality = ProfessionalSpeciality::find($validated['specialty_id']);
-            if ($speciality) {
-                $specialityCode = $speciality->code;
-            }
-        }
+        $specialityCode = $validated['speciality_code'] ?? $validated['professional_speciality_code'] ?? $validated['specialty_id'] ?? null;
 
         if (! empty($validated['name'])) {
             $partner->name = $validated['name'];
@@ -216,8 +213,11 @@ class ProfileController extends Controller
         if (! empty($validated['profession_code'])) {
             $partner->profession_code = $validated['profession_code'];
         }
-        if ($specialityCode) {
-            $partner->professional_speciality_code = $specialityCode;
+        if (array_key_exists('speciality_code', $validated) || array_key_exists('professional_speciality_code', $validated) || array_key_exists('specialty_id', $validated)) {
+            $partner->speciality_code = $specialityCode;
+        }
+        if (array_key_exists('custom_speciality', $validated)) {
+            $partner->custom_speciality = $validated['custom_speciality'];
         }
         if (array_key_exists('center_catalog_code', $validated)) {
             $partner->center_catalog_code = $validated['center_catalog_code'];
@@ -263,5 +263,27 @@ class ProfileController extends Controller
         $user->save();
 
         return $this->show($request);
+    }
+
+    /**
+     * Helper to resolve current user and associated partner.
+     */
+    private function resolveUserAndPartner(Request $request): array
+    {
+        $user = $request->user();
+        $partner = null;
+
+        if ($user) {
+            $partner = Partner::where('user_id', $user->id)->first();
+        }
+
+        if (! $partner) {
+            $partner = Partner::first();
+            if ($partner) {
+                $user = User::find($partner->user_id);
+            }
+        }
+
+        return [$user, $partner];
     }
 }

@@ -26,6 +26,10 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         URL::forceScheme('https');
+        \Illuminate\Database\Eloquent\Relations\Relation::morphMap([
+            'partner_service' => \App\Models\PartnerService::class,
+            'partner_schedule' => \App\Models\PartnerSchedule::class,
+        ]);
         $this->configureDefaults();
     }
 

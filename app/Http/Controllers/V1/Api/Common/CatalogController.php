@@ -3,13 +3,17 @@
 namespace App\Http\Controllers\V1\Api\Common;
 
 use App\Http\Controllers\Controller;
+use App\Models\CenterCatalog;
 use App\Models\ContactPlatform;
 use App\Models\PartnerService;
-use App\Models\ProfessionalSpeciality;
+use App\Models\PartnerType;
+use App\Models\Profession;
 use App\Models\ServiceCatalog;
+use App\Models\Speciality;
 use App\Models\Status;
 use App\Models\UserRole;
 use App\Models\Wilaya;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -18,28 +22,44 @@ class CatalogController extends Controller
     /**
      * Allowed catalog includes mapped to their model class.
      *
-     * @var array<string, class-string<Model>>
+     * @var array<string, class-string<\Illuminate\Database\Eloquent\Model>|null>
      */
     private const CATALOG_MAP = [
-        'professional_specialities' => ProfessionalSpeciality::class,
-        'contact_platforms' => ContactPlatform::class,
+        'specialities' => Speciality::class,
+        'professional_specialities' => Speciality::class, // Backwards-compatible alias
+        'professions' => Profession::class,
+        'partner_types' => PartnerType::class,
+        'center_catalogs' => CenterCatalog::class,
         'service_catalogs' => ServiceCatalog::class,
         'wilayas' => Wilaya::class,
+        'contact_platforms' => ContactPlatform::class,
         'statuses' => Status::class,
         'user_roles' => UserRole::class,
         'partner_services' => PartnerService::class,
-        'registery_types' => null,
+        'professional_services' => PartnerService::class, // Backwards-compatible alias
+        'registery_types' => null,                         // Virtual merged resource
     ];
 
     /**
-     * Get catalog data.
+     * Get reference catalog data with dynamic includes and filters.
      *
-     * Usage: GET /catalogs?includes=professional_specialities,wilayas,user_roles,registery_types&source=doctor
+     * Usage examples:
+     * - GET /catalogs?includes=specialities,wilayas&profession=doctor
+     * - GET /catalogs?includes=service_catalogs&source=doctor
+     * - GET /catalogs?includes=all
      */
     public function index(Request $request): JsonResponse
     {
-        $rawIncludes = $request->query('includes', '');
-        if ($rawIncludes === '' || $rawIncludes === 'all') {
+        $rawIncludes = $request->query('includes');
+
+        if ($rawIncludes === null || trim($rawIncludes) === '') {
+            return response()->json([
+                'message' => 'The includes query parameter is required. Example: ?includes=specialities,wilayas',
+            ], 422);
+        }
+
+        $rawIncludes = trim($rawIncludes);
+        if ($rawIncludes === 'all') {
             $includes = array_keys(self::CATALOG_MAP);
         } else {
             $includes = $this->parseIncludes($rawIncludes);
@@ -48,22 +68,23 @@ class CatalogController extends Controller
         $data = [];
 
         foreach ($includes as $include) {
+            // 1. Handle Virtual registery_types (Patient user role + Partner registration types)
             if ($include === 'registery_types') {
                 $userRoles = UserRole::where('code', UserRole::PATIENT)
                     ->get()
-                    ->map(function ($role) {
-                        $roleArr = $role->toArray();
-                        $roleArr['source'] = 'user_role';
+                    ->map(function (UserRole $role) {
+                        $arr = $role->toArray();
+                        $arr['source'] = 'user_role';
 
-                        return $roleArr;
+                        return $arr;
                     });
 
-                $partnerTypes = \App\Models\PartnerType::all()
-                    ->map(function ($type) {
-                        $typeArr = $type->toArray();
-                        $typeArr['source'] = 'partner_type';
+                $partnerTypes = PartnerType::all()
+                    ->map(function (PartnerType $type) {
+                        $arr = $type->toArray();
+                        $arr['source'] = 'partner_type';
 
-                        return $typeArr;
+                        return $arr;
                     });
 
                 $data['registery_types'] = $userRoles->merge($partnerTypes)->values();
@@ -76,16 +97,61 @@ class CatalogController extends Controller
             }
 
             $modelClass = self::CATALOG_MAP[$include];
+            /** @var Builder $query */
             $query = $modelClass::query();
 
-            // Apply source filter only to service_catalogs
-            if ($include === 'service_catalogs' && $request->has('source')) {
-                $query->where('source', $request->query('source'));
-            }
+            // 2. Apply Domain Filters
+            switch ($include) {
+                case 'specialities':
+                case 'professional_specialities':
+                    if ($request->filled('profession') || $request->filled('profession_code')) {
+                        $profession = $request->query('profession') ?? $request->query('profession_code');
+                        $query->where('profession_code', $profession);
+                    }
+                    $query->orderBy('code', 'asc');
+                    break;
 
-            // Filter admin role out if user_roles
-            if ($include === 'user_roles') {
-                $query->where('code', '!=', UserRole::ADMIN);
+                case 'professions':
+                    if ($request->filled('partner_type') || $request->filled('partner_type_code')) {
+                        $partnerType = $request->query('partner_type') ?? $request->query('partner_type_code');
+                        $query->where('partner_type_code', $partnerType);
+                    }
+                    if ($request->boolean('with_specialities')) {
+                        $query->with('specialities');
+                    }
+                    if ($request->boolean('with_partner_type')) {
+                        $query->with('partnerType');
+                    }
+                    $query->orderBy('code', 'asc');
+                    break;
+
+                case 'service_catalogs':
+                    if ($request->filled('source')) {
+                        $query->where('source', $request->query('source'));
+                    }
+                    $query->orderBy('code', 'asc');
+                    break;
+
+                case 'wilayas':
+                    $query->orderBy('code', 'asc');
+                    break;
+
+                case 'user_roles':
+                    // Do not expose admin role publicly
+                    $query->where('code', '!=', UserRole::ADMIN)->orderBy('code', 'asc');
+                    break;
+
+                case 'partner_services':
+                case 'professional_services':
+                    $query->where('is_active', true);
+                    if ($request->filled('partner_id')) {
+                        $query->where('partner_id', $request->query('partner_id'));
+                    }
+                    break;
+
+                default:
+                    $query->orderBy('code', 'asc');
+                    break;
             }
 
             $data[$include] = $query->get();

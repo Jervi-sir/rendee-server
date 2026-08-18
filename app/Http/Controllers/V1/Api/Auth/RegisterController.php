@@ -15,6 +15,35 @@ use Illuminate\Validation\Rule;
 
 class RegisterController extends Controller
 {
+    /**
+     * POST /api/v1/auth/register
+     *
+     * Request JSON:
+     * {
+     *   "phone_number": "0550000000",
+     *   "password": "password123",
+     *   "password_confirmation": "password123",
+     *   "full_name": "Ahmed Benali",
+     *   "user_role_code": "patient",
+     *   "partner_type": "doctor",
+     *   "email": "ahmed@example.com"
+     * }
+     *
+     * Response JSON:
+     * {
+     *   "message": "Registration successful",
+     *   "token_type": "Bearer",
+     *   "access_token": "1|abcdef123456...",
+     *   "user": {
+     *     "id": 2,
+     *     "user_role_code": "patient",
+     *     "name": "Ahmed",
+     *     "full_name": "Ahmed Benali",
+     *     "phone_number": "0550000000",
+     *     "profile_completed": false
+     *   }
+     * }
+     */
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -23,10 +52,20 @@ class RegisterController extends Controller
             'name' => ['nullable', 'string', 'max:255'],
             'full_name' => ['nullable', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255', Rule::unique('users', 'email')],
-            'phone_number' => ['required', 'string', 'max:50', Rule::unique('users', 'phone_number')],
+            'phone_number' => ['nullable', 'string', 'max:50', Rule::unique('users', 'phone_number')],
+            'phone' => ['nullable', 'string', 'max:50', Rule::unique('users', 'phone_number')],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'profile_completed' => ['nullable', 'boolean'],
         ]);
+
+        $phoneNumber = trim((string) ($validated['phone_number'] ?? $validated['phone'] ?? ''));
+
+        if (! $phoneNumber) {
+            return response()->json([
+                'message' => 'The phone number field is required.',
+                'errors' => ['phone_number' => ['The phone number field is required.']],
+            ], 422);
+        }
 
         $roleCode = $validated['user_role_code'];
         $partnerTypeInput = $validated['partner_type'] ?? null;
@@ -43,7 +82,6 @@ class RegisterController extends Controller
 
         $fullName = $validated['full_name'] ?? null;
         $name = $validated['name'] ?? null;
-        $phoneNumber = $validated['phone_number'];
         $email = $validated['email'] ?? ($phoneNumber . '@rendee.local');
 
         $user = new User([

@@ -5,10 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 
-#[Fillable(['*'])]
-
 class UserDevice extends Model
 {
+    protected $guarded = [];
     /**
      * Get the attributes that should be cast.
      *

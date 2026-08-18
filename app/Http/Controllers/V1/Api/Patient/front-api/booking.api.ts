@@ -1,18 +1,28 @@
 // @ts-nocheck
-import { api } from '@/utils/api-client';
+import { api } from '@/utils/auth';
+
+/**
+ * ============================================================================
+ * RENDEE PATIENT - BOOKINGS API CLIENT
+ * ============================================================================
+ * 
+ * Provides typed access to patient appointment workflows:
+ * - Listing past & upcoming bookings with pagination & status filters
+ * - Viewing individual booking details & history logs
+ * - Creating new appointment bookings
+ * - Pre-filling booking attempts with doctor services & schedules
+ * - Confirming rescheduled proposals
+ */
 
 // ─────────────────────────────────────────────
-// Types
+// Types & Interfaces
 // ─────────────────────────────────────────────
-
-export type BookableType = 'professional' | 'center';
 
 export interface BookingProviderSummary {
     id: number;
     name: string;
     title?: string;
-    type?: string;
-    specialty?: string | null;
+    speciality?: string | null;
     address?: string | null;
     city?: string | null;
     phone?: string | null;
@@ -52,8 +62,9 @@ export interface PatientBooking {
     id: number;
     reference: string;
     patient_id: number | null;
-    bookable_type: BookableType;
-    bookable_id: number;
+    partner_id: number;
+    bookable_type?: string;
+    bookable_id?: number;
     provider: BookingProviderSummary | null;
     service: BookingServiceSummary | null;
     patient_name: string;
@@ -76,21 +87,19 @@ export interface PatientBookingDetailed extends PatientBooking {
 }
 
 export interface CreateBookingPayload {
-    /** Target provider type */
-    bookable_type: BookableType;
-    /** ID of the target professional or center */
-    bookable_id: number;
-    /** Date string in YYYY-MM-DD format */
+    /** Target partner ID */
+    partner_id: number;
+    /** Date string in YYYY-MM-DD format (e.g. "2026-08-25") */
     date: string;
-    /** Time string (e.g. '09:00' or '09:00:00') */
+    /** Time string (e.g. "10:30" or "10:30:00") */
     time: string;
     /** Selected service ID */
-    service_id: number;
+    service_id?: number;
     /** Full name of patient */
     patient_name: string;
     /** Contact phone number */
     patient_phone: string;
-    /** Optional notes/symptoms for doctor */
+    /** Optional notes or symptoms */
     notes?: string;
 }
 
@@ -99,7 +108,7 @@ export interface GetBookingsParams {
     page?: number;
     /** Items per page (default: 10) */
     per_page?: number;
-    /** Filter by status code (optional) */
+    /** Filter by status code (e.g. "confirmed", "pending", "completed") */
     status_code?: string;
 }
 
@@ -120,20 +129,63 @@ export interface CreateBookingResponse {
     booking: PatientBookingDetailed;
 }
 
+export interface AttemptBookingServiceItem {
+    id: number;
+    name: string;
+    price?: number | string | null;
+    duration_minutes?: number | null;
+    description?: string | null;
+    is_active: boolean;
+}
+
+export interface AttemptBookingScheduleItem {
+    id: number;
+    day_of_week: number;
+    day_name: string;
+    day_name_ar?: string;
+    day_name_fr?: string;
+    day_name_en?: string;
+    start_time: string;
+    end_time: string;
+    slot_duration_minutes: number;
+    is_active: boolean;
+}
+
+export interface AttemptBookingResponse {
+    success: boolean;
+    patient_info: {
+        full_name: string;
+        first_name: string;
+        last_name: string;
+        email: string;
+        phone: string;
+        phone_number: string;
+    };
+    bookable: {
+        id: number;
+        name: string;
+        partner_type: string;
+        is_center: boolean;
+    };
+    services: AttemptBookingServiceItem[];
+    schedules: AttemptBookingScheduleItem[];
+}
+
 // ─────────────────────────────────────────────
-// API Calls
+// API Methods
 // ─────────────────────────────────────────────
 
 /**
  * Fetch a paginated list of all bookings for the authenticated patient.
  *
- * **Endpoint:** `GET /patient/bookings`
+ * **HTTP Route:** `GET /api/v1/patient/bookings`
  *
  * @example
  * ```ts
- * const { bookings, current_page, next_page } = await getBookings({
+ * const { bookings, current_page, total } = await getBookings({
  *   page: 1,
  *   per_page: 10,
+ *   status_code: 'confirmed',
  * });
  * ```
  */
@@ -146,15 +198,15 @@ export async function getBookings(
     return response.data;
 }
 
-
 /**
- * Fetch detailed profile for a specific booking.
+ * Fetch detailed information for a specific booking by ID.
  *
- * **Endpoint:** `GET /patient/bookings/{id}`
+ * **HTTP Route:** `GET /api/v1/patient/bookings/{id}`
  *
  * @example
  * ```ts
  * const { booking } = await getBooking(14);
+ * console.log(booking.reference, booking.status_code);
  * ```
  */
 export async function getBooking(
@@ -169,19 +221,18 @@ export async function getBooking(
 /**
  * Create a new appointment booking request.
  *
- * **Endpoint:** `POST /patient/bookings`
+ * **HTTP Route:** `POST /api/v1/patient/bookings`
  *
  * @example
  * ```ts
  * const result = await createBooking({
- *   bookable_type: 'professional',
- *   bookable_id: 3,
- *   date: '2026-08-01',
- *   time: '10:00',
+ *   partner_id: 4,
+ *   date: '2026-08-25',
+ *   time: '10:30:00',
  *   service_id: 1,
- *   patient_name: 'John Doe',
- *   patient_phone: '0550000000',
- *   notes: 'General consultation',
+ *   patient_name: 'Ahmed Benali',
+ *   patient_phone: '0551111111',
+ *   notes: 'Consultation générale',
  * });
  * ```
  */
@@ -191,6 +242,49 @@ export async function createBooking(
     const response = await api.post<CreateBookingResponse>(
         '/patient/bookings',
         payload,
+    );
+    return response.data;
+}
+
+/**
+ * Fetch pre-filled booking options (patient info, partner services, schedules).
+ *
+ * **HTTP Route:** `GET /api/v1/patient/bookings/attempt?partner_id={id}`
+ *
+ * @example
+ * ```ts
+ * const attemptData = await attemptBooking(4);
+ * console.log(attemptData.services, attemptData.schedules);
+ * ```
+ */
+export async function attemptBooking(
+    partnerId: number | string,
+): Promise<AttemptBookingResponse> {
+    const response = await api.get<AttemptBookingResponse>(
+        '/patient/bookings/attempt',
+        {
+            params: { partner_id: partnerId },
+        },
+    );
+    return response.data;
+}
+
+/**
+ * Accept and confirm a proposed schedule change for a booking.
+ *
+ * **HTTP Route:** `POST /api/v1/patient/bookings/{id}/confirm-proposal`
+ *
+ * @example
+ * ```ts
+ * const result = await confirmProposal(14);
+ * console.log(result.booking.status_code); // "confirmed"
+ * ```
+ */
+export async function confirmProposal(
+    id: number | string,
+): Promise<CreateBookingResponse> {
+    const response = await api.post<CreateBookingResponse>(
+        `/patient/bookings/${id}/confirm-proposal`,
     );
     return response.data;
 }

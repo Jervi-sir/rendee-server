@@ -19,13 +19,45 @@ return new class extends Migration
             $table->timestamps();
         });
 
+        Schema::create('professions', function (Blueprint $table) {
+            $table->string('code')->primary();
+            $table->string('partner_type_code')->nullable();
+            $table->string('en')->nullable();
+            $table->string('fr')->nullable();
+            $table->string('ar')->nullable();
+            $table->string('hex');
+            $table->timestamps();
+
+            $table->foreign('partner_type_code')->references('code')->on('partner_types')->nullOnDelete()->cascadeOnUpdate();
+        });
+
+        Schema::create('specialities', function (Blueprint $table) {
+            $table->string('code')->primary();
+            $table->string('profession_code')->nullable();
+            $table->string('en')->nullable();
+            $table->string('fr')->nullable();
+            $table->string('ar')->nullable();
+            $table->timestamps();
+
+            $table->foreign('profession_code')->references('code')->on('professions')->cascadeOnDelete();
+        });
+
+        Schema::create('center_catalogs', function (Blueprint $table) {
+            $table->string('code')->primary();
+            $table->string('en')->nullable();
+            $table->string('fr')->nullable();
+            $table->string('ar')->nullable();
+            $table->timestamps();
+        });
+
         Schema::create('partners', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->string('partner_type_code')->nullable();
             $table->string('name')->nullable();
             $table->string('profession_code')->nullable();
-            $table->string('professional_speciality_code')->nullable();
+            $table->string('speciality_code')->nullable();
+            $table->string('custom_speciality')->nullable();
             $table->string('center_catalog_code')->nullable();
             $table->string('wilaya_code')->nullable();
 
@@ -47,7 +79,7 @@ return new class extends Migration
 
             $table->foreign('partner_type_code')->references('code')->on('partner_types')->nullOnDelete();
             $table->foreign('profession_code')->references('code')->on('professions')->nullOnDelete()->cascadeOnUpdate();
-            $table->foreign('professional_speciality_code')->references('code')->on('professional_specialities')->nullOnDelete();
+            $table->foreign('speciality_code')->references('code')->on('specialities')->nullOnDelete();
             $table->foreign('center_catalog_code')->references('code')->on('center_catalogs')->nullOnDelete();
             $table->foreign('wilaya_code')->references('code')->on('wilayas')->nullOnDelete();
         });
@@ -65,6 +97,15 @@ return new class extends Migration
             $table->index(['is_active']);
         });
 
+        Schema::create('service_catalogs', function (Blueprint $table) {
+            $table->string('code')->primary();
+            $table->string('source')->nullable();
+            $table->string('en')->nullable();
+            $table->string('fr')->nullable();
+            $table->string('ar')->nullable();
+            $table->timestamps();
+        });
+
         Schema::create('partner_services', function (Blueprint $table) {
             $table->id();
             $table->foreignId('partner_id')->constrained('partners')->onDelete('cascade');
@@ -78,6 +119,15 @@ return new class extends Migration
 
             $table->foreign('service_catalog_code')->references('code')->on('service_catalogs')->nullOnDelete();
         });
+
+        Schema::create('liked_partners', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignId('partner_id')->constrained('partners')->cascadeOnDelete();
+            $table->timestamps();
+
+            $table->unique(['user_id', 'partner_id']);
+        });
     }
 
     /**
@@ -85,9 +135,14 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::dropIfExists('liked_partners');
         Schema::dropIfExists('partner_services');
+        Schema::dropIfExists('service_catalogs');
         Schema::dropIfExists('partner_schedules');
         Schema::dropIfExists('partners');
+        Schema::dropIfExists('center_catalogs');
+        Schema::dropIfExists('specialities');
+        Schema::dropIfExists('professions');
         Schema::dropIfExists('partner_types');
     }
 };

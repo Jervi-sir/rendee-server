@@ -5,41 +5,27 @@ import { api } from '@/utils/api-client';
 // Types
 // ─────────────────────────────────────────────
 
-/** Supported target entity types for polymorphic likes. */
-export type LikeableType =
-    | 'professional'
-    | 'doctor'
-    | 'center'
-    | 'pharmacy'
-    | 'pharmacist'
-    | 'patient'
-    | string;
-
 /** POST /api/v1/patient/toggle-like – Request body. */
 export interface ToggleLikeRequest {
-    /** Target model entity type (e.g. "professional", "center", "pharmacy"). */
-    likeable_type: LikeableType;
-
-    /** Primary key ID of the target entity. */
-    likeable_id: number;
+    /** Target partner ID to like/unlike. */
+    partner_id?: number;
+    /** Alias for partner_id. */
+    id?: number;
 }
 
 /** POST /api/v1/patient/toggle-like – Response body. */
 export interface ToggleLikeResponse {
-    /** Action status message (e.g. "Liked successfully." or "Unliked successfully."). */
+    /** Action status message ("Liked successfully." or "Unliked successfully."). */
     message: string;
 
-    /** Whether the target entity is currently liked by the authenticated user. */
+    /** Whether the target partner is currently liked by the authenticated user. */
     is_liked: boolean;
 
-    /** Total count of active likes for the target entity. */
+    /** Total count of active likes for the partner. */
     likes_count: number;
 
-    /** Resolved likeable type string. */
-    likeable_type: string;
-
-    /** Target entity ID. */
-    likeable_id: number;
+    /** Target partner ID. */
+    partner_id: number;
 }
 
 // ─────────────────────────────────────────────
@@ -47,24 +33,27 @@ export interface ToggleLikeResponse {
 // ─────────────────────────────────────────────
 
 /**
- * Toggle like status for a target entity (Professional, Center, Pharmacy, etc.).
+ * Toggle like status for a partner.
  *
  * **Endpoint:** `POST /api/v1/patient/toggle-like`
  *
  * @example
  * ```ts
  * const { is_liked, likes_count } = await toggleLike({
- *   likeable_type: 'professional',
- *   likeable_id: 5,
+ *   partner_id: 5,
  * });
  * ```
  */
 export async function toggleLike(
     data: ToggleLikeRequest,
 ): Promise<ToggleLikeResponse> {
+    const payload = {
+        partner_id: data.partner_id ?? data.id,
+    };
+
     const response = await api.post<ToggleLikeResponse>(
         '/patient/toggle-like',
-        data,
+        payload,
     );
     return response.data;
 }

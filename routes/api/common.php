@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\V1\Api\Auth\ChangePasswordController;
 use App\Http\Controllers\V1\Api\Auth\DeviceController;
 use App\Http\Controllers\V1\Api\Auth\LoginController;
 use App\Http\Controllers\V1\Api\Auth\LogoutController;
@@ -8,6 +9,7 @@ use App\Http\Controllers\V1\Api\Auth\RegisterController;
 use App\Http\Controllers\V1\Api\Common\CatalogController;
 use App\Http\Controllers\V1\Api\Common\ContactController;
 use App\Http\Controllers\V1\Api\Common\NotificationController;
+use App\Http\Controllers\V1\Api\Common\SupportMessageController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -27,9 +29,10 @@ Route::prefix('auth')->group(function () {
 });
 
 // ──────────────────────────────────────────────
-// Common (public)
+// Common (public / optional auth)
 // ──────────────────────────────────────────────
 Route::get('catalogs', [CatalogController::class, 'index'])->name('api.v1.catalogs');
+Route::post('support-messages', [SupportMessageController::class, 'store'])->name('api.v1.support-messages.store');
 
 
 // ──────────────────────────────────────────────
@@ -41,6 +44,7 @@ Route::middleware('auth:sanctum')->group(function () {
   Route::prefix('auth')->group(function () {
     Route::post('logout', LogoutController::class)->name('api.v1.auth.logout');
     Route::get('me', MeController::class)->name('api.v1.auth.me');
+    Route::post('change-password', ChangePasswordController::class)->name('api.v1.auth.change-password');
     Route::post('devices', [DeviceController::class, 'store'])->name('api.v1.auth.devices.store');
   });
 
@@ -49,6 +53,7 @@ Route::middleware('auth:sanctum')->group(function () {
   // ──────────────────────────────────────────
   Route::prefix('notifications')->group(function () {
     Route::get('/', [NotificationController::class, 'index'])->name('api.v1.notifications.index');
+    Route::post('test', [NotificationController::class, 'sendTest'])->name('api.v1.notifications.test');
     Route::put('{id}/read', [NotificationController::class, 'read'])->name('api.v1.notifications.read');
     Route::put('read-all', [NotificationController::class, 'readAll'])->name('api.v1.notifications.read-all');
   });

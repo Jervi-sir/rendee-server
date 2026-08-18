@@ -14,7 +14,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'partner_type_code',
     'name',
     'profession_code',
-    'professional_speciality_code',
+    'speciality_code',
+    'custom_speciality',
     'center_catalog_code',
     'wilaya_code',
     'license_number',
@@ -63,12 +64,17 @@ class Partner extends Model
 
     public function speciality(): BelongsTo
     {
-        return $this->belongsTo(ProfessionalSpeciality::class, 'professional_speciality_code', 'code');
+        return $this->belongsTo(Speciality::class, 'speciality_code', 'code');
     }
 
     public function specialty(): BelongsTo
     {
         return $this->speciality();
+    }
+
+    public function getDisplaySpecialityAttribute(): ?string
+    {
+        return $this->speciality?->en ?? $this->custom_speciality;
     }
 
     public function catalog(): BelongsTo
@@ -96,9 +102,9 @@ class Partner extends Model
         return $this->hasMany(UserContact::class, 'user_id', 'user_id');
     }
 
-    public function likes(): MorphMany
+    public function likes(): HasMany
     {
-        return $this->morphMany(LikeItem::class, 'likeable');
+        return $this->hasMany(LikedPartner::class);
     }
 
     public function getLocationAttribute(): string
@@ -127,7 +133,8 @@ class Partner extends Model
             'title' => $professionName ?? $catalogName ?? ($this->partner_type_code === 'pharmacist' ? 'صيدلية' : 'طبيب'),
             'specialty' => $specialtyName,
             'profession_code' => $this->profession_code,
-            'professional_speciality_code' => $this->professional_speciality_code,
+            'speciality_code' => $this->speciality_code,
+            'custom_speciality' => $this->custom_speciality,
             'center_catalog_code' => $this->center_catalog_code,
             'license_number' => $this->license_number,
             'years_experience' => $this->years_experience,

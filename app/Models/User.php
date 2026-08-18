@@ -80,6 +80,11 @@ class User extends Authenticatable implements PasskeyUser
         return $this->hasOne(Partner::class);
     }
 
+    public function contacts(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(UserContact::class);
+    }
+
     /**
      * Eager-load all role-specific profile relations.
      *
@@ -91,7 +96,7 @@ class User extends Authenticatable implements PasskeyUser
             'userRole',
             'userDevice',
             'patient',
-            'partner',
+            'partner.partnerType',
         ]);
     }
 
@@ -104,23 +109,43 @@ class User extends Authenticatable implements PasskeyUser
     {
         $this->loadProfileRelations();
 
+        $partnerType = null;
+        if ($this->user_role_code === UserRole::PARTNER || $this->partner) {
+            $partnerTypeModel = $this->partner?->partnerType;
+            if ($partnerTypeModel) {
+                $partnerType = [
+                    'code' => $partnerTypeModel->code,
+                    'en' => $partnerTypeModel->en,
+                    'fr' => $partnerTypeModel->fr,
+                    'ar' => $partnerTypeModel->ar,
+                ];
+            } elseif ($this->partner?->partner_type_code) {
+                $partnerType = [
+                    'code' => $this->partner->partner_type_code,
+                    'en' => $this->partner->partner_type_code,
+                    'fr' => $this->partner->partner_type_code,
+                    'ar' => $this->partner->partner_type_code,
+                ];
+            }
+        }
+
         return array_filter([
             'id' => $this->id,
-            'user_role_code' => $this->user_role_code,
             'name' => $this->name,
             'full_name' => $this->full_name,
             'email' => $this->email,
             'phone_number' => $this->phone_number,
-            'profile_completed' => (bool) $this->profile_completed,
             'image_url' => $this->image_url,
+            'profile_completed' => (bool) $this->profile_completed,
             'created_at' => $this->created_at?->toIso8601String(),
-            'updated_at' => $this->updated_at?->toIso8601String(),
+            'user_role_code' => $this->user_role_code,
             'user_role' => $this->userRole ? [
                 'code' => $this->userRole->code,
                 'en' => $this->userRole->en,
                 'fr' => $this->userRole->fr,
                 'ar' => $this->userRole->ar,
             ] : null,
+            'partner_type' => $partnerType,
         ], fn($value) => $value !== null);
     }
 

@@ -11,34 +11,6 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('professions', function (Blueprint $table) {
-            $table->string('code')->primary();
-            $table->string('en')->nullable();
-            $table->string('fr')->nullable();
-            $table->string('ar')->nullable();
-            $table->string('hex');
-            $table->timestamps();
-        });
-
-        Schema::create('professional_specialities', function (Blueprint $table) {
-            $table->id();
-            $table->string('code')->unique();
-            $table->string('en')->nullable();
-            $table->string('fr')->nullable();
-            $table->string('ar')->nullable();
-            $table->timestamps();
-        });
-
-        Schema::create('service_catalogs', function (Blueprint $table) {
-            $table->id();
-            $table->string('code')->unique();
-            $table->string('source')->nullable();
-            $table->string('en')->nullable();
-            $table->string('fr')->nullable();
-            $table->string('ar')->nullable();
-            $table->timestamps();
-        });
-
         Schema::create('wilayas', function (Blueprint $table) {
             $table->id();
             $table->string('code')->unique();
@@ -50,15 +22,6 @@ return new class extends Migration
         });
 
         Schema::create('contact_platforms', function (Blueprint $table) {
-            $table->id();
-            $table->string('code')->unique();
-            $table->string('en')->nullable();
-            $table->string('fr')->nullable();
-            $table->string('ar')->nullable();
-            $table->timestamps();
-        });
-
-        Schema::create('center_catalogs', function (Blueprint $table) {
             $table->id();
             $table->string('code')->unique();
             $table->string('en')->nullable();
@@ -82,12 +45,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('professions');
-        Schema::dropIfExists('professional_specialities');
-        Schema::dropIfExists('service_catalogs');
-        Schema::dropIfExists('wilayas');
-        Schema::dropIfExists('contact_platforms');
-        Schema::dropIfExists('center_catalogs');
         Schema::dropIfExists('statuses');
+        Schema::dropIfExists('contact_platforms');
+        Schema::dropIfExists('wilayas');
     }
 };
