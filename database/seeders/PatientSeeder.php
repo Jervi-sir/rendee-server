@@ -46,7 +46,7 @@ class PatientSeeder extends Seeder
                         [
                             'name' => fake()->name(),
                             'relationship' => fake()->randomElement(['Parent', 'Conjoint', 'Frère/Sœur', 'Ami']),
-                            'phone' => '05' . fake()->numerify('########'),
+                            'phone' => '05'.fake()->numerify('########'),
                         ],
                     ],
                     'medical_notes' => fake()->boolean(30) ? 'Dossier médical standard - Pas de contre-indications majeures.' : null,

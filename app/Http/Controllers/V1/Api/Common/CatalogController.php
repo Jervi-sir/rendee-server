@@ -14,6 +14,7 @@ use App\Models\Status;
 use App\Models\UserRole;
 use App\Models\Wilaya;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -22,7 +23,7 @@ class CatalogController extends Controller
     /**
      * Allowed catalog includes mapped to their model class.
      *
-     * @var array<string, class-string<\Illuminate\Database\Eloquent\Model>|null>
+     * @var array<string, class-string<Model>|null>
      */
     private const CATALOG_MAP = [
         'specialities' => Speciality::class,
@@ -173,7 +174,7 @@ class CatalogController extends Controller
 
         return array_values(array_filter(
             array_map('trim', explode(',', $raw)),
-            fn(string $value): bool => $value !== '' && array_key_exists($value, self::CATALOG_MAP),
+            fn (string $value): bool => $value !== '' && array_key_exists($value, self::CATALOG_MAP),
         ));
     }
 }

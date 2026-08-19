@@ -4,7 +4,6 @@ namespace App\Http\Controllers\V1\Api\Partner;
 
 use App\Http\Controllers\Controller;
 use App\Models\Partner;
-use App\Models\Speciality;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,7 +11,6 @@ use Illuminate\Support\Facades\Auth;
 
 class ProfileController extends Controller
 {
-
     public function preview(Request $request): JsonResponse
     {
         $user = Auth::user();

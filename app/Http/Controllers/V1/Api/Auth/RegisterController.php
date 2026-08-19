@@ -82,7 +82,7 @@ class RegisterController extends Controller
 
         $fullName = $validated['full_name'] ?? null;
         $name = $validated['name'] ?? null;
-        $email = $validated['email'] ?? ($phoneNumber . '@rendee.local');
+        $email = $validated['email'] ?? ($phoneNumber.'@rendee.local');
 
         $user = new User([
             'user_role_code' => $roleCode,

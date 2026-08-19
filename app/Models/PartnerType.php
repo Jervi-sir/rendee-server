@@ -15,10 +15,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class PartnerType extends Model
 {
     public const DOCTOR = 'doctor';
+
     public const DENTIST = 'dentist';
+
     public const PHARMACIST = 'pharmacist';
+
     public const CENTER = 'center';
+
     public const PSY = 'psy';
+
     public const PROFESSIONAL = 'professional';
 
     protected $primaryKey = 'code';

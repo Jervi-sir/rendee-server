@@ -40,6 +40,9 @@ return [
         ],
 
         'extensions' => [
+            'page.tsx',
+            'page.jsx',
+            'page.vue',
             'js',
             'jsx',
             'svelte',

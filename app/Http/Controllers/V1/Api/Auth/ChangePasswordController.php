@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\V1\Api\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -28,7 +29,7 @@ class ChangePasswordController extends Controller
             'new_password' => ['required', 'string', 'confirmed', Password::min(6)],
         ]);
 
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = $request->user();
 
         if (! $user || ! Hash::check($validated['current_password'], $user->password)) {

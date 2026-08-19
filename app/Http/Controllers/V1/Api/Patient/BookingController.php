@@ -82,7 +82,7 @@ class BookingController extends Controller
         $paginator = $query->orderBy('updated_at', 'desc')
             ->paginate($perPage, ['*'], 'page', $page);
 
-        $bookings = collect($paginator->items())->map(fn($b) => $b->formatForPatient(false));
+        $bookings = collect($paginator->items())->map(fn ($b) => $b->formatForPatient(false));
 
         return response()->json([
             'bookings' => $bookings,
@@ -232,7 +232,7 @@ class BookingController extends Controller
 
         $partner = Partner::find($partnerId);
 
-        $reference = 'BK-' . strtoupper(Str::random(8));
+        $reference = 'BK-'.strtoupper(Str::random(8));
 
         $bookingData = [
             'reference' => $reference,
@@ -333,7 +333,7 @@ class BookingController extends Controller
         // Partner details & services
         $services = [];
         if ($partner && $partner->services) {
-            $services = $partner->services->map(fn($s) => [
+            $services = $partner->services->map(fn ($s) => [
                 'id' => $s->id,
                 'name' => $s->name,
                 'price' => $s->price,
@@ -357,7 +357,8 @@ class BookingController extends Controller
         $schedules = [];
         if ($partner && $partner->schedules) {
             $schedules = $partner->schedules->map(function ($sch) use ($daysOfWeek) {
-                $dayMeta = $daysOfWeek[$sch->day_of_week] ?? ['en' => 'Day ' . $sch->day_of_week, 'ar' => 'اليوم ' . $sch->day_of_week, 'fr' => 'Jour ' . $sch->day_of_week];
+                $dayMeta = $daysOfWeek[$sch->day_of_week] ?? ['en' => 'Day '.$sch->day_of_week, 'ar' => 'اليوم '.$sch->day_of_week, 'fr' => 'Jour '.$sch->day_of_week];
+
                 return [
                     'id' => $sch->id,
                     'day_of_week' => $sch->day_of_week,

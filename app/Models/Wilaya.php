@@ -81,12 +81,14 @@ class Wilaya extends Model
     public function getLatitudeAttribute(): float
     {
         $codeKey = sprintf('%02d', (int) ($this->code ?? $this->number ?? 31));
+
         return self::$wilayaCoordinates[$codeKey]['lat'] ?? 35.6971;
     }
 
     public function getLongitudeAttribute(): float
     {
         $codeKey = sprintf('%02d', (int) ($this->code ?? $this->number ?? 31));
+
         return self::$wilayaCoordinates[$codeKey]['lng'] ?? -0.6308;
     }
 
@@ -117,7 +119,7 @@ class Wilaya extends Model
                     'key' => $w->code,
                     'code' => $w->code,
                     'number' => (int) $w->number,
-                    'label' => (int) $w->number . ' - ' . ($w->ar ?? $w->en ?? $w->code),
+                    'label' => (int) $w->number.' - '.($w->ar ?? $w->en ?? $w->code),
                     'ar' => $w->ar,
                     'en' => $w->en,
                     'fr' => $w->fr,

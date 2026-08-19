@@ -41,15 +41,15 @@ class BookingSeeder extends Seeder
             $bookingTime = fake()->randomElement(['09:00:00', '10:30:00', '11:00:00', '14:00:00', '15:30:00', '16:00:00']);
 
             $booking = Booking::create([
-                'reference' => 'BK-' . strtoupper(Str::random(8)),
+                'reference' => 'BK-'.strtoupper(Str::random(8)),
                 'patient_id' => $patient->id,
                 'partner_id' => $partner->id,
                 'service_type' => 'partner_service',
                 'service_id' => $service?->id,
                 'schedule_type' => 'partner_schedule',
                 'schedule_id' => $schedule?->id,
-                'patient_name' => $patient->user?->name ?? 'Patient ' . $i,
-                'patient_phone' => $patient->user?->phone_number ?? ('05' . fake()->numerify('########')),
+                'patient_name' => $patient->user?->name ?? 'Patient '.$i,
+                'patient_phone' => $patient->user?->phone_number ?? ('05'.fake()->numerify('########')),
                 'booking_date' => $bookingDate,
                 'booking_time' => $bookingTime,
                 'status_code' => $statusCode,
@@ -74,7 +74,7 @@ class BookingSeeder extends Seeder
                 BookingHistory::create([
                     'booking_id' => $booking->id,
                     'status_code' => $statusCode,
-                    'notes' => 'Statut mis à jour: ' . $statusCode,
+                    'notes' => 'Statut mis à jour: '.$statusCode,
                     'changed_by' => $allUsers->isNotEmpty() ? $allUsers->random()->id : $partner->user_id,
                 ]);
             }

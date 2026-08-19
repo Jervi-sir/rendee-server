@@ -7,7 +7,6 @@ use App\Models\Partner;
 use App\Models\PartnerSchedule;
 use App\Models\PartnerService;
 use App\Models\ServiceCatalog;
-use App\Models\Speciality;
 use App\Models\User;
 use App\Models\UserContact;
 use App\Models\Wilaya;
@@ -210,7 +209,7 @@ class OnboardingController extends Controller
             $name = $svcItem['name'] ?? null;
 
             if (! $catalogCode && $name) {
-                $baseCode = 'partner_' . Str::slug($name, '_');
+                $baseCode = 'partner_'.Str::slug($name, '_');
                 $catalog = ServiceCatalog::firstOrCreate(
                     ['code' => $baseCode],
                     ['source' => 'partner', 'ar' => $name, 'en' => $name]

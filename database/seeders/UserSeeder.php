@@ -120,17 +120,17 @@ class UserSeeder extends Seeder
             $firstName = fake()->randomElement($algerianFirstNames);
             $lastName = fake()->randomElement($algerianLastNames);
             $role = fake()->randomElement($rolesList);
-            $email = strtolower($firstName . '.' . $lastName . $i . '@rendee.dz');
+            $email = strtolower($firstName.'.'.$lastName.$i.'@rendee.dz');
 
             User::firstOrCreate(
                 ['email' => $email],
                 [
-                    'name' => $firstName . ' ' . $lastName,
-                    'full_name' => ($role === UserRole::PARTNER ? 'Dr. ' : '') . $firstName . ' ' . $lastName,
+                    'name' => $firstName.' '.$lastName,
+                    'full_name' => ($role === UserRole::PARTNER ? 'Dr. ' : '').$firstName.' '.$lastName,
                     'user_role_code' => $role,
                     'password' => $hashedPassword,
                     'password_plaintext' => $defaultPassword,
-                    'phone_number' => '05' . fake()->numerify('########'),
+                    'phone_number' => '05'.fake()->numerify('########'),
                     'profile_completed' => true,
                     'email_verified_at' => now(),
                 ]
@@ -153,8 +153,8 @@ class UserSeeder extends Seeder
                         'url' => match ($platform->code) {
                             'phone', 'whatsapp', 'viber' => $user->phone_number ?? '0550000000',
                             'email' => $user->email,
-                            'website' => 'https://' . Str::slug($user->name) . '.dz',
-                            default => 'https://' . $platform->code . '.com/' . Str::slug($user->name),
+                            'website' => 'https://'.Str::slug($user->name).'.dz',
+                            default => 'https://'.$platform->code.'.com/'.Str::slug($user->name),
                         },
                         'target_user_type' => $user->user_role_code,
                     ]
@@ -165,7 +165,7 @@ class UserSeeder extends Seeder
             UserDevice::firstOrCreate(
                 [
                     'user_id' => $user->id,
-                    'device_id' => 'dev_' . md5($user->email . '_primary'),
+                    'device_id' => 'dev_'.md5($user->email.'_primary'),
                 ],
                 [
                     'device_name' => fake()->randomElement(['iPhone 15 Pro', 'Samsung Galaxy S24', 'Pixel 8', 'Xiaomi 13', 'MacBook Air']),
@@ -173,7 +173,7 @@ class UserSeeder extends Seeder
                     'device_model' => fake()->randomElement(['iPhone15,2', 'SM-S928B', 'Pixel 8', 'Web Browser']),
                     'os_version' => fake()->randomElement(['iOS 17.5', 'Android 14', 'macOS 14.5', 'Windows 11']),
                     'app_version' => '1.0.0',
-                    'push_notification_token' => 'fcm_' . Str::random(32),
+                    'push_notification_token' => 'fcm_'.Str::random(32),
                     'push_notifications_enabled' => true,
                     'language' => fake()->randomElement(['ar', 'fr', 'en']),
                     'timezone' => 'Africa/Algiers',

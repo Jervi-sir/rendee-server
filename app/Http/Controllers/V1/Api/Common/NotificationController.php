@@ -4,8 +4,10 @@ namespace App\Http\Controllers\V1\Api\Common;
 
 use App\Http\Controllers\Controller;
 use App\Models\Notification;
+use App\Models\UserDevice;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 
 class NotificationController extends Controller
 {
@@ -77,6 +79,8 @@ class NotificationController extends Controller
             'success' => true,
             'message' => 'All notifications marked as read.',
         ]);
+    }
+
     /**
      * Send a test push notification to all active devices of the authenticated user.
      */
@@ -99,7 +103,7 @@ class NotificationController extends Controller
         $data = $validated['data'] ?? ['type' => 'test', 'timestamp' => now()->toIso8601String()];
 
         // Find user devices with valid push tokens
-        $devices = \App\Models\UserDevice::where('user_id', $user->id)
+        $devices = UserDevice::where('user_id', $user->id)
             ->whereNotNull('push_notification_token')
             ->where('push_notifications_enabled', true)
             ->where('is_active', true)
@@ -124,7 +128,7 @@ class NotificationController extends Controller
         }
 
         // Send via Expo Push API
-        $response = \Illuminate\Support\Facades\Http::withHeaders([
+        $response = Http::withHeaders([
             'Accept' => 'application/json',
             'Accept-Encoding' => 'gzip, deflate',
             'Content-Type' => 'application/json',

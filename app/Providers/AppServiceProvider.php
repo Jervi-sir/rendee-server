@@ -2,13 +2,15 @@
 
 namespace App\Providers;
 
+use App\Models\PartnerSchedule;
+use App\Models\PartnerService;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
-use Illuminate\Support\Facades\URL;
-
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -25,10 +27,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        URL::forceScheme('https');
-        \Illuminate\Database\Eloquent\Relations\Relation::morphMap([
-            'partner_service' => \App\Models\PartnerService::class,
-            'partner_schedule' => \App\Models\PartnerSchedule::class,
+        // URL::forceScheme('https');
+        Relation::morphMap([
+            'partner_service' => PartnerService::class,
+            'partner_schedule' => PartnerSchedule::class,
         ]);
         $this->configureDefaults();
     }
@@ -45,13 +47,13 @@ class AppServiceProvider extends ServiceProvider
         );
 
         Password::defaults(
-            fn(): ?Password => app()->isProduction()
+            fn (): ?Password => app()->isProduction()
                 ? Password::min(12)
-                ->mixedCase()
-                ->letters()
-                ->numbers()
-                ->symbols()
-                ->uncompromised()
+                    ->mixedCase()
+                    ->letters()
+                    ->numbers()
+                    ->symbols()
+                    ->uncompromised()
                 : null,
         );
     }

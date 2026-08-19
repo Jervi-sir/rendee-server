@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\V1\Api\Common;
 
 use App\Http\Controllers\Controller;
-use App\Models\ContactPlatform;
 use App\Models\User;
 use App\Models\UserContact;
 use Illuminate\Http\JsonResponse;
@@ -54,7 +53,7 @@ class ContactController extends Controller
             ->with('platform')
             ->orderBy('id', 'asc')
             ->get()
-            ->map(fn(UserContact $contact) => $this->formatContact($contact));
+            ->map(fn (UserContact $contact) => $this->formatContact($contact));
 
         return response()->json([
             'success' => true,

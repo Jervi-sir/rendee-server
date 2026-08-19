@@ -167,7 +167,7 @@ class FeedController extends Controller
 
             $name = $partner->name ?? $partner->user?->full_name ?? $partner->user?->name ?? 'شريك';
             if (in_array($partner->partner_type_code, ['doctor', 'professional']) && ! str_starts_with($name, 'د.')) {
-                $name = 'د. ' . $name;
+                $name = 'د. '.$name;
             }
 
             $specialityName = $partner->speciality?->ar
@@ -242,7 +242,7 @@ class FeedController extends Controller
         foreach ($typeLabels as $code => $defaultLabel) {
             $partnerTypeObj = PartnerType::find($code);
             $label = $partnerTypeObj?->ar ?? $partnerTypeObj?->fr ?? $defaultLabel;
-            $count = count(array_filter($results, fn($i) => $i['partner_type']['code'] === $code));
+            $count = count(array_filter($results, fn ($i) => $i['partner_type']['code'] === $code));
 
             $filters[] = [
                 'key' => $code,

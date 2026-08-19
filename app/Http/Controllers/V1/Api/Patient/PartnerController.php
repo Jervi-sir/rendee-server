@@ -125,7 +125,7 @@ class PartnerController extends Controller
                 'platform' => $contact->platform_code ?? $contact->platform?->code ?? $contact->type ?? 'phone',
                 'value' => $contact->url ?? $contact->value ?? $contact->contact_value ?? '',
             ];
-        })->filter(fn($c) => ! empty($c['value']))->values()->toArray();
+        })->filter(fn ($c) => ! empty($c['value']))->values()->toArray();
 
         if (empty($contacts)) {
             $contacts = [
@@ -163,7 +163,7 @@ class PartnerController extends Controller
         ];
 
         $scheduel = $partner->schedules->map(function ($sch) use ($daysMap) {
-            $dayName = $daysMap[$sch->day_of_week] ?? ('اليوم ' . $sch->day_of_week);
+            $dayName = $daysMap[$sch->day_of_week] ?? ('اليوم '.$sch->day_of_week);
             $start = $sch->start_time ? substr($sch->start_time, 0, 5) : '08:30';
             $end = $sch->end_time ? substr($sch->end_time, 0, 5) : '17:00';
 

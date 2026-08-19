@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable([
@@ -111,7 +110,6 @@ class Partner extends Model
     {
         return implode(', ', array_filter([$this->address, $this->city])) ?: 'وهران';
     }
-
 
     /**
      * Format partner details for patient-facing APIs.

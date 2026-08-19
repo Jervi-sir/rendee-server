@@ -72,7 +72,7 @@ return new class extends Migration
             $table->boolean('is_available')->default(false);
             $table->boolean('emergency_24_7')->default(false);
             $table->boolean('is_on_duty')->default(false);
-            $table->boolean('is_active')->default(true);
+            $table->boolean('is_active')->default(false);
 
             $table->softDeletes();
             $table->timestamps();

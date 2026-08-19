@@ -110,7 +110,7 @@ class MapController extends Controller
 
             $title = $partner->name ?? $partner->user?->full_name ?? $partner->user?->name ?? 'شريك';
             if (in_array($code, ['doctor', 'professional']) && ! str_starts_with($title, 'د.')) {
-                $title = 'د. ' . $title;
+                $title = 'د. '.$title;
             }
 
             $pinColor = match ($code) {
@@ -160,6 +160,7 @@ class MapController extends Controller
                 if ($code === 'doctor' || $code === 'professional') {
                     return in_array($pt, ['doctor', 'professional']);
                 }
+
                 return $pt === $code;
             }));
 

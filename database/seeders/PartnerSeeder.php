@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\CenterCatalog;
+use App\Models\LikedPartner;
 use App\Models\Partner;
 use App\Models\PartnerSchedule;
 use App\Models\PartnerService;
@@ -145,9 +146,9 @@ class PartnerSeeder extends Seeder
             }
 
             $partnerName = match ($partnerTypeCode) {
-                PartnerType::CENTER => 'Clinique ' . fake()->company(),
-                PartnerType::PHARMACIST => 'Pharmacie ' . $user->name,
-                default => 'Dr. ' . $user->name,
+                PartnerType::CENTER => 'Clinique '.fake()->company(),
+                PartnerType::PHARMACIST => 'Pharmacie '.$user->name,
+                default => 'Dr. '.$user->name,
             };
 
             $partner = Partner::updateOrCreate(
@@ -160,9 +161,9 @@ class PartnerSeeder extends Seeder
                     'custom_speciality' => null,
                     'center_catalog_code' => $centerCatalogCode,
                     'wilaya_code' => $wilaya?->code,
-                    'license_number' => 'LIC-' . fake()->numerify('######'),
+                    'license_number' => 'LIC-'.fake()->numerify('######'),
                     'years_experience' => (string) fake()->numberBetween(3, 28),
-                    'phone_public' => $user->phone_number ?? ('05' . fake()->numerify('########')),
+                    'phone_public' => $user->phone_number ?? ('05'.fake()->numerify('########')),
                     'bio' => 'Professionnel de santé qualifié avec plusieurs années d\'expérience au service des patients.',
                     'address' => fake()->streetAddress(),
                     'city' => $wilaya?->en ?? 'Alger',
@@ -203,7 +204,7 @@ class PartnerSeeder extends Seeder
                         ],
                         [
                             'name' => $svcCat->fr ?? $svcCat->en ?? $svcCat->code,
-                            'description' => 'Service médical de ' . ($svcCat->fr ?? $svcCat->en),
+                            'description' => 'Service médical de '.($svcCat->fr ?? $svcCat->en),
                             'price' => fake()->randomElement([1500, 2000, 2500, 3000, 4000, 5000]),
                             'duration_minutes' => fake()->randomElement([20, 30, 45, 60]),
                             'is_active' => true,
@@ -221,7 +222,7 @@ class PartnerSeeder extends Seeder
             foreach ($allPatients as $patientUser) {
                 $likedPartners = $allPartners->random(min(3, $allPartners->count()));
                 foreach ($likedPartners as $likedPartner) {
-                    \App\Models\LikedPartner::firstOrCreate([
+                    LikedPartner::firstOrCreate([
                         'user_id' => $patientUser->id,
                         'partner_id' => $likedPartner->id,
                     ]);

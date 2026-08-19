@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Booking;
 use App\Models\Partner;
-use App\Models\Patient;
 use App\Models\Rating;
 use App\Models\RecentSearch;
 use App\Models\ServiceCatalog;

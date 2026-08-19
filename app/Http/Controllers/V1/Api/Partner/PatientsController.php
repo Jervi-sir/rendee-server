@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Partner;
 use App\Models\Patient;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -195,8 +196,8 @@ class PatientsController extends Controller
                     'id' => $booking->id,
                     'reference' => $booking->reference,
                     'date' => $booking->booking_date ? (is_string($booking->booking_date) ? $booking->booking_date : $booking->booking_date->format('Y-m-d')) : '',
-                    'time' => $booking->booking_time ? \Carbon\Carbon::parse($booking->booking_time)->format('H:i') : '',
-                    'doctor_name' => 'د. ' . ($booking->bookable?->name ?? 'طبيب'),
+                    'time' => $booking->booking_time ? Carbon::parse($booking->booking_time)->format('H:i') : '',
+                    'doctor_name' => 'د. '.($booking->bookable?->name ?? 'طبيب'),
                     'specialty' => $booking->bookable?->specialty?->ar ?? 'عام',
                     'service_name' => $serviceName,
                     'visit_type' => $serviceName,
