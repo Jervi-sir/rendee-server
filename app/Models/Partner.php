@@ -81,6 +81,11 @@ class Partner extends Model
         return $this->belongsTo(CenterCatalog::class, 'center_catalog_code', 'code');
     }
 
+    public function centerCatalog(): BelongsTo
+    {
+        return $this->catalog();
+    }
+
     public function wilaya(): BelongsTo
     {
         return $this->belongsTo(Wilaya::class, 'wilaya_code', 'code');

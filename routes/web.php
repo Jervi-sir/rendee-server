@@ -5,11 +5,13 @@ use App\Http\Controllers\Admin\Partners\PartnerController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
+Route::view('privacy', 'privacy')->name('privacy');
+Route::view('request-account-deletion', 'request-account-deletion')->name('request-account-deletion');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
 
-    Route::prefix('admin')->name('admin.')->group(function () {
+    Route::prefix('admin')->name('admin.')->middleware(['admin'])->group(function () {
         Route::prefix('catalogs')->name('catalogs.')->group(function () {
             Route::get('professions', [ProfessionController::class, 'index'])->name('professions.index');
             Route::post('professions', [ProfessionController::class, 'store'])->name('professions.store');

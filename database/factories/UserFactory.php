@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\User;
+use App\Models\UserRole;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -56,5 +57,56 @@ class UserFactory extends Factory
             'two_factor_recovery_codes' => encrypt(json_encode(['recovery-code-1'])),
             'two_factor_confirmed_at' => now(),
         ]);
+    }
+
+    /**
+     * Indicate that the user has an admin role.
+     */
+    public function admin(): static
+    {
+        return $this->state(function (array $attributes) {
+            UserRole::firstOrCreate(
+                ['code' => UserRole::ADMIN],
+                ['en' => 'Admin', 'fr' => 'Administrateur', 'ar' => 'مسؤول']
+            );
+
+            return [
+                'user_role_code' => UserRole::ADMIN,
+            ];
+        });
+    }
+
+    /**
+     * Indicate that the user has a patient role.
+     */
+    public function patient(): static
+    {
+        return $this->state(function (array $attributes) {
+            UserRole::firstOrCreate(
+                ['code' => UserRole::PATIENT],
+                ['en' => 'Patient', 'fr' => 'Patient', 'ar' => 'مريض']
+            );
+
+            return [
+                'user_role_code' => UserRole::PATIENT,
+            ];
+        });
+    }
+
+    /**
+     * Indicate that the user has a partner role.
+     */
+    public function partner(): static
+    {
+        return $this->state(function (array $attributes) {
+            UserRole::firstOrCreate(
+                ['code' => UserRole::PARTNER],
+                ['en' => 'Partner', 'fr' => 'Partenaire', 'ar' => 'شريك']
+            );
+
+            return [
+                'user_role_code' => UserRole::PARTNER,
+            ];
+        });
     }
 }

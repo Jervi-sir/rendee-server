@@ -5,8 +5,17 @@ use App\Models\Profession;
 use App\Models\Speciality;
 use App\Models\User;
 
-test('authenticated user can view professions catalog page', function () {
-    $user = User::factory()->create();
+test('non-admin cannot access admin catalog routes', function () {
+    $nonAdmin = User::factory()->patient()->create();
+
+    $response = $this->actingAs($nonAdmin)
+        ->get(route('admin.catalogs.professions.index'));
+
+    $response->assertForbidden();
+});
+
+test('authenticated admin user can view professions catalog page', function () {
+    $user = User::factory()->admin()->create();
     $partnerType = PartnerType::create([
         'code' => 'doctor',
         'en' => 'Doctor',
@@ -35,7 +44,7 @@ test('authenticated user can view professions catalog page', function () {
 });
 
 test('can filter professions by partner type and search query', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->admin()->create();
 
     $docType = PartnerType::create(['code' => 'doctor', 'en' => 'Doctor', 'fr' => 'Doc', 'ar' => 'طبيب']);
     $dentistType = PartnerType::create(['code' => 'dentist', 'en' => 'Dentist', 'fr' => 'Dentiste', 'ar' => 'طبيب أسنان']);
@@ -76,7 +85,7 @@ test('can filter professions by partner type and search query', function () {
 });
 
 test('can store and update profession', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->admin()->create();
     $partnerType = PartnerType::create(['code' => 'doctor', 'en' => 'Doctor', 'fr' => 'Doc', 'ar' => 'طبيب']);
 
     // Store
@@ -118,7 +127,7 @@ test('can store and update profession', function () {
 });
 
 test('can fetch, store and delete specialities under profession', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->admin()->create();
     $profession = Profession::create([
         'code' => 'surgeon',
         'en' => 'Surgeon',

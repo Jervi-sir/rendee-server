@@ -35,4 +35,9 @@ class PartnerService extends Model
     {
         return $this->belongsTo(ServiceCatalog::class, 'service_catalog_code', 'code');
     }
+
+    public function serviceCatalog(): BelongsTo
+    {
+        return $this->catalog();
+    }
 }

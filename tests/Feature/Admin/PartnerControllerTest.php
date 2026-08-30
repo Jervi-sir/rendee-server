@@ -4,8 +4,17 @@ use App\Models\Partner;
 use App\Models\PartnerType;
 use App\Models\User;
 
-test('authenticated user can view partners list page', function () {
-    $user = User::factory()->create();
+test('non-admin cannot access admin partner routes', function () {
+    $nonAdmin = User::factory()->patient()->create();
+
+    $response = $this->actingAs($nonAdmin)
+        ->get(route('admin.partners.index'));
+
+    $response->assertForbidden();
+});
+
+test('authenticated admin user can view partners list page', function () {
+    $user = User::factory()->admin()->create();
     $partnerUser = User::factory()->create(['name' => 'Dr. Ahmed', 'email' => 'ahmed@test.com']);
     $partnerType = PartnerType::create(['code' => 'doctor', 'en' => 'Doctor', 'fr' => 'Doc', 'ar' => 'طبيب']);
 
@@ -28,7 +37,7 @@ test('authenticated user can view partners list page', function () {
 });
 
 test('can filter partners by search and status', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->admin()->create();
     $u1 = User::factory()->create();
     $u2 = User::factory()->create();
 
@@ -66,7 +75,7 @@ test('can filter partners by search and status', function () {
 });
 
 test('can toggle partner approval status', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->admin()->create();
     $partnerUser = User::factory()->create();
 
     $partner = Partner::create([
@@ -88,7 +97,7 @@ test('can toggle partner approval status', function () {
 });
 
 test('can view and update partner details', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->admin()->create();
     $partnerUser = User::factory()->create();
     $partnerType = PartnerType::create(['code' => 'doctor', 'en' => 'Doctor', 'fr' => 'Doc', 'ar' => 'طبيب']);
 
