@@ -58,7 +58,7 @@ class ProfileController extends Controller
             ], 401);
         }
 
-        $user->load('patient');
+        $user->load(['patient.wilaya']);
         $bookingsCount = $user->patient ? $user->patient->bookings()->count() : 0;
 
         return response()->json([
@@ -77,6 +77,8 @@ class ProfileController extends Controller
                     'id' => $user->patient->id,
                     'date_of_birth' => $user->patient->date_of_birth ? ($user->patient->date_of_birth instanceof \DateTime ? $user->patient->date_of_birth->format('Y-m-d') : (string) $user->patient->date_of_birth) : null,
                     'gender' => $user->patient->gender,
+                    'wilaya_code' => $user->patient->wilaya_code,
+                    'wilaya_name' => $user->patient->wilaya?->ar ?? $user->patient->wilaya?->en ?? null,
                     'address' => $user->patient->address,
                     'city' => $user->patient->city,
                     'medical_notes' => $user->patient->medical_notes,
@@ -129,6 +131,7 @@ class ProfileController extends Controller
             'date_of_birth' => ['nullable', 'string'],
             'gender' => ['nullable', 'in:male,female'],
             'address' => ['nullable', 'string', 'max:255'],
+            'wilaya_code' => ['nullable', 'string', 'exists:wilayas,code'],
             'city' => ['nullable', 'string', 'max:255'],
             'medical_notes' => ['nullable', 'string'],
             'blood_type' => ['nullable', 'string', 'max:10'],
@@ -143,6 +146,8 @@ class ProfileController extends Controller
             'emergency_contacts.*.name' => ['required_with:emergency_contacts', 'string'],
             'emergency_contacts.*.relation' => ['nullable', 'string'],
             'emergency_contacts.*.phone' => ['required_with:emergency_contacts', 'string'],
+            'image' => ['nullable'],
+            'image_url' => ['nullable', 'string'],
         ]);
 
         $user = $request->user() ?? (app()->environment('local', 'testing') ? User::where('user_role_code', 'patient')->first() ?? User::first() : null);
@@ -154,6 +159,22 @@ class ProfileController extends Controller
         }
 
         // Update User info
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('avatars', 'public');
+            $user->image_url = '/storage/'.$path;
+        } elseif (! empty($validated['image_url'])) {
+            $user->image_url = $validated['image_url'];
+        } elseif ($request->filled('image') && is_string($request->input('image')) && str_starts_with($request->input('image'), 'data:image')) {
+            $imageData = $request->input('image');
+            @list($type, $imageData) = explode(';', $imageData);
+            @list(, $imageData) = explode(',', $imageData);
+            if ($imageData) {
+                $filename = 'avatars/'.uniqid('avatar_').'.jpg';
+                \Illuminate\Support\Facades\Storage::disk('public')->put($filename, base64_decode($imageData));
+                $user->image_url = '/storage/'.$filename;
+            }
+        }
+
         if (isset($validated['full_name'])) {
             $user->full_name = $validated['full_name'];
         }
@@ -181,6 +202,9 @@ class ProfileController extends Controller
         }
         if (array_key_exists('address', $validated)) {
             $patient->address = $validated['address'];
+        }
+        if (array_key_exists('wilaya_code', $validated)) {
+            $patient->wilaya_code = $validated['wilaya_code'];
         }
         if (array_key_exists('city', $validated)) {
             $patient->city = $validated['city'];
@@ -222,6 +246,8 @@ class ProfileController extends Controller
                     'id' => $patient->id,
                     'date_of_birth' => $patient->date_of_birth ? ($patient->date_of_birth instanceof \DateTime ? $patient->date_of_birth->format('Y-m-d') : (string) $patient->date_of_birth) : null,
                     'gender' => $patient->gender,
+                    'wilaya_code' => $patient->wilaya_code,
+                    'wilaya_name' => $patient->wilaya?->ar ?? $patient->wilaya?->en ?? null,
                     'address' => $patient->address,
                     'city' => $patient->city,
                     'medical_notes' => $patient->medical_notes,

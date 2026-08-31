@@ -12,6 +12,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'start_time',
     'end_time',
     'is_active',
+    'morning_start_time',
+    'morning_end_time',
+    'morning_is_active',
+    'evening_start_time',
+    'evening_end_time',
+    'evening_is_active',
 ])]
 class PartnerSchedule extends Model
 {
@@ -20,6 +26,8 @@ class PartnerSchedule extends Model
         return [
             'day_of_week' => 'integer',
             'is_active' => 'boolean',
+            'morning_is_active' => 'boolean',
+            'evening_is_active' => 'boolean',
         ];
     }
 

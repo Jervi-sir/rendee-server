@@ -53,7 +53,7 @@ class OnboardingController extends Controller
             ], 401);
         }
 
-        $user->load('patient');
+        $user->load(['patient.wilaya']);
         $patient = $user->patient;
 
         $completionPercentage = $this->calculateCompletionPercentage($patient);
@@ -74,6 +74,8 @@ class OnboardingController extends Controller
                     'id' => $patient->id,
                     'date_of_birth' => $patient->date_of_birth ? ($patient->date_of_birth instanceof \DateTime ? $patient->date_of_birth->format('Y-m-d') : (string) $patient->date_of_birth) : null,
                     'gender' => $patient->gender,
+                    'wilaya_code' => $patient->wilaya_code,
+                    'wilaya_name' => $patient->wilaya?->ar ?? $patient->wilaya?->en ?? null,
                     'address' => $patient->address,
                     'city' => $patient->city,
                     'medical_notes' => $patient->medical_notes,
@@ -128,16 +130,38 @@ class OnboardingController extends Controller
             'blood_type' => ['nullable', 'string', 'max:10'],
             'phone' => ['nullable', 'string', 'max:30'],
             'emergency_phone' => ['nullable', 'string', 'max:30'],
+            'wilaya_code' => ['nullable', 'string', 'exists:wilayas,code'],
             'address' => ['required', 'string', 'max:255'],
             'city' => ['required', 'string', 'max:255'],
+            'image' => ['nullable'],
+            'image_url' => ['nullable', 'string'],
             'allergies' => ['nullable', 'string'],
             'medical_notes' => ['nullable', 'string'],
         ]);
 
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('avatars', 'public');
+            $user->image_url = '/storage/'.$path;
+        } elseif (! empty($validated['image_url'])) {
+            $user->image_url = $validated['image_url'];
+        } elseif ($request->filled('image') && is_string($request->input('image')) && str_starts_with($request->input('image'), 'data:image')) {
+            $imageData = $request->input('image');
+            @list($type, $imageData) = explode(';', $imageData);
+            @list(, $imageData) = explode(',', $imageData);
+            if ($imageData) {
+                $filename = 'avatars/'.uniqid('avatar_').'.jpg';
+                \Illuminate\Support\Facades\Storage::disk('public')->put($filename, base64_decode($imageData));
+                $user->image_url = '/storage/'.$filename;
+            }
+        }
+
         if (! empty($validated['phone'])) {
             $user->phone_number = $validated['phone'];
-            $user->save();
         }
+        if (! empty($validated['full_name']) || ! empty($request->input('full_name'))) {
+            $user->full_name = $request->input('full_name');
+        }
+        $user->save();
 
         $patient = $user->patient;
         if (! $patient) {
@@ -149,6 +173,9 @@ class OnboardingController extends Controller
         $patient->gender = $validated['gender'];
         if (! empty($validated['blood_type'])) {
             $patient->blood_type = $validated['blood_type'];
+        }
+        if (array_key_exists('wilaya_code', $validated)) {
+            $patient->wilaya_code = $validated['wilaya_code'];
         }
         $patient->address = $validated['address'];
         $patient->city = $validated['city'];
@@ -194,6 +221,8 @@ class OnboardingController extends Controller
                     'id' => $patient->id,
                     'date_of_birth' => $patient->date_of_birth ? ($patient->date_of_birth instanceof \DateTime ? $patient->date_of_birth->format('Y-m-d') : (string) $patient->date_of_birth) : null,
                     'gender' => $patient->gender,
+                    'wilaya_code' => $patient->wilaya_code,
+                    'wilaya_name' => $patient->wilaya?->ar ?? $patient->wilaya?->en ?? null,
                     'address' => $patient->address,
                     'city' => $patient->city,
                     'medical_notes' => $patient->medical_notes,

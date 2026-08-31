@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
     'user_id',
     'date_of_birth',
     'gender',
+    'wilaya_code',
     'address',
     'city',
     'medical_notes',
@@ -40,6 +41,11 @@ class Patient extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function wilaya()
+    {
+        return $this->belongsTo(Wilaya::class, 'wilaya_code', 'code');
     }
 
     public function bookings()

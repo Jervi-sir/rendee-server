@@ -107,8 +107,8 @@ class PartnerController extends Controller
 
         // Location
         $locationLabel = implode(', ', array_filter([$partner->address, $partner->city, $partner->wilaya?->ar ?? $partner->wilaya?->fr])) ?: 'الجزائر';
-        $lat = $partner->latitude ? (float) $partner->latitude : 36.7538;
-        $lng = $partner->longitude ? (float) $partner->longitude : 3.0588;
+        $lat = $partner->latitude !== null ? (float) $partner->latitude : null;
+        $lng = $partner->longitude !== null ? (float) $partner->longitude : null;
 
         // Phone numbers
         $phoneNumbers = array_values(array_filter([
@@ -164,13 +164,37 @@ class PartnerController extends Controller
 
         $scheduel = $partner->schedules->map(function ($sch) use ($daysMap) {
             $dayName = $daysMap[$sch->day_of_week] ?? ('اليوم '.$sch->day_of_week);
-            $start = $sch->start_time ? substr($sch->start_time, 0, 5) : '08:30';
-            $end = $sch->end_time ? substr($sch->end_time, 0, 5) : '17:00';
+            
+            if (!$sch->is_active) {
+                return [
+                    'day' => $dayName,
+                    'hour_range' => 'مغلق',
+                    'is_open' => false,
+                ];
+            }
+
+            $ranges = [];
+            if ($sch->morning_is_active && $sch->morning_start_time && $sch->morning_end_time) {
+                $mStart = substr($sch->morning_start_time, 0, 5);
+                $mEnd = substr($sch->morning_end_time, 0, 5);
+                $ranges[] = "{$mStart} - {$mEnd}";
+            }
+            if ($sch->evening_is_active && $sch->evening_start_time && $sch->evening_end_time) {
+                $eStart = substr($sch->evening_start_time, 0, 5);
+                $eEnd = substr($sch->evening_end_time, 0, 5);
+                $ranges[] = "{$eStart} - {$eEnd}";
+            }
+
+            if (empty($ranges)) {
+                $start = $sch->start_time ? substr($sch->start_time, 0, 5) : '08:30';
+                $end = $sch->end_time ? substr($sch->end_time, 0, 5) : '17:00';
+                $ranges[] = "{$start} - {$end}";
+            }
 
             return [
                 'day' => $dayName,
-                'hour_range' => $sch->is_active ? "{$start} - {$end}" : 'مغلق',
-                'is_open' => (bool) $sch->is_active,
+                'hour_range' => implode(' | ', $ranges),
+                'is_open' => true,
             ];
         })->values()->toArray();
 
@@ -198,6 +222,9 @@ class PartnerController extends Controller
             'phone_numbers' => $phoneNumbers,
             'location' => [
                 'label' => $locationLabel,
+                'address' => $partner->address,
+                'city' => $partner->city,
+                'wilaya' => $partner->wilaya?->ar ?? $partner->wilaya?->fr ?? null,
                 'lat' => $lat,
                 'lng' => $lng,
             ],

@@ -67,6 +67,12 @@ class ScheduleController extends Controller
             'schedules.*.start_time' => ['nullable', 'string'],
             'schedules.*.end_time' => ['nullable', 'string'],
             'schedules.*.is_active' => ['required', 'boolean'],
+            'schedules.*.morning_start_time' => ['nullable', 'string'],
+            'schedules.*.morning_end_time' => ['nullable', 'string'],
+            'schedules.*.morning_is_active' => ['nullable', 'boolean'],
+            'schedules.*.evening_start_time' => ['nullable', 'string'],
+            'schedules.*.evening_end_time' => ['nullable', 'string'],
+            'schedules.*.evening_is_active' => ['nullable', 'boolean'],
         ]);
 
         $partnerType = match ($user->user_role_code) {
@@ -84,15 +90,33 @@ class ScheduleController extends Controller
         );
 
         foreach ($validated['schedules'] as $item) {
+            $mStart = !empty($item['morning_start_time']) ? $item['morning_start_time'] : '08:00';
+            $mEnd = !empty($item['morning_end_time']) ? $item['morning_end_time'] : '12:00';
+            $mActive = isset($item['morning_is_active']) ? (bool) $item['morning_is_active'] : true;
+
+            $eStart = !empty($item['evening_start_time']) ? $item['evening_start_time'] : '13:30';
+            $eEnd = !empty($item['evening_end_time']) ? $item['evening_end_time'] : '17:00';
+            $eActive = isset($item['evening_is_active']) ? (bool) $item['evening_is_active'] : true;
+
+            // Overall start_time and end_time fallback for backwards compatibility
+            $startTime = !empty($item['start_time']) ? $item['start_time'] : ($mActive ? $mStart : $eStart);
+            $endTime = !empty($item['end_time']) ? $item['end_time'] : ($eActive ? $eEnd : $mEnd);
+
             PartnerSchedule::updateOrCreate(
                 [
                     'partner_id' => $partner->id,
                     'day_of_week' => (int) $item['day_of_week'],
                 ],
                 [
-                    'start_time' => $item['start_time'] ?? '08:00',
-                    'end_time' => $item['end_time'] ?? '17:00',
+                    'start_time' => $startTime,
+                    'end_time' => $endTime,
                     'is_active' => (bool) $item['is_active'],
+                    'morning_start_time' => $mStart,
+                    'morning_end_time' => $mEnd,
+                    'morning_is_active' => $mActive,
+                    'evening_start_time' => $eStart,
+                    'evening_end_time' => $eEnd,
+                    'evening_is_active' => $eActive,
                 ]
             );
         }
@@ -109,7 +133,7 @@ class ScheduleController extends Controller
     }
 
     /**
-     * Generate 7-day weekly schedule structure (0=Sunday to 6=Saturday).
+     * Generate 7-day weekly schedule structure (0=Sunday to 6=Saturday) with morning & evening shifts.
      */
     private function getDefaultWeeklyStructure($existingSchedules): array
     {
@@ -129,6 +153,14 @@ class ScheduleController extends Controller
             $existing = $existingSchedules[$day] ?? null;
             $defaultActive = ($day >= 0 && $day <= 4);
 
+            $mStart = $existing?->morning_start_time ? substr($existing->morning_start_time, 0, 5) : '08:00';
+            $mEnd = $existing?->morning_end_time ? substr($existing->morning_end_time, 0, 5) : '12:00';
+            $mActive = $existing ? (bool) ($existing->morning_is_active ?? true) : true;
+
+            $eStart = $existing?->evening_start_time ? substr($existing->evening_start_time, 0, 5) : '13:30';
+            $eEnd = $existing?->evening_end_time ? substr($existing->evening_end_time, 0, 5) : '17:00';
+            $eActive = $existing ? (bool) ($existing->evening_is_active ?? true) : true;
+
             $result[] = [
                 'id' => $existing?->id,
                 'day_of_week' => $day,
@@ -138,6 +170,15 @@ class ScheduleController extends Controller
                 'start_time' => $existing?->start_time ? substr($existing->start_time, 0, 5) : '08:00',
                 'end_time' => $existing?->end_time ? substr($existing->end_time, 0, 5) : '17:00',
                 'is_active' => $existing ? (bool) $existing->is_active : $defaultActive,
+
+                // Split shifts
+                'morning_start_time' => $mStart,
+                'morning_end_time' => $mEnd,
+                'morning_is_active' => $mActive,
+
+                'evening_start_time' => $eStart,
+                'evening_end_time' => $eEnd,
+                'evening_is_active' => $eActive,
             ];
         }
 

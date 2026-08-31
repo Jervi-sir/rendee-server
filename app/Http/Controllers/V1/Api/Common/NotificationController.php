@@ -4,6 +4,7 @@ namespace App\Http\Controllers\V1\Api\Common;
 
 use App\Http\Controllers\Controller;
 use App\Models\Notification;
+use App\Models\User;
 use App\Models\UserDevice;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -82,28 +83,62 @@ class NotificationController extends Controller
     }
 
     /**
-     * Send a test push notification to all active devices of the authenticated user.
+     * Send a test push notification without requiring auth:
+     * - Requires only `user_id` (or fallback to `push_token`)
+     *
+     * POST /api/v1/notifications/test
      */
     public function sendTest(Request $request): JsonResponse
     {
-        $user = $request->user();
-
-        if (! $user) {
-            return response()->json(['error' => 'Unauthenticated'], 401);
-        }
-
         $validated = $request->validate([
+            'user_id' => ['required_without:push_token', 'nullable', 'integer', 'exists:users,id'],
+            'push_token' => ['required_without:user_id', 'nullable', 'string'],
             'title' => ['nullable', 'string', 'max:255'],
             'body' => ['nullable', 'string', 'max:500'],
             'data' => ['nullable', 'array'],
         ]);
 
         $title = $validated['title'] ?? 'إشعار تجريبي من راندي 🚀';
-        $body = $validated['body'] ?? 'تم إرسال هذا الإشعار التجريبي بنجاح عبر Expo Push Service!';
-        $data = $validated['data'] ?? ['type' => 'test', 'timestamp' => now()->toIso8601String()];
+        $body = $validated['body'] ?? 'تم إرسال هذا الإشعار التجريبي بنجاح عبر خدمة Expo Push!';
+        $data = $validated['data'] ?? [
+            'type' => 'test',
+            'timestamp' => now()->toIso8601String(),
+            'url' => 'rendee://notifications',
+        ];
 
-        // Find user devices with valid push tokens
-        $devices = UserDevice::where('user_id', $user->id)
+        // 1. Direct Push Token option
+        if (! empty($validated['push_token'])) {
+            $messages = [
+                [
+                    'to' => $validated['push_token'],
+                    'sound' => 'default',
+                    'title' => $title,
+                    'body' => $body,
+                    'data' => $data,
+                    'channelId' => 'default',
+                    'priority' => 'high',
+                ],
+            ];
+
+            $response = Http::withHeaders([
+                'Accept' => 'application/json',
+                'Accept-Encoding' => 'gzip, deflate',
+                'Content-Type' => 'application/json',
+            ])->post('https://exp.host/--/api/v2/push/send', $messages);
+
+            return response()->json([
+                'success' => true,
+                'mode' => 'direct_token',
+                'target_token' => $validated['push_token'],
+                'message' => 'Test notification dispatched to provided token.',
+                'expo_response' => $response->json(),
+            ]);
+        }
+
+        // 2. Direct user_id option (no authentication required)
+        $targetUserId = (int) $validated['user_id'];
+
+        $devices = UserDevice::where('user_id', $targetUserId)
             ->whereNotNull('push_notification_token')
             ->where('push_notifications_enabled', true)
             ->where('is_active', true)
@@ -112,7 +147,9 @@ class NotificationController extends Controller
         if ($devices->isEmpty()) {
             return response()->json([
                 'success' => false,
-                'message' => 'No active devices with push notification tokens found for this user.',
+                'message' => "No active devices with registered push tokens found for user ID: {$targetUserId}.",
+                'user_id' => $targetUserId,
+                'tip' => 'Make sure the user has logged in and allowed notifications in the app.',
             ], 404);
         }
 
@@ -124,6 +161,8 @@ class NotificationController extends Controller
                 'title' => $title,
                 'body' => $body,
                 'data' => $data,
+                'channelId' => 'default',
+                'priority' => 'high',
             ];
         }
 
@@ -134,9 +173,9 @@ class NotificationController extends Controller
             'Content-Type' => 'application/json',
         ])->post('https://exp.host/--/api/v2/push/send', $messages);
 
-        // Optionally record notification in database
+        // Record notification in DB
         $notification = Notification::create([
-            'user_id' => $user->id,
+            'user_id' => $targetUserId,
             'title' => $title,
             'body' => $body,
             'type' => 'test',
@@ -146,8 +185,10 @@ class NotificationController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Test notification sent.',
+            'message' => 'Test notification sent successfully.',
+            'target_user_id' => $targetUserId,
             'devices_notified' => $devices->count(),
+            'tokens' => $devices->pluck('push_notification_token'),
             'expo_response' => $response->json(),
             'notification' => $notification,
         ]);
