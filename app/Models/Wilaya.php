@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'code',
@@ -11,10 +12,29 @@ use Illuminate\Database\Eloquent\Model;
     'en',
     'fr',
     'ar',
+    'latitude',
+    'longitude',
+    'lat',
+    'lng',
 ])]
 
 class Wilaya extends Model
 {
+    protected function casts(): array
+    {
+        return [
+            'latitude' => 'decimal:8',
+            'longitude' => 'decimal:8',
+            'lat' => 'decimal:8',
+            'lng' => 'decimal:8',
+        ];
+    }
+
+    public function communes(): HasMany
+    {
+        return $this->hasMany(Commune::class, 'wilaya_code', 'code');
+    }
+
     protected $appends = ['latitude', 'longitude', 'lat', 'lng'];
 
     public static array $wilayaCoordinates = [
@@ -80,6 +100,13 @@ class Wilaya extends Model
 
     public function getLatitudeAttribute(): float
     {
+        if (isset($this->attributes['latitude']) && $this->attributes['latitude'] !== null) {
+            return (float) $this->attributes['latitude'];
+        }
+        if (isset($this->attributes['lat']) && $this->attributes['lat'] !== null) {
+            return (float) $this->attributes['lat'];
+        }
+
         $codeKey = sprintf('%02d', (int) ($this->code ?? $this->number ?? 31));
 
         return self::$wilayaCoordinates[$codeKey]['lat'] ?? 35.6971;
@@ -87,6 +114,13 @@ class Wilaya extends Model
 
     public function getLongitudeAttribute(): float
     {
+        if (isset($this->attributes['longitude']) && $this->attributes['longitude'] !== null) {
+            return (float) $this->attributes['longitude'];
+        }
+        if (isset($this->attributes['lng']) && $this->attributes['lng'] !== null) {
+            return (float) $this->attributes['lng'];
+        }
+
         $codeKey = sprintf('%02d', (int) ($this->code ?? $this->number ?? 31));
 
         return self::$wilayaCoordinates[$codeKey]['lng'] ?? -0.6308;
@@ -119,7 +153,7 @@ class Wilaya extends Model
                     'key' => $w->code,
                     'code' => $w->code,
                     'number' => (int) $w->number,
-                    'label' => (int) $w->number.' - '.($w->ar ?? $w->en ?? $w->code),
+                    'label' => (int) $w->number . ' - ' . ($w->ar ?? $w->en ?? $w->code),
                     'ar' => $w->ar,
                     'en' => $w->en,
                     'fr' => $w->fr,

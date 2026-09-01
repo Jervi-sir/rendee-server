@@ -43,7 +43,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('partner')->group(function () {
         Route::get('profile', [ProfileController::class, 'show'])->name('api.v1.partner.profile.show');
         Route::get('profile/preview', [ProfileController::class, 'preview'])->name('api.v1.partner.profile.preview');
-        Route::put('profile', [ProfileController::class, 'update'])->name('api.v1.partner.profile.update');
+        Route::match(['put', 'post'], 'profile', [ProfileController::class, 'update'])->name('api.v1.partner.profile.update');
     });
 
     // ──────────────────────────────────────────

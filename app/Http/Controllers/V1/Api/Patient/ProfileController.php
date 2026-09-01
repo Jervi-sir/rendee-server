@@ -58,7 +58,7 @@ class ProfileController extends Controller
             ], 401);
         }
 
-        $user->load(['patient.wilaya']);
+        $user->load(['patient.wilaya', 'patient.commune']);
         $bookingsCount = $user->patient ? $user->patient->bookings()->count() : 0;
 
         return response()->json([
@@ -69,7 +69,7 @@ class ProfileController extends Controller
                 'email' => $user->email,
                 'phone' => $user->phone_number ?? '',
                 'profile_completed' => (bool) $user->profile_completed,
-                'image_url' => $user->image_url,
+                'image_url' => $user->full_image_url ?? $user->image_url,
                 'bookings_count' => $bookingsCount,
                 'searches_count' => 0,
                 'files_count' => 0,
@@ -79,8 +79,10 @@ class ProfileController extends Controller
                     'gender' => $user->patient->gender,
                     'wilaya_code' => $user->patient->wilaya_code,
                     'wilaya_name' => $user->patient->wilaya?->ar ?? $user->patient->wilaya?->en ?? null,
+                    'commune_code' => $user->patient->commune_code,
+                    'commune_name' => $user->patient->commune?->ar ?? $user->patient->commune?->fr ?? $user->patient->commune?->en ?? $user->patient->city,
                     'address' => $user->patient->address,
-                    'city' => $user->patient->city,
+                    'city' => $user->patient->city ?? $user->patient->commune?->ar,
                     'medical_notes' => $user->patient->medical_notes,
                     'blood_type' => $user->patient->blood_type ?? 'O+',
                     'allergies' => $user->patient->allergies ?? [],
@@ -132,6 +134,7 @@ class ProfileController extends Controller
             'gender' => ['nullable', 'in:male,female'],
             'address' => ['nullable', 'string', 'max:255'],
             'wilaya_code' => ['nullable', 'string', 'exists:wilayas,code'],
+            'commune_code' => ['nullable', 'string', 'exists:communes,code'],
             'city' => ['nullable', 'string', 'max:255'],
             'medical_notes' => ['nullable', 'string'],
             'blood_type' => ['nullable', 'string', 'max:10'],
@@ -206,7 +209,16 @@ class ProfileController extends Controller
         if (array_key_exists('wilaya_code', $validated)) {
             $patient->wilaya_code = $validated['wilaya_code'];
         }
-        if (array_key_exists('city', $validated)) {
+        if (array_key_exists('commune_code', $validated)) {
+            $patient->commune_code = $validated['commune_code'];
+            if (empty($validated['city']) && ! empty($validated['commune_code'])) {
+                $communeObj = \App\Models\Commune::where('code', $validated['commune_code'])->first();
+                if ($communeObj) {
+                    $patient->city = $communeObj->ar ?? $communeObj->fr ?? $communeObj->en ?? $patient->city;
+                }
+            }
+        }
+        if (array_key_exists('city', $validated) && ! empty($validated['city'])) {
             $patient->city = $validated['city'];
         }
         if (array_key_exists('medical_notes', $validated)) {
@@ -232,6 +244,8 @@ class ProfileController extends Controller
         $user->profile_completed = true;
         $user->save();
 
+        $user->load(['patient.wilaya', 'patient.commune']);
+
         return response()->json([
             'message' => 'Profile updated successfully.',
             'user' => [
@@ -241,15 +255,17 @@ class ProfileController extends Controller
                 'email' => $user->email,
                 'phone' => $user->phone_number ?? '',
                 'profile_completed' => true,
-                'image_url' => $user->image_url,
+                'image_url' => $user->full_image_url ?? $user->image_url,
                 'patient' => [
                     'id' => $patient->id,
                     'date_of_birth' => $patient->date_of_birth ? ($patient->date_of_birth instanceof \DateTime ? $patient->date_of_birth->format('Y-m-d') : (string) $patient->date_of_birth) : null,
                     'gender' => $patient->gender,
                     'wilaya_code' => $patient->wilaya_code,
                     'wilaya_name' => $patient->wilaya?->ar ?? $patient->wilaya?->en ?? null,
+                    'commune_code' => $patient->commune_code,
+                    'commune_name' => $patient->commune?->ar ?? $patient->commune?->fr ?? $patient->commune?->en ?? $patient->city,
                     'address' => $patient->address,
-                    'city' => $patient->city,
+                    'city' => $patient->city ?? $patient->commune?->ar,
                     'medical_notes' => $patient->medical_notes,
                     'blood_type' => $patient->blood_type ?? 'O+',
                     'allergies' => $patient->allergies ?? [],

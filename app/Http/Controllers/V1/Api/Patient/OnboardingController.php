@@ -53,7 +53,7 @@ class OnboardingController extends Controller
             ], 401);
         }
 
-        $user->load(['patient.wilaya']);
+        $user->load(['patient.wilaya', 'patient.commune']);
         $patient = $user->patient;
 
         $completionPercentage = $this->calculateCompletionPercentage($patient);
@@ -69,15 +69,17 @@ class OnboardingController extends Controller
                 'email' => $user->email,
                 'phone' => $user->phone_number ?? '',
                 'profile_completed' => (bool) $user->profile_completed,
-                'image_url' => $user->image_url,
+                'image_url' => $user->full_image_url ?? $user->image_url,
                 'patient' => $patient ? [
                     'id' => $patient->id,
                     'date_of_birth' => $patient->date_of_birth ? ($patient->date_of_birth instanceof \DateTime ? $patient->date_of_birth->format('Y-m-d') : (string) $patient->date_of_birth) : null,
                     'gender' => $patient->gender,
                     'wilaya_code' => $patient->wilaya_code,
                     'wilaya_name' => $patient->wilaya?->ar ?? $patient->wilaya?->en ?? null,
+                    'commune_code' => $patient->commune_code,
+                    'commune_name' => $patient->commune?->ar ?? $patient->commune?->fr ?? $patient->commune?->en ?? $patient->city,
                     'address' => $patient->address,
-                    'city' => $patient->city,
+                    'city' => $patient->city ?? $patient->commune?->ar,
                     'medical_notes' => $patient->medical_notes,
                     'blood_type' => $patient->blood_type ?? 'O+',
                     'allergies' => $patient->allergies ?? [],
@@ -91,27 +93,6 @@ class OnboardingController extends Controller
 
     /**
      * POST /api/v1/patient/onboarding
-     *
-     * Request JSON:
-     * {
-     *   "date_of_birth": "1992-05-14",
-     *   "gender": "male",
-     *   "blood_type": "O+",
-     *   "phone": "0551111111",
-     *   "emergency_phone": "0552222222",
-     *   "address": "12 Rue Didouche Mourad",
-     *   "city": "Alger",
-     *   "allergies": "Pénicilline, Pollen",
-     *   "medical_notes": "Aucun antécédent particulier"
-     * }
-     *
-     * Response JSON:
-     * {
-     *   "success": true,
-     *   "message": "Patient profile completed successfully.",
-     *   "is_completed": true,
-     *   "user": { ... }
-     * }
      */
     public function update(Request $request): JsonResponse
     {
@@ -131,8 +112,9 @@ class OnboardingController extends Controller
             'phone' => ['nullable', 'string', 'max:30'],
             'emergency_phone' => ['nullable', 'string', 'max:30'],
             'wilaya_code' => ['nullable', 'string', 'exists:wilayas,code'],
+            'commune_code' => ['nullable', 'string', 'exists:communes,code'],
             'address' => ['required', 'string', 'max:255'],
-            'city' => ['required', 'string', 'max:255'],
+            'city' => ['nullable', 'string', 'max:255'],
             'image' => ['nullable'],
             'image_url' => ['nullable', 'string'],
             'allergies' => ['nullable', 'string'],
@@ -177,8 +159,19 @@ class OnboardingController extends Controller
         if (array_key_exists('wilaya_code', $validated)) {
             $patient->wilaya_code = $validated['wilaya_code'];
         }
+        if (array_key_exists('commune_code', $validated)) {
+            $patient->commune_code = $validated['commune_code'];
+            if (empty($validated['city']) && ! empty($validated['commune_code'])) {
+                $communeObj = \App\Models\Commune::where('code', $validated['commune_code'])->first();
+                if ($communeObj) {
+                    $patient->city = $communeObj->ar ?? $communeObj->fr ?? $communeObj->en ?? $patient->city;
+                }
+            }
+        }
         $patient->address = $validated['address'];
-        $patient->city = $validated['city'];
+        if (! empty($validated['city'])) {
+            $patient->city = $validated['city'];
+        }
         if (isset($validated['medical_notes'])) {
             $patient->medical_notes = $validated['medical_notes'];
         }
@@ -205,6 +198,8 @@ class OnboardingController extends Controller
         $user->profile_completed = true;
         $user->save();
 
+        $user->load(['patient.wilaya', 'patient.commune']);
+
         return response()->json([
             'success' => true,
             'message' => 'Patient profile completed successfully.',
@@ -216,21 +211,23 @@ class OnboardingController extends Controller
                 'email' => $user->email,
                 'phone' => $user->phone_number ?? '',
                 'profile_completed' => true,
-                'image_url' => $user->image_url,
+                'image_url' => $user->full_image_url ?? $user->image_url,
                 'patient' => [
                     'id' => $patient->id,
                     'date_of_birth' => $patient->date_of_birth ? ($patient->date_of_birth instanceof \DateTime ? $patient->date_of_birth->format('Y-m-d') : (string) $patient->date_of_birth) : null,
                     'gender' => $patient->gender,
                     'wilaya_code' => $patient->wilaya_code,
                     'wilaya_name' => $patient->wilaya?->ar ?? $patient->wilaya?->en ?? null,
+                    'commune_code' => $patient->commune_code,
+                    'commune_name' => $patient->commune?->ar ?? $patient->commune?->fr ?? $patient->commune?->en ?? $patient->city,
                     'address' => $patient->address,
-                    'city' => $patient->city,
+                    'city' => $patient->city ?? $patient->commune?->ar,
                     'medical_notes' => $patient->medical_notes,
-                    'blood_type' => $patient->blood_type ?? 'O+',
-                    'allergies' => $patient->allergies ?? [],
-                    'chronic_diseases' => $patient->chronic_diseases ?? [],
-                    'medications' => $patient->medications ?? [],
-                    'emergency_contacts' => $patient->emergency_contacts ?? [],
+                    'blood_type' => $patient->blood_type,
+                    'allergies' => $patient->allergies,
+                    'chronic_diseases' => $patient->chronic_diseases,
+                    'medications' => $patient->medications,
+                    'emergency_contacts' => $patient->emergency_contacts,
                 ],
             ],
         ]);

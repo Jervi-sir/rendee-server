@@ -48,6 +48,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('bookings', [BookingController::class, 'index'])->name('bookings.index');
         Route::get('bookings/{id}', [BookingController::class, 'show'])->name('bookings.show');
         Route::post('bookings', [BookingController::class, 'store'])->name('bookings.store');
+        Route::put('bookings/{id}', [BookingController::class, 'update'])->name('bookings.update');
+        Route::patch('bookings/{id}/reschedule', [BookingController::class, 'update'])->name('bookings.reschedule');
         Route::post('bookings/{id}/confirm-proposal', [BookingController::class, 'confirmProposal'])->name('bookings.confirm-proposal');
 
         // Actions (Toggle Likes)

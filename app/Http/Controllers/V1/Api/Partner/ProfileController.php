@@ -43,7 +43,7 @@ class ProfileController extends Controller
             'full_name' => $user->full_name ?? $user->name ?? '',
             'email' => $user->email ?? '',
             'phone_number' => $user->phone_number ?? '',
-            'image_url' => $user->image_url,
+            'image_url' => $this->formatImageUrl($user->image_url),
             'speciality' => $specialityName,
             'bio' => $partner?->bio ?? '',
 
@@ -92,6 +92,7 @@ class ProfileController extends Controller
             'speciality',
             'catalog',
             'wilaya',
+            'commune',
             'schedules',
             'services',
             'contacts.platform',
@@ -104,7 +105,7 @@ class ProfileController extends Controller
             'full_name' => $user->full_name ?? '',
             'email' => $user->email ?? '',
             'phone_number' => $user->phone_number ?? '',
-            'image_url' => $user->image_url,
+            'image_url' => $this->formatImageUrl($user->image_url),
             'profile_completed' => (bool) $user->profile_completed,
 
             'profession_code' => $partner->profession_code,
@@ -119,7 +120,10 @@ class ProfileController extends Controller
             'bio' => $partner->bio,
             'description' => $partner->bio,
             'address' => $partner->address,
-            'city' => $partner->city,
+            'city' => $partner->city ?? $partner->commune?->ar,
+            'commune_code' => $partner->commune_code,
+            'commune' => $partner->commune?->ar ?? $partner->commune?->fr ?? $partner->commune?->en ?? $partner->city,
+            'commune_name' => $partner->commune?->ar ?? $partner->commune?->fr ?? $partner->commune?->en ?? $partner->city,
             'wilaya_code' => $partner->wilaya_code,
             'wilaya' => $partner->wilaya?->ar ?? $partner->wilaya?->en ?? null,
             'latitude' => $partner->latitude ? (float) $partner->latitude : null,
@@ -157,11 +161,13 @@ class ProfileController extends Controller
             'phone_number' => ['nullable', 'string', 'max:30'],
             'phone' => ['nullable', 'string', 'max:30'],
             'phone_public' => ['nullable', 'string', 'max:30'],
-            'image_url' => ['nullable', 'string', 'max:500'],
+            'image' => ['nullable'],
+            'image_url' => ['nullable', 'string'],
             'bio' => ['nullable', 'string'],
             'address' => ['nullable', 'string', 'max:500'],
             'city' => ['nullable', 'string', 'max:100'],
             'wilaya_code' => ['nullable', 'string'],
+            'commune_code' => ['nullable', 'string', 'exists:communes,code'],
             'license_number' => ['nullable', 'string', 'max:100'],
             'years_experience' => ['nullable', 'string', 'max:10'],
             'profession_code' => ['nullable', 'string'],
@@ -183,7 +189,33 @@ class ProfileController extends Controller
         }
         $user->email = $validated['email'];
         $user->phone_number = $validated['phone_number'] ?? $validated['phone'] ?? $user->phone_number;
-        if (array_key_exists('image_url', $validated)) {
+
+        // Image upload handling (file, base64 data uri, or url string)
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('avatars', 'public');
+            $user->image_url = '/storage/'.$path;
+        } elseif ($request->hasFile('image_url')) {
+            $path = $request->file('image_url')->store('avatars', 'public');
+            $user->image_url = '/storage/'.$path;
+        } elseif ($request->filled('image') && is_string($request->input('image')) && str_starts_with($request->input('image'), 'data:image')) {
+            $imageData = $request->input('image');
+            @list($type, $imageData) = explode(';', $imageData);
+            @list(, $imageData) = explode(',', $imageData);
+            if ($imageData) {
+                $filename = 'avatars/'.uniqid('partner_avatar_').'.jpg';
+                \Illuminate\Support\Facades\Storage::disk('public')->put($filename, base64_decode($imageData));
+                $user->image_url = '/storage/'.$filename;
+            }
+        } elseif ($request->filled('image_url') && is_string($request->input('image_url')) && str_starts_with($request->input('image_url'), 'data:image')) {
+            $imageData = $request->input('image_url');
+            @list($type, $imageData) = explode(';', $imageData);
+            @list(, $imageData) = explode(',', $imageData);
+            if ($imageData) {
+                $filename = 'avatars/'.uniqid('partner_avatar_').'.jpg';
+                \Illuminate\Support\Facades\Storage::disk('public')->put($filename, base64_decode($imageData));
+                $user->image_url = '/storage/'.$filename;
+            }
+        } elseif (array_key_exists('image_url', $validated)) {
             $user->image_url = $validated['image_url'];
         }
         $user->save();
@@ -222,6 +254,15 @@ class ProfileController extends Controller
         }
         if (array_key_exists('wilaya_code', $validated)) {
             $partner->wilaya_code = $validated['wilaya_code'];
+        }
+        if (array_key_exists('commune_code', $validated)) {
+            $partner->commune_code = $validated['commune_code'];
+            if (empty($validated['city']) && ! empty($validated['commune_code'])) {
+                $communeObj = \App\Models\Commune::where('code', $validated['commune_code'])->first();
+                if ($communeObj) {
+                    $partner->city = $communeObj->ar ?? $communeObj->fr ?? $communeObj->en ?? $partner->city;
+                }
+            }
         }
         if (array_key_exists('license_number', $validated)) {
             $partner->license_number = $validated['license_number'];
@@ -283,5 +324,21 @@ class ProfileController extends Controller
         }
 
         return [$user, $partner];
+    }
+
+    /**
+     * Format image URL to always return an absolute/full URL.
+     */
+    private function formatImageUrl(?string $imageUrl): ?string
+    {
+        if (! $imageUrl) {
+            return null;
+        }
+
+        if (str_starts_with($imageUrl, 'http://') || str_starts_with($imageUrl, 'https://')) {
+            return $imageUrl;
+        }
+
+        return url($imageUrl);
     }
 }

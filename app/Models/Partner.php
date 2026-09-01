@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'custom_speciality',
     'center_catalog_code',
     'wilaya_code',
+    'commune_code',
     'license_number',
     'years_experience',
     'phone_public',
@@ -91,6 +92,11 @@ class Partner extends Model
         return $this->belongsTo(Wilaya::class, 'wilaya_code', 'code');
     }
 
+    public function commune(): BelongsTo
+    {
+        return $this->belongsTo(Commune::class, 'commune_code', 'code');
+    }
+
     public function schedules(): HasMany
     {
         return $this->hasMany(PartnerSchedule::class);
@@ -124,8 +130,13 @@ class Partner extends Model
         $specialtyName = $this->specialty?->ar ?? $this->specialty?->en ?? null;
         $professionName = $this->profession?->ar ?? $this->profession?->en ?? null;
         $catalogName = $this->catalog?->ar ?? $this->catalog?->en ?? null;
+        $wilayaName = $this->wilaya?->ar ?? $this->wilaya?->fr ?? $this->wilaya?->en ?? null;
 
         $displayName = $this->name ?? $this->user?->full_name ?? $this->user?->name ?? 'شريك';
+
+        $phone = $this->phone_public ?? $this->user?->phone_number;
+        $lat = $this->latitude ? (float) $this->latitude : ($this->wilaya?->lat ?? null);
+        $lng = $this->longitude ? (float) $this->longitude : ($this->wilaya?->lng ?? null);
 
         $data = [
             'id' => $this->id,
@@ -143,13 +154,21 @@ class Partner extends Model
             'years_experience' => $this->years_experience,
             'bio' => $this->bio,
             'description' => $this->bio,
-            'phone' => $this->phone_public ?? $this->user?->phone_number,
+            'phone' => $phone,
+            'phone_public' => $this->phone_public,
+            'phone_number' => $phone,
             'address' => $this->address,
             'city' => $this->city,
-            'location' => $this->location,
+            'commune_code' => $this->commune_code,
+            'commune' => $this->commune?->ar ?? $this->commune?->en ?? $this->city,
+            'location' => $this->location ?? ($this->city ? ($wilayaName ? "{$this->city}، {$wilayaName}" : $this->city) : $wilayaName),
             'wilaya_code' => $this->wilaya_code,
-            'latitude' => $this->latitude ? (float) $this->latitude : null,
-            'longitude' => $this->longitude ? (float) $this->longitude : null,
+            'wilaya' => $wilayaName,
+            'wilaya_name' => $wilayaName,
+            'latitude' => $lat,
+            'longitude' => $lng,
+            'lat' => $lat,
+            'lng' => $lng,
             'is_available' => (bool) $this->is_available,
             'emergency_24_7' => (bool) $this->emergency_24_7,
             'is_on_duty' => (bool) $this->is_on_duty,

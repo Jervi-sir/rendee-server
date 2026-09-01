@@ -430,4 +430,89 @@ class BookingController extends Controller
             'booking' => $booking->formatForPatient(true),
         ]);
     }
+
+    /**
+     * PUT/PATCH /api/v1/patient/bookings/{id}
+     *
+     * Edit booking date/time if not confirmed yet.
+     */
+    public function update(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+        $patientId = $user && $user->patient ? $user->patient->id : null;
+
+        $booking = Booking::with([
+            'partner' => ['user', 'speciality', 'profession', 'centerCatalog', 'wilaya'],
+            'service.serviceCatalog',
+            'status',
+        ])->find($id);
+
+        if (! $booking || ($patientId && $booking->patient_id !== $patientId)) {
+            return response()->json(['message' => 'Booking not found.'], 404);
+        }
+
+        if ($booking->status_code === 'confirmed') {
+            return response()->json([
+                'message' => 'لا يمكن تعديل موعد تم تأكيده بالفعل، يرجى التواصل مع العيادة.',
+            ], 422);
+        }
+
+        if (in_array($booking->status_code, ['completed', 'cancelled', 'no_show'])) {
+            return response()->json([
+                'message' => 'لا يمكن تعديل موعد منتهي أو ملغى.',
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'booking_date' => ['nullable', 'date_format:Y-m-d'],
+            'date' => ['nullable', 'date_format:Y-m-d'],
+            'booking_time' => ['nullable', 'string'],
+            'time' => ['nullable', 'string'],
+            'notes' => ['nullable', 'string'],
+        ]);
+
+        $newDate = $validated['booking_date'] ?? $validated['date'] ?? null;
+        $newTime = $validated['booking_time'] ?? $validated['time'] ?? null;
+
+        if ($newDate) {
+            $booking->booking_date = $newDate;
+            $carbonDate = Carbon::parse($newDate);
+            $schedule = PartnerSchedule::where('partner_id', $booking->partner_id)
+                ->where('day_of_week', $carbonDate->dayOfWeek)
+                ->first();
+            if ($schedule) {
+                $booking->schedule_id = $schedule->id;
+                $booking->schedule_type = PartnerSchedule::class;
+            }
+        }
+
+        if ($newTime) {
+            $booking->booking_time = $newTime;
+        }
+
+        if (array_key_exists('notes', $validated)) {
+            $booking->notes = $validated['notes'];
+        }
+
+        // If patient picked a new time, reset previous proposals
+        $booking->proposed_date = null;
+        $booking->proposed_time = null;
+        $booking->has_pending_proposal = false;
+
+        $booking->save();
+
+        $booking->load([
+            'partner' => ['user', 'speciality', 'profession', 'centerCatalog', 'wilaya'],
+            'service.serviceCatalog',
+            'status',
+            'schedule',
+            'bookingHistories.changedBy',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم تعديل وقت الموعد بنجاح.',
+            'booking' => $booking->formatForPatient(true),
+        ]);
+    }
 }

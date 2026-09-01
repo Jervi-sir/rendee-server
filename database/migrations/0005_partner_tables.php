@@ -60,6 +60,7 @@ return new class extends Migration
             $table->string('custom_speciality')->nullable();
             $table->string('center_catalog_code')->nullable();
             $table->string('wilaya_code')->nullable();
+            $table->string('commune_code')->nullable();
 
             $table->string('license_number')->nullable();
             $table->string('years_experience')->nullable();
@@ -82,6 +83,7 @@ return new class extends Migration
             $table->foreign('speciality_code')->references('code')->on('specialities')->nullOnDelete();
             $table->foreign('center_catalog_code')->references('code')->on('center_catalogs')->nullOnDelete();
             $table->foreign('wilaya_code')->references('code')->on('wilayas')->nullOnDelete();
+            $table->foreign('commune_code')->references('code')->on('communes')->nullOnDelete();
         });
 
         Schema::create('partner_schedules', function (Blueprint $table) {

@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
     'date_of_birth',
     'gender',
     'wilaya_code',
+    'commune_code',
     'address',
     'city',
     'medical_notes',
@@ -46,6 +47,11 @@ class Patient extends Model
     public function wilaya()
     {
         return $this->belongsTo(Wilaya::class, 'wilaya_code', 'code');
+    }
+
+    public function commune()
+    {
+        return $this->belongsTo(Commune::class, 'commune_code', 'code');
     }
 
     public function bookings()

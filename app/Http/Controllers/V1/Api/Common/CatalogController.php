@@ -4,7 +4,9 @@ namespace App\Http\Controllers\V1\Api\Common;
 
 use App\Http\Controllers\Controller;
 use App\Models\CenterCatalog;
+use App\Models\Commune;
 use App\Models\ContactPlatform;
+use App\Models\Partner;
 use App\Models\PartnerService;
 use App\Models\PartnerType;
 use App\Models\Profession;
@@ -33,6 +35,7 @@ class CatalogController extends Controller
         'center_catalogs' => CenterCatalog::class,
         'service_catalogs' => ServiceCatalog::class,
         'wilayas' => Wilaya::class,
+        'communes' => Commune::class,
         'contact_platforms' => ContactPlatform::class,
         'statuses' => Status::class,
         'user_roles' => UserRole::class,
@@ -134,6 +137,23 @@ class CatalogController extends Controller
                     break;
 
                 case 'wilayas':
+                    if ($request->boolean('has_partners') || $request->boolean('with_partners') || $request->boolean('has_partner')) {
+                        $query->whereIn('code', Partner::query()
+                            ->where('is_active', true)
+                            ->whereNotNull('wilaya_code')
+                            ->select('wilaya_code')
+                        );
+                    }
+                    $query->orderBy('code', 'asc');
+                    break;
+
+                case 'communes':
+                    if ($request->filled('wilaya_code') || $request->filled('wilaya')) {
+                        $wilaya = $request->query('wilaya_code') ?? $request->query('wilaya');
+                        $query->where('wilaya_code', $wilaya);
+                    } elseif ($request->filled('wilaya_id')) {
+                        $query->where('wilaya_id', $request->query('wilaya_id'));
+                    }
                     $query->orderBy('code', 'asc');
                     break;
 

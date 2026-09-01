@@ -92,7 +92,7 @@ class Booking extends Model
 
         if ($this->relationLoaded('partner') && $this->partner) {
             if (method_exists($this->partner, 'formatForPatient')) {
-                $partnerFormatted = $this->partner->formatForPatient(false);
+                $partnerFormatted = $this->partner->formatForPatient($detailed);
             } else {
                 $partnerFormatted = [
                     'id' => $this->partner->id,

@@ -86,6 +86,19 @@ class User extends Authenticatable implements PasskeyUser
         return $this->hasMany(UserContact::class);
     }
 
+    public function getFullImageUrlAttribute(): ?string
+    {
+        if (! $this->image_url) {
+            return null;
+        }
+
+        if (str_starts_with($this->image_url, 'http://') || str_starts_with($this->image_url, 'https://')) {
+            return $this->image_url;
+        }
+
+        return url($this->image_url);
+    }
+
     /**
      * Eager-load all role-specific profile relations.
      *
@@ -136,7 +149,7 @@ class User extends Authenticatable implements PasskeyUser
             'full_name' => $this->full_name,
             'email' => $this->email,
             'phone_number' => $this->phone_number,
-            'image_url' => $this->image_url,
+            'image_url' => $this->full_image_url,
             'profile_completed' => (bool) $this->profile_completed,
             'created_at' => $this->created_at?->toIso8601String(),
             'user_role_code' => $this->user_role_code,
