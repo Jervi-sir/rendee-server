@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             CatalogSeeder::class,      // 0001_catalog_tables
+            CommuneSeeder::class,      // communes from communes.json
             UserSeeder::class,         // 0002_user_tables
             PatientSeeder::class,      // 0003_patient_tables
             PartnerSeeder::class,      // 0005_partner_tables

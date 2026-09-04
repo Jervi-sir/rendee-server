@@ -90,17 +90,17 @@ class ScheduleController extends Controller
         );
 
         foreach ($validated['schedules'] as $item) {
-            $mStart = !empty($item['morning_start_time']) ? $item['morning_start_time'] : '08:00';
-            $mEnd = !empty($item['morning_end_time']) ? $item['morning_end_time'] : '12:00';
+            $mStart = ! empty($item['morning_start_time']) ? $item['morning_start_time'] : '08:00';
+            $mEnd = ! empty($item['morning_end_time']) ? $item['morning_end_time'] : '12:00';
             $mActive = isset($item['morning_is_active']) ? (bool) $item['morning_is_active'] : true;
 
-            $eStart = !empty($item['evening_start_time']) ? $item['evening_start_time'] : '13:30';
-            $eEnd = !empty($item['evening_end_time']) ? $item['evening_end_time'] : '17:00';
+            $eStart = ! empty($item['evening_start_time']) ? $item['evening_start_time'] : '13:30';
+            $eEnd = ! empty($item['evening_end_time']) ? $item['evening_end_time'] : '17:00';
             $eActive = isset($item['evening_is_active']) ? (bool) $item['evening_is_active'] : true;
 
             // Overall start_time and end_time fallback for backwards compatibility
-            $startTime = !empty($item['start_time']) ? $item['start_time'] : ($mActive ? $mStart : $eStart);
-            $endTime = !empty($item['end_time']) ? $item['end_time'] : ($eActive ? $eEnd : $mEnd);
+            $startTime = ! empty($item['start_time']) ? $item['start_time'] : ($mActive ? $mStart : $eStart);
+            $endTime = ! empty($item['end_time']) ? $item['end_time'] : ($eActive ? $eEnd : $mEnd);
 
             PartnerSchedule::updateOrCreate(
                 [

@@ -164,8 +164,8 @@ class PartnerController extends Controller
 
         $scheduel = $partner->schedules->map(function ($sch) use ($daysMap) {
             $dayName = $daysMap[$sch->day_of_week] ?? ('اليوم '.$sch->day_of_week);
-            
-            if (!$sch->is_active) {
+
+            if (! $sch->is_active) {
                 return [
                     'day' => $dayName,
                     'hour_range' => 'مغلق',

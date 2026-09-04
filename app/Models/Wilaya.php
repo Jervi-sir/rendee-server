@@ -153,7 +153,7 @@ class Wilaya extends Model
                     'key' => $w->code,
                     'code' => $w->code,
                     'number' => (int) $w->number,
-                    'label' => (int) $w->number . ' - ' . ($w->ar ?? $w->en ?? $w->code),
+                    'label' => (int) $w->number.' - '.($w->ar ?? $w->en ?? $w->code),
                     'ar' => $w->ar,
                     'en' => $w->en,
                     'fr' => $w->fr,

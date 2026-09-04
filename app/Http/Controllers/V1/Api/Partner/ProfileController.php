@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\V1\Api\Partner;
 
 use App\Http\Controllers\Controller;
+use App\Models\Commune;
 use App\Models\Partner;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class ProfileController extends Controller
 {
@@ -199,20 +201,20 @@ class ProfileController extends Controller
             $user->image_url = '/storage/'.$path;
         } elseif ($request->filled('image') && is_string($request->input('image')) && str_starts_with($request->input('image'), 'data:image')) {
             $imageData = $request->input('image');
-            @list($type, $imageData) = explode(';', $imageData);
-            @list(, $imageData) = explode(',', $imageData);
+            @[$type, $imageData] = explode(';', $imageData);
+            @[, $imageData] = explode(',', $imageData);
             if ($imageData) {
                 $filename = 'avatars/'.uniqid('partner_avatar_').'.jpg';
-                \Illuminate\Support\Facades\Storage::disk('public')->put($filename, base64_decode($imageData));
+                Storage::disk('public')->put($filename, base64_decode($imageData));
                 $user->image_url = '/storage/'.$filename;
             }
         } elseif ($request->filled('image_url') && is_string($request->input('image_url')) && str_starts_with($request->input('image_url'), 'data:image')) {
             $imageData = $request->input('image_url');
-            @list($type, $imageData) = explode(';', $imageData);
-            @list(, $imageData) = explode(',', $imageData);
+            @[$type, $imageData] = explode(';', $imageData);
+            @[, $imageData] = explode(',', $imageData);
             if ($imageData) {
                 $filename = 'avatars/'.uniqid('partner_avatar_').'.jpg';
-                \Illuminate\Support\Facades\Storage::disk('public')->put($filename, base64_decode($imageData));
+                Storage::disk('public')->put($filename, base64_decode($imageData));
                 $user->image_url = '/storage/'.$filename;
             }
         } elseif (array_key_exists('image_url', $validated)) {
@@ -258,7 +260,7 @@ class ProfileController extends Controller
         if (array_key_exists('commune_code', $validated)) {
             $partner->commune_code = $validated['commune_code'];
             if (empty($validated['city']) && ! empty($validated['commune_code'])) {
-                $communeObj = \App\Models\Commune::where('code', $validated['commune_code'])->first();
+                $communeObj = Commune::where('code', $validated['commune_code'])->first();
                 if ($communeObj) {
                     $partner->city = $communeObj->ar ?? $communeObj->fr ?? $communeObj->en ?? $partner->city;
                 }

@@ -11,12 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // 1. Ensure communes table has unique constraint on code
-        Schema::table('communes', function (Blueprint $table) {
-            $table->unique('code', 'communes_code_unique');
-        });
-
-        // 2. Add commune_code to partners and foreign key
+        // 1. Ensure commune_code foreign key and column on partners
         Schema::table('partners', function (Blueprint $table) {
             if (! Schema::hasColumn('partners', 'commune_code')) {
                 $table->string('commune_code')->nullable()->after('wilaya_code');

@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\V1\Api\Patient;
 
 use App\Http\Controllers\Controller;
+use App\Models\Commune;
 use App\Models\Patient;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class OnboardingController extends Controller
 {
@@ -128,11 +130,11 @@ class OnboardingController extends Controller
             $user->image_url = $validated['image_url'];
         } elseif ($request->filled('image') && is_string($request->input('image')) && str_starts_with($request->input('image'), 'data:image')) {
             $imageData = $request->input('image');
-            @list($type, $imageData) = explode(';', $imageData);
-            @list(, $imageData) = explode(',', $imageData);
+            @[$type, $imageData] = explode(';', $imageData);
+            @[, $imageData] = explode(',', $imageData);
             if ($imageData) {
                 $filename = 'avatars/'.uniqid('avatar_').'.jpg';
-                \Illuminate\Support\Facades\Storage::disk('public')->put($filename, base64_decode($imageData));
+                Storage::disk('public')->put($filename, base64_decode($imageData));
                 $user->image_url = '/storage/'.$filename;
             }
         }
@@ -162,7 +164,7 @@ class OnboardingController extends Controller
         if (array_key_exists('commune_code', $validated)) {
             $patient->commune_code = $validated['commune_code'];
             if (empty($validated['city']) && ! empty($validated['commune_code'])) {
-                $communeObj = \App\Models\Commune::where('code', $validated['commune_code'])->first();
+                $communeObj = Commune::where('code', $validated['commune_code'])->first();
                 if ($communeObj) {
                     $patient->city = $communeObj->ar ?? $communeObj->fr ?? $communeObj->en ?? $patient->city;
                 }

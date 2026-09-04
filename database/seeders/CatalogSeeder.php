@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Commune;
 use App\Models\ContactPlatform;
 use App\Models\Status;
 use App\Models\Wilaya;
@@ -142,7 +143,7 @@ class CatalogSeeder extends Seeder
         foreach ($communes as $cData) {
             $cData['latitude'] = $cData['lat'];
             $cData['longitude'] = $cData['lng'];
-            \App\Models\Commune::updateOrCreate(
+            Commune::updateOrCreate(
                 ['code' => $cData['code']],
                 $cData
             );
