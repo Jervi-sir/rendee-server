@@ -7,6 +7,7 @@ use App\Http\Controllers\V1\Api\Auth\LoginController;
 use App\Http\Controllers\V1\Api\Auth\LogoutController;
 use App\Http\Controllers\V1\Api\Auth\MeController;
 use App\Http\Controllers\V1\Api\Auth\RegisterController;
+use App\Http\Controllers\V1\Api\Common\AppVersionController;
 use App\Http\Controllers\V1\Api\Common\CatalogController;
 use App\Http\Controllers\V1\Api\Common\ContactController;
 use App\Http\Controllers\V1\Api\Common\NotificationController;
@@ -35,7 +36,9 @@ Route::prefix('auth')->group(function () {
 // ──────────────────────────────────────────────
 // Common (public / optional auth)
 // ──────────────────────────────────────────────
+Route::get('app/version-check', [AppVersionController::class, 'check'])->name('api.v1.app.version-check');
 Route::get('catalogs', [CatalogController::class, 'index'])->name('api.v1.catalogs');
+Route::get('support-messages/info', [SupportMessageController::class, 'info'])->name('api.v1.support-messages.info');
 Route::post('support-messages', [SupportMessageController::class, 'store'])->name('api.v1.support-messages.store');
 Route::post('notifications/test', [NotificationController::class, 'sendTest'])->name('api.v1.notifications.public-test');
 

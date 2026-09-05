@@ -10,6 +10,29 @@ use Illuminate\Http\Request;
 class SupportMessageController extends Controller
 {
     /**
+     * GET /api/v1/support-messages/info
+     *
+     * Returns optional support contact channels (phone, email) for the requested target role.
+     */
+    public function info(Request $request): JsonResponse
+    {
+        $role = $request->query('role', 'partner');
+        if (! in_array($role, ['partner', 'patient'], true)) {
+            $role = 'partner';
+        }
+
+        $config = config("support.{$role}", []);
+
+        return response()->json([
+            'success' => true,
+            'role' => $role,
+            'phone' => ! empty($config['phone']) ? $config['phone'] : null,
+            'phone_display' => ! empty($config['phone_display']) ? $config['phone_display'] : ($config['phone'] ?? null),
+            'email' => ! empty($config['email']) ? $config['email'] : null,
+        ]);
+    }
+
+    /**
      * POST /api/v1/support-messages
      *
      * Request JSON:
