@@ -17,7 +17,7 @@ class BookingController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $tab = $request->query('tab', 'pending');
+        $tab = $request->query('tab', 'all');
         $partner = null;
         $user = $request->user();
 
@@ -66,7 +66,7 @@ class BookingController extends Controller
             $query->where('status_code', 'confirmed');
         } elseif ($tab === 'previous') {
             $query->whereIn('status_code', ['completed', 'cancelled', 'no_show']);
-        } else {
+        } elseif ($tab === 'pending') {
             $query->where('status_code', 'pending');
         }
 

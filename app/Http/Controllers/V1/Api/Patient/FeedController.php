@@ -167,7 +167,7 @@ class FeedController extends Controller
 
             $name = $partner->name ?? $partner->user?->full_name ?? $partner->user?->name ?? 'شريك';
             if (in_array($partner->partner_type_code, ['doctor', 'professional']) && ! str_starts_with($name, 'د.')) {
-                $name = 'د. '.$name;
+                $name = $name;
             }
 
             $specialityName = $partner->speciality?->ar
@@ -222,14 +222,7 @@ class FeedController extends Controller
         }
 
         // 5. Generate counts for filters dynamically
-        $typeLabels = [
-            'doctor' => 'أطباء',
-            'dentist' => 'أطباء الأسنان',
-            'pharmacist' => 'صيدليات',
-            'center' => 'مراكز طبية',
-            'psy' => 'أخصائي نفساني',
-            'professional' => 'مهنيون',
-        ];
+        $partnerTypes = PartnerType::all();
 
         $filters = [
             [
@@ -239,9 +232,9 @@ class FeedController extends Controller
             ],
         ];
 
-        foreach ($typeLabels as $code => $defaultLabel) {
-            $partnerTypeObj = PartnerType::find($code);
-            $label = $partnerTypeObj?->ar ?? $partnerTypeObj?->fr ?? $defaultLabel;
+        foreach ($partnerTypes as $partnerType) {
+            $code = $partnerType->code;
+            $label = $partnerType->ar ?? $partnerType->fr ?? $partnerType->en ?? $code;
             $count = count(array_filter($results, fn ($i) => $i['partner_type']['code'] === $code));
 
             $filters[] = [

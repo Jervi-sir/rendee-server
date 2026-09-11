@@ -56,7 +56,7 @@ class DashboardController extends Controller
         }
 
         // Header details
-        $prefix = $partner->profession_code === 'doctor' ? 'د. ' : '';
+        $prefix = $partner->profession_code === 'doctor' ? '' : '';
         $partnerName = $prefix.($partner->name ?? $partner->user?->full_name ?? $partner->user?->name ?? 'شريك');
         $speciality = $partner->specialty?->ar ?? $partner->catalog?->ar ?? $partner->specialty?->en ?? 'عام';
         $dateLabel = Carbon::now()->translatedFormat('l، d F Y');

@@ -116,7 +116,7 @@ class PartnerController extends Controller
             $partner->user?->phone_number,
         ]));
         if (empty($phoneNumbers)) {
-            $phoneNumbers = ['0550000000'];
+            $phoneNumbers = [];
         }
 
         // Contacts
@@ -128,10 +128,7 @@ class PartnerController extends Controller
         })->filter(fn ($c) => ! empty($c['value']))->values()->toArray();
 
         if (empty($contacts)) {
-            $contacts = [
-                ['platform' => 'whatsapp', 'value' => $phoneNumbers[0] ?? '0550000000'],
-                ['platform' => 'phone', 'value' => $phoneNumbers[0] ?? '0550000000'],
-            ];
+            $contacts = [];
         }
 
         // Services
@@ -145,10 +142,7 @@ class PartnerController extends Controller
         })->values()->toArray();
 
         if (empty($services)) {
-            $services = [
-                ['id' => 1, 'title' => 'كشف وطب عام', 'label' => 'فحص واستشارة عامة', 'price' => '1500'],
-                ['id' => 2, 'title' => 'استشارة متخصصة', 'label' => 'فحص ومتابعة دقيقة', 'price' => '2500'],
-            ];
+            $services = [];
         }
 
         // Scheduel
@@ -199,15 +193,7 @@ class PartnerController extends Controller
         })->values()->toArray();
 
         if (empty($scheduel)) {
-            $scheduel = [
-                ['day' => 'الأحد', 'hour_range' => '08:30 - 17:00', 'is_open' => true],
-                ['day' => 'الاثنين', 'hour_range' => '08:30 - 17:00', 'is_open' => true],
-                ['day' => 'الثلاثاء', 'hour_range' => '08:30 - 17:00', 'is_open' => true],
-                ['day' => 'الأربعاء', 'hour_range' => '08:30 - 17:00', 'is_open' => true],
-                ['day' => 'الخميس', 'hour_range' => '08:30 - 17:00', 'is_open' => true],
-                ['day' => 'الجمعة', 'hour_range' => 'مغلق', 'is_open' => false],
-                ['day' => 'السبت', 'hour_range' => '08:30 - 13:00', 'is_open' => true],
-            ];
+            $scheduel = [];
         }
 
         // Certificates

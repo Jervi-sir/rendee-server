@@ -75,10 +75,10 @@ class PatientsController extends Controller
                 'blood_type' => $patient->blood_type ?? '',
                 'city' => $patient->city ?? 'الجزائر العاصمة',
                 'address' => $patient->address ?? '',
-                'emergency_phone' => is_array($patient->emergency_contacts) ? implode(', ', $patient->emergency_contacts) : ($patient->emergency_contacts ?? ''),
-                'allergies' => is_array($patient->allergies) ? implode(', ', $patient->allergies) : ($patient->allergies ?? ''),
-                'chronic_diseases' => is_array($patient->chronic_diseases) ? implode(', ', $patient->chronic_diseases) : ($patient->chronic_diseases ?? ''),
-                'medications' => is_array($patient->medications) ? implode(', ', $patient->medications) : ($patient->medications ?? ''),
+                'emergency_phone' => $this->formatEmergencyContacts($patient->emergency_contacts),
+                'allergies' => $this->formatListField($patient->allergies),
+                'chronic_diseases' => $this->formatListField($patient->chronic_diseases),
+                'medications' => $this->formatListField($patient->medications),
                 'notes' => $patient->medical_notes ?? '',
                 'total_visits' => $totalVisits,
                 'last_visit' => $lastBooking ? (is_string($lastBooking->booking_date) ? $lastBooking->booking_date : $lastBooking->booking_date->format('Y-m-d')) : null,
@@ -136,10 +136,10 @@ class PatientsController extends Controller
                 'blood_type' => $patient->blood_type ?? '',
                 'city' => $patient->city ?? 'الجزائر العاصمة',
                 'address' => $patient->address ?? '',
-                'emergency_phone' => is_array($patient->emergency_contacts) ? implode(', ', $patient->emergency_contacts) : ($patient->emergency_contacts ?? ''),
-                'allergies' => is_array($patient->allergies) ? implode(', ', $patient->allergies) : ($patient->allergies ?? ''),
-                'chronic_diseases' => is_array($patient->chronic_diseases) ? implode(', ', $patient->chronic_diseases) : ($patient->chronic_diseases ?? ''),
-                'medications' => is_array($patient->medications) ? implode(', ', $patient->medications) : ($patient->medications ?? ''),
+                'emergency_phone' => $this->formatEmergencyContacts($patient->emergency_contacts),
+                'allergies' => $this->formatListField($patient->allergies),
+                'chronic_diseases' => $this->formatListField($patient->chronic_diseases),
+                'medications' => $this->formatListField($patient->medications),
                 'notes' => $patient->medical_notes ?? '',
                 'total_visits' => $totalVisits,
                 'last_visit' => $lastBooking ? (is_string($lastBooking->booking_date) ? $lastBooking->booking_date : $lastBooking->booking_date->format('Y-m-d')) : null,
@@ -197,7 +197,7 @@ class PatientsController extends Controller
                     'reference' => $booking->reference,
                     'date' => $booking->booking_date ? (is_string($booking->booking_date) ? $booking->booking_date : $booking->booking_date->format('Y-m-d')) : '',
                     'time' => $booking->booking_time ? Carbon::parse($booking->booking_time)->format('H:i') : '',
-                    'doctor_name' => 'د. '.($booking->bookable?->name ?? 'طبيب'),
+                    'doctor_name' => ($booking->bookable?->name ?? 'طبيب'),
                     'specialty' => $booking->bookable?->specialty?->ar ?? 'عام',
                     'service_name' => $serviceName,
                     'visit_type' => $serviceName,
@@ -212,5 +212,78 @@ class PatientsController extends Controller
             'history' => $history,
             'total' => count($history),
         ]);
+    }
+
+    /**
+     * Format emergency contacts array or string safely into a string representation.
+     */
+    private function formatEmergencyContacts(mixed $contacts): string
+    {
+        if (empty($contacts)) {
+            return '';
+        }
+
+        if (is_string($contacts)) {
+            return $contacts;
+        }
+
+        if (is_array($contacts)) {
+            $formatted = [];
+            foreach ($contacts as $contact) {
+                if (is_string($contact)) {
+                    $formatted[] = $contact;
+                } elseif (is_array($contact)) {
+                    $phone = $contact['phone'] ?? $contact['phone_number'] ?? $contact['number'] ?? null;
+                    $name = $contact['name'] ?? null;
+                    $relation = $contact['relation'] ?? $contact['relationship'] ?? null;
+
+                    if ($phone) {
+                        $label = $phone;
+                        if ($name || $relation) {
+                            $details = array_filter([$name, $relation]);
+                            $label .= ' ('.implode(' - ', $details).')';
+                        }
+                        $formatted[] = $label;
+                    } elseif ($name) {
+                        $formatted[] = $name;
+                    }
+                }
+            }
+
+            return implode(', ', array_filter($formatted));
+        }
+
+        return '';
+    }
+
+    /**
+     * Format list field (array or string) safely.
+     */
+    private function formatListField(mixed $field): string
+    {
+        if (empty($field)) {
+            return '';
+        }
+
+        if (is_string($field)) {
+            return $field;
+        }
+
+        if (is_array($field)) {
+            $items = array_map(function ($item) {
+                if (is_string($item) || is_numeric($item)) {
+                    return (string) $item;
+                }
+                if (is_array($item)) {
+                    return $item['name'] ?? $item['label'] ?? json_encode($item, JSON_UNESCAPED_UNICODE);
+                }
+
+                return '';
+            }, $field);
+
+            return implode(', ', array_filter($items));
+        }
+
+        return '';
     }
 }

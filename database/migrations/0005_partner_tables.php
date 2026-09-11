@@ -11,14 +11,6 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('partner_types', function (Blueprint $table) {
-            $table->string('code')->primary();
-            $table->string('en');
-            $table->string('fr');
-            $table->string('ar');
-            $table->timestamps();
-        });
-
         Schema::create('professions', function (Blueprint $table) {
             $table->string('code')->primary();
             $table->string('partner_type_code')->nullable();

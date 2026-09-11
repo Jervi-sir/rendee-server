@@ -110,7 +110,7 @@ class MapController extends Controller
 
             $title = $partner->name ?? $partner->user?->full_name ?? $partner->user?->name ?? 'شريك';
             if (in_array($code, ['doctor', 'professional']) && ! str_starts_with($title, 'د.')) {
-                $title = 'د. '.$title;
+                $title = $title;
             }
 
             $pinColor = match ($code) {
@@ -135,14 +135,7 @@ class MapController extends Controller
         }
 
         // Dynamic filters matching FeedController
-        $typeLabels = [
-            'doctor' => 'أطباء',
-            'dentist' => 'أطباء الأسنان',
-            'pharmacist' => 'صيدليات',
-            'center' => 'مراكز طبية',
-            'psy' => 'أخصائي نفساني',
-            'professional' => 'مهنيون',
-        ];
+        $partnerTypes = PartnerType::all();
 
         $filters = [
             [
@@ -152,11 +145,11 @@ class MapController extends Controller
             ],
         ];
 
-        foreach ($typeLabels as $code => $defaultLabel) {
-            $partnerTypeObj = PartnerType::find($code);
-            $label = $partnerTypeObj?->ar ?? $partnerTypeObj?->fr ?? $defaultLabel;
-            $count = count(array_filter($partners->toArray(), function ($p) use ($code) {
-                $pt = $p['partner_type_code'] ?? $p['partner_type'] ?? '';
+        foreach ($partnerTypes as $partnerType) {
+            $code = $partnerType->code;
+            $label = $partnerType->ar ?? $partnerType->fr ?? $partnerType->en ?? $code;
+            $count = count(array_filter($markers, function ($m) use ($code) {
+                $pt = $m['partner_type']['code'] ?? '';
                 if ($code === 'doctor' || $code === 'professional') {
                     return in_array($pt, ['doctor', 'professional']);
                 }

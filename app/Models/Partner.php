@@ -231,7 +231,7 @@ class Partner extends Model
 
         $title = $this->name ?? $this->user?->full_name ?? $this->user?->name ?? 'شريك';
         if (in_array($type, ['doctor', 'professional']) && ! str_starts_with($title, 'د.')) {
-            $title = 'د. '.$title;
+            $title = $title;
         }
 
         return [
