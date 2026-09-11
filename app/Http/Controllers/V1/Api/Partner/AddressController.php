@@ -46,8 +46,8 @@ class AddressController extends Controller
                     'city' => '',
                     'wilaya_code' => null,
                     'wilaya_name' => null,
-                    'latitude' => null,
-                    'longitude' => null,
+                    'lat' => null,
+                    'lng' => null,
                 ],
                 'wilayas' => $wilayas,
             ]);
@@ -60,8 +60,8 @@ class AddressController extends Controller
                 'city' => $provider->city ?? '',
                 'wilaya_code' => $provider->wilaya_code,
                 'wilaya_name' => $provider->wilaya?->ar ?? $provider->wilaya?->en ?? null,
-                'latitude' => $provider->latitude ? (float) $provider->latitude : null,
-                'longitude' => $provider->longitude ? (float) $provider->longitude : null,
+                'lat' => $provider->lat ? (float) $provider->lat : null,
+                'lng' => $provider->lng ? (float) $provider->lng : null,
             ],
             'wilayas' => $wilayas,
         ]);
@@ -91,18 +91,18 @@ class AddressController extends Controller
             'address' => ['required', 'string', 'max:500'],
             'city' => ['required', 'string', 'max:100'],
             'wilaya_code' => ['nullable', 'string', Rule::exists('wilayas', 'code')],
-            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
-            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'lat' => ['nullable', 'numeric', 'between:-90,90'],
+            'lng' => ['nullable', 'numeric', 'between:-180,180'],
         ]);
 
         $provider->address = $validated['address'];
         $provider->city = $validated['city'];
         $provider->wilaya_code = $validated['wilaya_code'] ?? $provider->wilaya_code;
-        if (array_key_exists('latitude', $validated)) {
-            $provider->latitude = $validated['latitude'];
+        if (array_key_exists('lat', $validated)) {
+            $provider->lat = $validated['lat'];
         }
-        if (array_key_exists('longitude', $validated)) {
-            $provider->longitude = $validated['longitude'];
+        if (array_key_exists('lng', $validated)) {
+            $provider->lng = $validated['lng'];
         }
         $provider->save();
 
@@ -116,8 +116,8 @@ class AddressController extends Controller
                 'city' => $provider->city,
                 'wilaya_code' => $provider->wilaya_code,
                 'wilaya_name' => $provider->wilaya?->ar ?? $provider->wilaya?->en ?? null,
-                'latitude' => $provider->latitude ? (float) $provider->latitude : null,
-                'longitude' => $provider->longitude ? (float) $provider->longitude : null,
+                'lat' => $provider->lat ? (float) $provider->lat : null,
+                'lng' => $provider->lng ? (float) $provider->lng : null,
             ],
         ]);
     }

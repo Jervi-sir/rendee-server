@@ -17,7 +17,7 @@ return new class extends Migration
             $table->date('date_of_birth')->nullable();
             $table->text('gender')->nullable();
             $table->string('wilaya_code')->nullable();
-            $table->string('commune_code')->nullable();
+            $table->foreignId('commune_id')->nullable()->constrained()->nullOnDelete();
             $table->string('address')->nullable();
             $table->string('city')->nullable();
             $table->string('blood_type', 10)->nullable();
@@ -30,7 +30,6 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('wilaya_code')->references('code')->on('wilayas')->nullOnDelete();
-            $table->foreign('commune_code')->references('code')->on('communes')->nullOnDelete();
         });
     }
 

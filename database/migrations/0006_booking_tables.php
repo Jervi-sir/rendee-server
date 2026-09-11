@@ -16,28 +16,23 @@ return new class extends Migration
             $table->string('reference')->unique();
             $table->foreignId('patient_id')->nullable()->constrained('patients')->onDelete('set null');
             $table->foreignId('partner_id')->nullable()->constrained('partners')->onDelete('cascade');
-            $table->string('service_type')->nullable();
-            $table->unsignedBigInteger('service_id')->nullable();
-            $table->string('schedule_type')->nullable();
+            $table->foreignId('partner_service_id')->nullable()->constrained('partner_services')->onDelete('cascade');
+            $table->foreignId('partner_schedule_id')->nullable()->constrained('partner_schedules')->onDelete('cascade');
+            $table->string('status_code')->nullable();
+
             $table->unsignedBigInteger('schedule_id')->nullable();
             $table->string('patient_name');
             $table->string('patient_phone');
             $table->date('booking_date');
             $table->time('booking_time');
-            $table->string('status_code')->nullable();
             $table->boolean('is_center')->default(false);
             $table->date('proposed_date')->nullable();
             $table->time('proposed_time')->nullable();
             $table->boolean('has_pending_proposal')->default(false);
             $table->text('notes')->nullable();
             $table->timestamps();
-            $table->index(['partner_id']);
-            $table->index(['service_type', 'service_id']);
-            $table->index(['schedule_type', 'schedule_id']);
+            
             $table->foreign('status_code')->references('code')->on('statuses')->nullOnDelete();
-
-            $table->index(['booking_date', 'status_code']);
-            $table->index(['patient_id', 'status_code']);
         });
         Schema::create('booking_histories', function (Blueprint $table) {
             $table->id();

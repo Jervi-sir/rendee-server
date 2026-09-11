@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 #[Fillable([
     'booking_id',
@@ -13,7 +15,6 @@ use Illuminate\Database\Eloquent\Model;
     'reviewable_type',
     'reviewable_id',
 ])]
-
 class Rating extends Model
 {
     /**
@@ -28,17 +29,17 @@ class Rating extends Model
         ];
     }
 
-    public function booking()
+    public function booking(): BelongsTo
     {
         return $this->belongsTo(Booking::class);
     }
 
-    public function patient()
+    public function patient(): BelongsTo
     {
         return $this->belongsTo(Patient::class);
     }
 
-    public function reviewable()
+    public function reviewable(): MorphTo
     {
         return $this->morphTo();
     }

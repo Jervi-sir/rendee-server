@@ -80,10 +80,10 @@ export interface GetFeedParams {
     speciality_code?: string;
     /** Filter strictly for on-duty / emergency providers */
     on_duty?: boolean;
-    /** User's current latitude for distance sorting */
-    latitude?: number | string;
-    /** User's current longitude for distance sorting */
-    longitude?: number | string;
+    /** User's current lat for distance sorting */
+    lat?: number | string;
+    /** User's current lng for distance sorting */
+    lng?: number | string;
     /** Filter results within 50 km of user's coordinates */
     near_me?: boolean;
     /** Page number (default: 1) */
@@ -113,8 +113,8 @@ export interface GetFeedResponse {
  * @example
  * ```ts
  * const feed = await getFeed({
- *   latitude: 36.7538,
- *   longitude: 3.0588,
+ *   lat: 36.7538,
+ *   lng: 3.0588,
  *   profession: 'doctor',
  *   speciality: 'cardiology',
  *   near_me: true,

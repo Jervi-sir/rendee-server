@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'code',
@@ -12,7 +13,6 @@ use Illuminate\Database\Eloquent\Model;
     'fr',
     'ar',
 ])]
-
 class ServiceCatalog extends Model
 {
     protected $primaryKey = 'code';
@@ -21,13 +21,13 @@ class ServiceCatalog extends Model
 
     public $incrementing = false;
 
-    public function professionalServices()
+    public function partnerServices(): HasMany
     {
-        return $this->hasMany(ProfessionalService::class, 'service_catalog_code', 'code');
+        return $this->hasMany(PartnerService::class, 'service_catalog_code', 'code');
     }
 
-    public function centerServices()
+    public function services(): HasMany
     {
-        return $this->hasMany(CenterService::class, 'service_catalog_code', 'code');
+        return $this->partnerServices();
     }
 }

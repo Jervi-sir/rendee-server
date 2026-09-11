@@ -12,8 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('user_roles', function (Blueprint $table) {
-            $table->id();
-            $table->string('code')->unique();
+            $table->string('code')->primary();
             $table->string('en')->nullable();
             $table->string('fr')->nullable();
             $table->string('ar')->nullable();

@@ -43,10 +43,9 @@ class CommuneSeeder extends Seeder
             $postalCode = $item['code_postal'] ?? null;
 
             $wilaya = $wilayaId ? $wilayasById->get($wilayaId) : null;
-            $wilayaCode = $wilaya?->code;
+            $wilayaCode = $wilaya?->code ?? ($wilayaId ? sprintf('%02d', (int) $wilayaId) : null);
 
             $rows[] = [
-                'wilaya_id' => $wilaya?->id ?? $wilayaId,
                 'wilaya_code' => $wilayaCode,
                 'code' => (string) $code,
                 'postal_code' => $postalCode ? (string) $postalCode : null,
@@ -63,7 +62,7 @@ class CommuneSeeder extends Seeder
             Commune::upsert(
                 $chunk,
                 ['code'],
-                ['wilaya_id', 'wilaya_code', 'postal_code', 'en', 'fr', 'updated_at']
+                ['wilaya_code', 'postal_code', 'en', 'fr', 'updated_at']
             );
         }
 

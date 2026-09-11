@@ -14,6 +14,8 @@ class Profession extends Model
 
     public const DENTIST = 'dentist';
 
+    public const PHARMACY = 'pharmacy';
+
     protected $primaryKey = 'code';
 
     protected $keyType = 'string';
@@ -22,17 +24,11 @@ class Profession extends Model
 
     protected $fillable = [
         'code',
-        'partner_type_code',
         'en',
         'fr',
         'ar',
         'hex',
     ];
-
-    public function partnerType(): BelongsTo
-    {
-        return $this->belongsTo(PartnerType::class, 'partner_type_code', 'code');
-    }
 
     public function partners(): HasMany
     {

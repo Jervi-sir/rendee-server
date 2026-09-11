@@ -65,6 +65,7 @@ class UserSeeder extends Seeder
                 'user_role_code' => UserRole::PARTNER,
                 'phone_number' => '0552222222',
                 'profile_completed' => true,
+                'image_url' => 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=300&auto=format&fit=crop&q=80',
             ],
             [
                 'email' => 'dentist@rendee.dz',
@@ -73,6 +74,7 @@ class UserSeeder extends Seeder
                 'user_role_code' => UserRole::PARTNER,
                 'phone_number' => '0553333333',
                 'profile_completed' => true,
+                'image_url' => 'https://images.unsplash.com/photo-1594824813689-0268595dfefb?w=300&auto=format&fit=crop&q=80',
             ],
             [
                 'email' => 'center@rendee.dz',
@@ -81,6 +83,7 @@ class UserSeeder extends Seeder
                 'user_role_code' => UserRole::PARTNER,
                 'phone_number' => '0554444444',
                 'profile_completed' => true,
+                'image_url' => 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=300&auto=format&fit=crop&q=80',
             ],
             [
                 'email' => 'pharmacy@rendee.dz',
@@ -89,6 +92,7 @@ class UserSeeder extends Seeder
                 'user_role_code' => UserRole::PARTNER,
                 'phone_number' => '0555555555',
                 'profile_completed' => true,
+                'image_url' => 'https://images.unsplash.com/photo-1586015555751-63c2992982d1?w=300&auto=format&fit=crop&q=80',
             ],
             [
                 'email' => 'psy@rendee.dz',
@@ -97,6 +101,7 @@ class UserSeeder extends Seeder
                 'user_role_code' => UserRole::PARTNER,
                 'phone_number' => '0556666666',
                 'profile_completed' => true,
+                'image_url' => 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=300&auto=format&fit=crop&q=80',
             ],
         ];
 
@@ -116,11 +121,23 @@ class UserSeeder extends Seeder
         $algerianLastNames = ['Brahimi', 'Saadi', 'Meziane', 'Bouzid', 'Haddad', 'Cherif', 'Zitouni', 'Hamidi', 'Khelil', 'Slimani', 'Boudiaf', 'Dahmani'];
         $rolesList = [UserRole::PATIENT, UserRole::PARTNER];
 
+        $partnerAvatars = [
+            'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=300&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1594824813689-0268595dfefb?w=300&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=300&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=300&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=300&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=300&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1622902046580-2b47f47f5471?w=300&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1527613426441-4da17471b66d?w=300&auto=format&fit=crop&q=80',
+        ];
+
         for ($i = 1; $i <= 15; $i++) {
             $firstName = fake()->randomElement($algerianFirstNames);
             $lastName = fake()->randomElement($algerianLastNames);
             $role = fake()->randomElement($rolesList);
             $email = strtolower($firstName.'.'.$lastName.$i.'@rendee.dz');
+            $img = $role === UserRole::PARTNER ? fake()->randomElement($partnerAvatars) : null;
 
             User::firstOrCreate(
                 ['email' => $email],
@@ -131,6 +148,7 @@ class UserSeeder extends Seeder
                     'password' => $hashedPassword,
                     'password_plaintext' => $defaultPassword,
                     'phone_number' => '05'.fake()->numerify('########'),
+                    'image_url' => $img,
                     'profile_completed' => true,
                     'email_verified_at' => now(),
                 ]

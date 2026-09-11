@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\Commune;
 use App\Models\ContactPlatform;
+use App\Models\ServiceCatalog;
 use App\Models\Status;
 use App\Models\Wilaya;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -80,76 +80,12 @@ class CatalogSeeder extends Seeder
         foreach ($wilayas as $data) {
             $codeKey = sprintf('%02d', (int) $data['code']);
             $coords = Wilaya::$wilayaCoordinates[$codeKey] ?? ['lat' => 35.6971, 'lng' => -0.6308];
-            $data['latitude'] = $coords['lat'];
-            $data['longitude'] = $coords['lng'];
             $data['lat'] = $coords['lat'];
             $data['lng'] = $coords['lng'];
             Wilaya::updateOrCreate(['code' => $data['code']], $data);
         }
 
-        // 2. Communes (Key sample communes per wilaya)
-        $communes = [
-            // Algiers (16)
-            ['wilaya_code' => '16', 'code' => '1601', 'postal_code' => '16000', 'en' => 'Alger Centre', 'fr' => 'Alger Centre', 'ar' => 'الجزائر الوسطى', 'lat' => 36.7753, 'lng' => 3.0588],
-            ['wilaya_code' => '16', 'code' => '1602', 'postal_code' => '16001', 'en' => 'Sidi M\'Hamed', 'fr' => 'Sidi M\'Hamed', 'ar' => 'سيدي امحمد', 'lat' => 36.7562, 'lng' => 3.0569],
-            ['wilaya_code' => '16', 'code' => '1604', 'postal_code' => '16008', 'en' => 'Bab El Oued', 'fr' => 'Bab El Oued', 'ar' => 'باب الوادي', 'lat' => 36.7903, 'lng' => 3.0489],
-            ['wilaya_code' => '16', 'code' => '1607', 'postal_code' => '16012', 'en' => 'Hydra', 'fr' => 'Hydra', 'ar' => 'حيدرة', 'lat' => 36.7456, 'lng' => 3.0422],
-            ['wilaya_code' => '16', 'code' => '1608', 'postal_code' => '16035', 'en' => 'El Biar', 'fr' => 'El Biar', 'ar' => 'الأبيار', 'lat' => 36.7692, 'lng' => 3.0306],
-            ['wilaya_code' => '16', 'code' => '1609', 'postal_code' => '16065', 'en' => 'Kouba', 'fr' => 'Kouba', 'ar' => 'القبة', 'lat' => 36.7247, 'lng' => 3.0858],
-            ['wilaya_code' => '16', 'code' => '1611', 'postal_code' => '16060', 'en' => 'Hussein Dey', 'fr' => 'Hussein Dey', 'ar' => 'حسين داي', 'lat' => 36.7442, 'lng' => 3.0906],
-            ['wilaya_code' => '16', 'code' => '1612', 'postal_code' => '16033', 'en' => 'Bir Mourad Raïs', 'fr' => 'Bir Mourad Raïs', 'ar' => 'بئر مراد رايس', 'lat' => 36.7364, 'lng' => 3.0542],
-            ['wilaya_code' => '16', 'code' => '1613', 'postal_code' => '16030', 'en' => 'Birkhadem', 'fr' => 'Birkhadem', 'ar' => 'بئر خادم', 'lat' => 36.7167, 'lng' => 3.0667],
-            ['wilaya_code' => '16', 'code' => '1614', 'postal_code' => '16016', 'en' => 'Ben Aknoun', 'fr' => 'Ben Aknoun', 'ar' => 'بن عكنون', 'lat' => 36.7583, 'lng' => 3.0167],
-            ['wilaya_code' => '16', 'code' => '1615', 'postal_code' => '16027', 'en' => 'Dely Ibrahim', 'fr' => 'Dely Ibrahim', 'ar' => 'دالي إبراهيم', 'lat' => 36.7500, 'lng' => 2.9833],
-            ['wilaya_code' => '16', 'code' => '1618', 'postal_code' => '16038', 'en' => 'Cheraga', 'fr' => 'Chéraga', 'ar' => 'الشراقة', 'lat' => 36.7667, 'lng' => 2.9500],
-            ['wilaya_code' => '16', 'code' => '1622', 'postal_code' => '16053', 'en' => 'Dar El Beïda', 'fr' => 'Dar El Beïda', 'ar' => 'الدار البيضاء', 'lat' => 36.7133, 'lng' => 3.2125],
-            ['wilaya_code' => '16', 'code' => '1623', 'postal_code' => '16054', 'en' => 'Bab Ezzouar', 'fr' => 'Bab Ezzouar', 'ar' => 'باب الزوار', 'lat' => 36.7208, 'lng' => 3.1833],
-            ['wilaya_code' => '16', 'code' => '1630', 'postal_code' => '16020', 'en' => 'Bordj El Kiffan', 'fr' => 'Bordj El Kiffan', 'ar' => 'برج الكيفان', 'lat' => 36.7486, 'lng' => 3.1914],
-
-            // Oran (31)
-            ['wilaya_code' => '31', 'code' => '3101', 'postal_code' => '31000', 'en' => 'Oran', 'fr' => 'Oran', 'ar' => 'وهران', 'lat' => 35.6971, 'lng' => -0.6308],
-            ['wilaya_code' => '31', 'code' => '3102', 'postal_code' => '31200', 'en' => 'Gdyel', 'fr' => 'Gdyel', 'ar' => 'قديل', 'lat' => 35.7833, 'lng' => -0.4333],
-            ['wilaya_code' => '31', 'code' => '3103', 'postal_code' => '31230', 'en' => 'Bir El Djir', 'fr' => 'Bir El Djir', 'ar' => 'بئر الجير', 'lat' => 35.7167, 'lng' => -0.5667],
-            ['wilaya_code' => '31', 'code' => '3104', 'postal_code' => '31310', 'en' => 'Es Senia', 'fr' => 'Es Senia', 'ar' => 'السانية', 'lat' => 35.6500, 'lng' => -0.6333],
-            ['wilaya_code' => '31', 'code' => '3105', 'postal_code' => '31280', 'en' => 'Arzew', 'fr' => 'Arzew', 'ar' => 'أرزيو', 'lat' => 35.8500, 'lng' => -0.3167],
-            ['wilaya_code' => '31', 'code' => '3107', 'postal_code' => '31110', 'en' => 'Aïn El Turk', 'fr' => 'Aïn El Turk', 'ar' => 'عين الترك', 'lat' => 35.7500, 'lng' => -0.7500],
-            ['wilaya_code' => '31', 'code' => '3110', 'postal_code' => '31240', 'en' => 'El Kerma', 'fr' => 'El Kerma', 'ar' => 'الكرمة', 'lat' => 35.6167, 'lng' => -0.5833],
-            ['wilaya_code' => '31', 'code' => '3112', 'postal_code' => '31260', 'en' => 'Sidi Chami', 'fr' => 'Sidi Chami', 'ar' => 'سيدي الشحمي', 'lat' => 35.6667, 'lng' => -0.5333],
-
-            // Constantine (25)
-            ['wilaya_code' => '25', 'code' => '2501', 'postal_code' => '25000', 'en' => 'Constantine', 'fr' => 'Constantine', 'ar' => 'قسنطينة', 'lat' => 36.3650, 'lng' => 6.6147],
-            ['wilaya_code' => '25', 'code' => '2502', 'postal_code' => '25100', 'en' => 'El Khroub', 'fr' => 'El Khroub', 'ar' => 'الخروب', 'lat' => 36.2667, 'lng' => 6.7000],
-            ['wilaya_code' => '25', 'code' => '2503', 'postal_code' => '25210', 'en' => 'Aïn Smara', 'fr' => 'Aïn Smara', 'ar' => 'عين سمارة', 'lat' => 36.2667, 'lng' => 6.5000],
-            ['wilaya_code' => '25', 'code' => '2504', 'postal_code' => '25130', 'en' => 'Hamma Bouziane', 'fr' => 'Hamma Bouziane', 'ar' => 'حامة بوزيان', 'lat' => 36.4000, 'lng' => 6.6000],
-            ['wilaya_code' => '25', 'code' => '2505', 'postal_code' => '25120', 'en' => 'Zighoud Youcef', 'fr' => 'Zighoud Youcef', 'ar' => 'زيغود يوسف', 'lat' => 36.5333, 'lng' => 6.7167],
-            ['wilaya_code' => '25', 'code' => '2506', 'postal_code' => '25240', 'en' => 'Didouche Mourad', 'fr' => 'Didouche Mourad', 'ar' => 'ديدوش مراد', 'lat' => 36.4500, 'lng' => 6.6333],
-
-            // Blida (09)
-            ['wilaya_code' => '09', 'code' => '0901', 'postal_code' => '09000', 'en' => 'Blida', 'fr' => 'Blida', 'ar' => 'البليدة', 'lat' => 36.4702, 'lng' => 2.8288],
-            ['wilaya_code' => '09', 'code' => '0902', 'postal_code' => '09200', 'en' => 'Boufarik', 'fr' => 'Boufarik', 'ar' => 'بوفاريك', 'lat' => 36.5756, 'lng' => 2.9125],
-            ['wilaya_code' => '09', 'code' => '0903', 'postal_code' => '09400', 'en' => 'Ouled Yaïch', 'fr' => 'Ouled Yaïch', 'ar' => 'أولاد يعيش', 'lat' => 36.5000, 'lng' => 2.8667],
-
-            // Sétif (19)
-            ['wilaya_code' => '19', 'code' => '1901', 'postal_code' => '19000', 'en' => 'Sétif', 'fr' => 'Sétif', 'ar' => 'سطيف', 'lat' => 36.1911, 'lng' => 5.4136],
-            ['wilaya_code' => '19', 'code' => '1902', 'postal_code' => '19200', 'en' => 'El Eulma', 'fr' => 'El Eulma', 'ar' => 'العلمة', 'lat' => 36.1528, 'lng' => 5.6903],
-            ['wilaya_code' => '19', 'code' => '1903', 'postal_code' => '19100', 'en' => 'Aïn Oulmene', 'fr' => 'Aïn Oulmène', 'ar' => 'عين ولمان', 'lat' => 35.9167, 'lng' => 5.3000],
-
-            // Annaba (23)
-            ['wilaya_code' => '23', 'code' => '2301', 'postal_code' => '23000', 'en' => 'Annaba', 'fr' => 'Annaba', 'ar' => 'عنابة', 'lat' => 36.9000, 'lng' => 7.7667],
-            ['wilaya_code' => '23', 'code' => '2302', 'postal_code' => '23005', 'en' => 'El Bouni', 'fr' => 'El Bouni', 'ar' => 'البوني', 'lat' => 36.8667, 'lng' => 7.7333],
-            ['wilaya_code' => '23', 'code' => '2303', 'postal_code' => '23200', 'en' => 'El Hadjar', 'fr' => 'El Hadjar', 'ar' => 'الحجار', 'lat' => 36.8000, 'lng' => 7.7333],
-        ];
-
-        foreach ($communes as $cData) {
-            $cData['latitude'] = $cData['lat'];
-            $cData['longitude'] = $cData['lng'];
-            Commune::updateOrCreate(
-                ['code' => $cData['code']],
-                $cData
-            );
-        }
-
-        // 3. Contact Platforms
+        // 2. Contact Platforms
         $contactPlatforms = [
             ['code' => 'phone', 'en' => 'Phone', 'fr' => 'Téléphone', 'ar' => 'الهاتف'],
             ['code' => 'whatsapp', 'en' => 'WhatsApp', 'fr' => 'WhatsApp', 'ar' => 'واتساب'],
@@ -166,7 +102,7 @@ class CatalogSeeder extends Seeder
             ContactPlatform::updateOrCreate(['code' => $data['code']], $data);
         }
 
-        // 4. Statuses
+        // 3. Statuses
         $statuses = [
             ['code' => 'pending', 'en' => 'Pending', 'fr' => 'En attente', 'ar' => 'قيد الانتظار'],
             ['code' => 'confirmed', 'en' => 'Confirmed', 'fr' => 'Confirmé', 'ar' => 'مؤكد'],
@@ -179,6 +115,23 @@ class CatalogSeeder extends Seeder
 
         foreach ($statuses as $data) {
             Status::updateOrCreate(['code' => $data['code']], $data);
+        }
+
+        // 4. Service Catalogs
+        $serviceCatalogs = [
+            ['code' => 'consultation', 'source' => 'doctor', 'en' => 'General Consultation', 'fr' => 'Consultation Générale', 'ar' => 'استشارة طبية'],
+            ['code' => 'specialist_consultation', 'source' => 'doctor', 'en' => 'Specialist Consultation', 'fr' => 'Consultation Spécialiste', 'ar' => 'استشارة أخصائي'],
+            ['code' => 'checkup', 'source' => 'doctor', 'en' => 'Medical Checkup', 'fr' => 'Bilan de Santé', 'ar' => 'فحص طبي شامل'],
+            ['code' => 'dental_scaling', 'source' => 'dentist', 'en' => 'Dental Scaling & Cleaning', 'fr' => 'Détartrage et Nettoyage', 'ar' => 'تنظيف وتلميع الأسنان'],
+            ['code' => 'dental_extraction', 'source' => 'dentist', 'en' => 'Tooth Extraction', 'fr' => 'Extraction Dentaire', 'ar' => 'قلع الأسنان'],
+            ['code' => 'radiology_xray', 'source' => 'center', 'en' => 'X-Ray Radiography', 'fr' => 'Radiographie Standard', 'ar' => 'أشعة سينية'],
+            ['code' => 'radiology_mri', 'source' => 'center', 'en' => 'MRI Scan', 'fr' => 'IRM', 'ar' => 'رنين مغناطيسي'],
+            ['code' => 'blood_test', 'source' => 'center', 'en' => 'Complete Blood Count (CBC)', 'fr' => 'NFS / Bilan Sanguin', 'ar' => 'تحليل دم كامل'],
+            ['code' => 'physio_session', 'source' => 'physiotherapist', 'en' => 'Rehabilitation Session', 'fr' => 'Séance de Rééducation', 'ar' => 'جلسة ترويض طبي'],
+        ];
+
+        foreach ($serviceCatalogs as $srv) {
+            ServiceCatalog::updateOrCreate(['code' => $srv['code']], $srv);
         }
     }
 }

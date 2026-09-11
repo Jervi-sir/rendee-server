@@ -11,81 +11,17 @@ class PartnerController extends Controller
 {
     /**
      * GET /api/v1/patient/partners/{id}
-     *
-     * Response JSON:
-     * {
-     *   "id": 4,
-     *   "name": "Dr. Karim Amrani",
-     *   "bio": "Professionnel de santé qualifié avec plusieurs années d'expérience.",
-     *   "phone_numbers": [
-     *     "0552222222"
-     *   ],
-     *   "location": {
-     *     "label": "12 Rue Didouche Mourad, Alger, الجزائر",
-     *     "lat": 36.7538,
-     *     "lng": 3.0588
-     *   },
-     *   "partner_type": {
-     *     "code": "doctor",
-     *     "label": "طبيب / أخصائي"
-     *   },
-     *   "profession": {
-     *     "code": "doctor",
-     *     "label": "Médecin",
-     *     "hex": "#0ea5e9"
-     *   },
-     *   "speciality": {
-     *     "code": "cardiology",
-     *     "label": "Cardiologie"
-     *   },
-     *   "contacts": [
-     *     {
-     *       "platform": "whatsapp",
-     *       "value": "0552222222"
-     *     },
-     *     {
-     *       "platform": "phone",
-     *       "value": "0552222222"
-     *     }
-     *   ],
-     *   "services": [
-     *     {
-     *       "id": 1,
-     *       "title": "Consultation Générale",
-     *       "label": "Service médical de Consultation Générale",
-     *       "price": "2000"
-     *     }
-     *   ],
-     *   "scheduel": [
-     *     {
-     *       "day": "الأحد",
-     *       "hour_range": "08:30 - 17:00",
-     *       "is_open": true
-     *     },
-     *     {
-     *       "day": "الجمعة",
-     *       "hour_range": "مغلق",
-     *       "is_open": false
-     *     }
-     *   ],
-     *   "certificates": [
-     *     {
-     *       "name": "شهادة الاعتماد الطبي",
-     *       "type": "طبي"
-     *     }
-     *   ]
-     * }
      */
     public function show(Request $request, int $id): JsonResponse
     {
         $partner = Partner::with([
             'user',
-            'partnerType',
             'profession',
             'speciality',
             'wilaya',
+            'commune',
             'schedules',
-            'services',
+            'services.catalog',
             'contacts.platform',
         ])->find($id);
 
@@ -96,48 +32,45 @@ class PartnerController extends Controller
         }
 
         $displayName = $partner->name ?? $partner->user?->full_name ?? $partner->user?->name ?? 'شريك';
-        $partnerTypeCode = $partner->partner_type_code ?? 'doctor';
-        $partnerTypeLabel = $partner->partnerType?->ar
-            ?? $partner->partnerType?->fr
-            ?? match ($partnerTypeCode) {
+        $professionCode = $partner->profession_code ?? 'doctor';
+        $professionLabel = $partner->profession?->ar
+            ?? $partner->profession?->fr
+            ?? $partner->profession?->en
+            ?? match ($professionCode) {
                 'center' => 'مركز طبي',
                 'pharmacy', 'pharmacist' => 'صيدلية',
                 default => 'طبيب / أخصائي',
             };
 
         // Location
-        $locationLabel = implode(', ', array_filter([$partner->address, $partner->city, $partner->wilaya?->ar ?? $partner->wilaya?->fr])) ?: 'الجزائر';
-        $lat = $partner->latitude !== null ? (float) $partner->latitude : null;
-        $lng = $partner->longitude !== null ? (float) $partner->longitude : null;
+        $communeLabel = $partner->commune?->ar ?? $partner->commune?->fr ?? $partner->commune?->en ?? $partner->city;
+        $locationLabel = implode(', ', array_filter([$partner->address, $communeLabel, $partner->wilaya?->ar ?? $partner->wilaya?->fr])) ?: 'الجزائر';
+        $lat = $partner->lat !== null ? (float) $partner->lat : null;
+        $lng = $partner->lng !== null ? (float) $partner->lng : null;
 
         // Phone numbers
         $phoneNumbers = array_values(array_filter([
             $partner->phone_public,
             $partner->user?->phone_number,
         ]));
-        if (empty($phoneNumbers)) {
-            $phoneNumbers = [];
-        }
 
         // Contacts
         $contacts = $partner->contacts->map(function ($contact) {
             return [
-                'platform' => $contact->platform_code ?? $contact->platform?->code ?? $contact->type ?? 'phone',
-                'value' => $contact->url ?? $contact->value ?? $contact->contact_value ?? '',
+                'platform' => $contact->platform_code ?? $contact->platform?->code ?? 'phone',
+                'value' => $contact->value ?? '',
             ];
         })->filter(fn ($c) => ! empty($c['value']))->values()->toArray();
-
-        if (empty($contacts)) {
-            $contacts = [];
-        }
 
         // Services
         $services = $partner->services->map(function ($service, $index) {
             return [
                 'id' => (int) ($service->id ?? ($index + 1)),
-                'title' => $service->name ?? $service->title ?? 'خدمة طبية',
-                'label' => $service->description ?? $service->label ?? 'خدمة متخصصة',
+                'service_catalog_code' => $service->service_catalog_code,
+                'title' => $service->catalog?->ar ?? $service->catalog?->en ?? $service->name ?? 'خدمة طبية',
+                'label' => $service->description ?? $service->catalog?->en ?? 'خدمة متخصصة',
                 'price' => (string) ($service->price ?? '1500'),
+                'duration_minutes' => (int) ($service->duration_minutes ?? 30),
             ];
         })->values()->toArray();
 
@@ -180,9 +113,7 @@ class PartnerController extends Controller
             }
 
             if (empty($ranges)) {
-                $start = $sch->start_time ? substr($sch->start_time, 0, 5) : '08:30';
-                $end = $sch->end_time ? substr($sch->end_time, 0, 5) : '17:00';
-                $ranges[] = "{$start} - {$end}";
+                $ranges[] = '08:30 - 17:00';
             }
 
             return [
@@ -209,28 +140,24 @@ class PartnerController extends Controller
             'location' => [
                 'label' => $locationLabel,
                 'address' => $partner->address,
-                'city' => $partner->city,
+                'city' => $partner->city ?? $communeLabel,
+                'commune_id' => $partner->commune_id,
+                'commune_code' => $partner->commune?->code,
                 'wilaya' => $partner->wilaya?->ar ?? $partner->wilaya?->fr ?? null,
+                'wilaya_code' => $partner->wilaya_code,
                 'lat' => $lat,
                 'lng' => $lng,
             ],
-            'partner_type' => [
-                'code' => $partnerTypeCode,
-                'label' => $partnerTypeLabel,
+            'profession' => [
+                'code' => $professionCode,
+                'label' => $professionLabel,
+                'hex' => $partner->profession?->hex,
             ],
             'contacts' => $contacts,
             'services' => $services,
             'scheduel' => $scheduel,
             'certificates' => $certificates,
         ];
-
-        if ($partner->profession) {
-            $response['profession'] = [
-                'code' => $partner->profession->code,
-                'label' => $partner->profession->ar ?? $partner->profession->fr ?? $partner->profession->en,
-                'hex' => $partner->profession->hex,
-            ];
-        }
 
         if ($partner->speciality || $partner->custom_speciality) {
             $response['speciality'] = [

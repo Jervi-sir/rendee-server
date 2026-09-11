@@ -4,13 +4,16 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable([
     'user_id',
     'date_of_birth',
     'gender',
     'wilaya_code',
-    'commune_code',
+    'commune_id',
     'address',
     'city',
     'medical_notes',
@@ -20,9 +23,9 @@ use Illuminate\Database\Eloquent\Model;
     'medications',
     'emergency_contacts',
 ])]
-
 class Patient extends Model
 {
+    use SoftDeletes;
     /**
      * Get the attributes that should be cast.
      *
@@ -39,27 +42,27 @@ class Patient extends Model
         ];
     }
 
-    public function user()
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function wilaya()
+    public function wilaya(): BelongsTo
     {
         return $this->belongsTo(Wilaya::class, 'wilaya_code', 'code');
     }
 
-    public function commune()
+    public function commune(): BelongsTo
     {
-        return $this->belongsTo(Commune::class, 'commune_code', 'code');
+        return $this->belongsTo(Commune::class, 'commune_id');
     }
 
-    public function bookings()
+    public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class);
     }
 
-    public function ratings()
+    public function ratings(): HasMany
     {
         return $this->hasMany(Rating::class);
     }

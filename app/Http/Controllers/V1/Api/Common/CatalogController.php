@@ -3,12 +3,10 @@
 namespace App\Http\Controllers\V1\Api\Common;
 
 use App\Http\Controllers\Controller;
-use App\Models\CenterCatalog;
 use App\Models\Commune;
 use App\Models\ContactPlatform;
 use App\Models\Partner;
 use App\Models\PartnerService;
-use App\Models\PartnerType;
 use App\Models\Profession;
 use App\Models\ServiceCatalog;
 use App\Models\Speciality;
@@ -31,8 +29,7 @@ class CatalogController extends Controller
         'specialities' => Speciality::class,
         'professional_specialities' => Speciality::class, // Backwards-compatible alias
         'professions' => Profession::class,
-        'partner_types' => PartnerType::class,
-        'center_catalogs' => CenterCatalog::class,
+        'partner_types' => Profession::class,             // Backwards-compatible alias to professions
         'service_catalogs' => ServiceCatalog::class,
         'wilayas' => Wilaya::class,
         'communes' => Commune::class,
@@ -72,7 +69,7 @@ class CatalogController extends Controller
         $data = [];
 
         foreach ($includes as $include) {
-            // 1. Handle Virtual registery_types (Patient user role + Partner registration types)
+            // 1. Handle Virtual registery_types (Patient user role + Professions)
             if ($include === 'registery_types') {
                 $userRoles = UserRole::where('code', UserRole::PATIENT)
                     ->get()
@@ -83,15 +80,15 @@ class CatalogController extends Controller
                         return $arr;
                     });
 
-                $partnerTypes = PartnerType::all()
-                    ->map(function (PartnerType $type) {
-                        $arr = $type->toArray();
-                        $arr['source'] = 'partner_type';
+                $professions = Profession::all()
+                    ->map(function (Profession $prof) {
+                        $arr = $prof->toArray();
+                        $arr['source'] = 'profession';
 
                         return $arr;
                     });
 
-                $data['registery_types'] = $userRoles->merge($partnerTypes)->values();
+                $data['registery_types'] = $userRoles->merge($professions)->values();
 
                 continue;
             }
@@ -116,15 +113,9 @@ class CatalogController extends Controller
                     break;
 
                 case 'professions':
-                    if ($request->filled('partner_type') || $request->filled('partner_type_code')) {
-                        $partnerType = $request->query('partner_type') ?? $request->query('partner_type_code');
-                        $query->where('partner_type_code', $partnerType);
-                    }
+                case 'partner_types':
                     if ($request->boolean('with_specialities')) {
                         $query->with('specialities');
-                    }
-                    if ($request->boolean('with_partner_type')) {
-                        $query->with('partnerType');
                     }
                     $query->orderBy('code', 'asc');
                     break;
@@ -151,8 +142,6 @@ class CatalogController extends Controller
                     if ($request->filled('wilaya_code') || $request->filled('wilaya')) {
                         $wilaya = $request->query('wilaya_code') ?? $request->query('wilaya');
                         $query->where('wilaya_code', $wilaya);
-                    } elseif ($request->filled('wilaya_id')) {
-                        $query->where('wilaya_id', $request->query('wilaya_id'));
                     }
                     $query->orderBy('code', 'asc');
                     break;

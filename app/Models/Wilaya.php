@@ -12,19 +12,21 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'en',
     'fr',
     'ar',
-    'latitude',
-    'longitude',
     'lat',
     'lng',
 ])]
 
 class Wilaya extends Model
 {
+    protected $primaryKey = 'code';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
+
     protected function casts(): array
     {
         return [
-            'latitude' => 'decimal:8',
-            'longitude' => 'decimal:8',
             'lat' => 'decimal:8',
             'lng' => 'decimal:8',
         ];
@@ -35,7 +37,7 @@ class Wilaya extends Model
         return $this->hasMany(Commune::class, 'wilaya_code', 'code');
     }
 
-    protected $appends = ['latitude', 'longitude', 'lat', 'lng'];
+    protected $appends = ['lat', 'lng'];
 
     public static array $wilayaCoordinates = [
         '01' => ['lat' => 27.8742, 'lng' => -0.2939],
@@ -100,9 +102,6 @@ class Wilaya extends Model
 
     public function getLatitudeAttribute(): float
     {
-        if (isset($this->attributes['latitude']) && $this->attributes['latitude'] !== null) {
-            return (float) $this->attributes['latitude'];
-        }
         if (isset($this->attributes['lat']) && $this->attributes['lat'] !== null) {
             return (float) $this->attributes['lat'];
         }
@@ -114,9 +113,6 @@ class Wilaya extends Model
 
     public function getLongitudeAttribute(): float
     {
-        if (isset($this->attributes['longitude']) && $this->attributes['longitude'] !== null) {
-            return (float) $this->attributes['longitude'];
-        }
         if (isset($this->attributes['lng']) && $this->attributes['lng'] !== null) {
             return (float) $this->attributes['lng'];
         }
@@ -157,8 +153,8 @@ class Wilaya extends Model
                     'ar' => $w->ar,
                     'en' => $w->en,
                     'fr' => $w->fr,
-                    'lat' => $w->latitude,
-                    'lng' => $w->longitude,
+                    'lat' => $w->lat,
+                    'lng' => $w->lng,
                 ];
             })
             ->sortBy('number')

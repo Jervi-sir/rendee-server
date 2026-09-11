@@ -49,6 +49,7 @@ class RegisterController extends Controller
         $validated = $request->validate([
             'user_role_code' => ['required', 'string', 'in:patient,partner'],
             'partner_type' => ['nullable', 'string'],
+            'profession_code' => ['nullable', 'string'],
             'name' => ['nullable', 'string', 'max:255'],
             'full_name' => ['nullable', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255', Rule::unique('users', 'email')],
@@ -101,9 +102,10 @@ class RegisterController extends Controller
         if ($roleCode === 'patient') {
             Patient::create(['user_id' => $user->id]);
         } elseif ($roleCode === 'partner') {
+            $professionCode = $validated['profession_code'] ?? $partnerTypeInput ?? 'doctor';
             Partner::create([
                 'user_id' => $user->id,
-                'partner_type_code' => $partnerTypeInput ?? 'doctor',
+                'profession_code' => $professionCode,
                 'name' => $user->full_name ?? $user->name,
                 'is_available' => true,
                 'is_active' => true,

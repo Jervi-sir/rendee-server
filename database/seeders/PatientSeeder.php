@@ -2,9 +2,11 @@
 
 namespace Database\Seeders;
 
+use App\Models\Commune;
 use App\Models\Patient;
 use App\Models\User;
 use App\Models\UserRole;
+use App\Models\Wilaya;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -22,22 +24,27 @@ class PatientSeeder extends Seeder
             $patientUsers = User::inRandomOrder()->limit(5)->get();
         }
 
+        $allWilayas = Wilaya::all();
         $bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
         $allergiesList = ['Pénicilline', 'Pollen', 'Arachides', 'Aspirine', 'Acariens', 'Lactose', 'Gluten'];
         $chronicDiseasesList = ['Diabète Type 2', 'Hypertension artérielle', 'Asthme', 'Hypothyroïdie', 'Allergie saisonnière'];
-        $cities = ['Alger', 'Oran', 'Constantine', 'Annaba', 'Blida', 'Sétif', 'Tlemcen', 'Batna', 'Chlef', 'Béjaïa'];
 
         foreach ($patientUsers as $user) {
             $hasAllergies = fake()->boolean(40);
             $hasChronic = fake()->boolean(30);
+
+            $wilaya = $allWilayas->isNotEmpty() ? $allWilayas->random() : null;
+            $commune = $wilaya ? Commune::where('wilaya_code', $wilaya->code)->inRandomOrder()->first() : null;
 
             Patient::updateOrCreate(
                 ['user_id' => $user->id],
                 [
                     'date_of_birth' => fake()->dateTimeBetween('-65 years', '-18 years')->format('Y-m-d'),
                     'gender' => fake()->randomElement(['male', 'female']),
+                    'wilaya_code' => $wilaya?->code,
+                    'commune_id' => $commune?->id,
                     'address' => fake()->streetAddress(),
-                    'city' => fake()->randomElement($cities),
+                    'city' => $commune?->fr ?? $commune?->en ?? $wilaya?->en ?? 'Alger',
                     'blood_type' => fake()->randomElement($bloodTypes),
                     'allergies' => $hasAllergies ? fake()->randomElements($allergiesList, fake()->numberBetween(1, 2)) : [],
                     'chronic_diseases' => $hasChronic ? fake()->randomElements($chronicDiseasesList, fake()->numberBetween(1, 2)) : [],

@@ -4,23 +4,17 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
     'user_id',
     'label',
     'city',
-    'speciality_code',
 ])]
-
 class RecentSearch extends Model
 {
-    public function user()
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
-    }
-
-    public function speciality()
-    {
-        return $this->belongsTo(Speciality::class, 'speciality_code', 'code');
     }
 }

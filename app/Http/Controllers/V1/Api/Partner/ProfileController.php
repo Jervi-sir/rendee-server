@@ -23,25 +23,27 @@ class ProfileController extends Controller
             return response()->json(['error' => 'User not found'], 404);
         }
 
-        $partner = Partner::with(['partnerType', 'speciality', 'catalog'])->where('user_id', $user->id)->first();
+        $partner = Partner::with(['profession', 'speciality'])->where('user_id', $user->id)->first();
         if (! $partner) {
-            $partner = Partner::with(['partnerType', 'speciality', 'catalog'])->first();
+            $partner = Partner::with(['profession', 'speciality'])->first();
         }
 
-        $specialityName = $partner?->speciality?->ar
+        $specialityName = $partner?->display_speciality
+            ?? $partner?->speciality?->ar
             ?? $partner?->speciality?->en
-            ?? $partner?->catalog?->ar
-            ?? $partner?->catalog?->en
             ?? '';
 
-        $partnerTypeName = $partner?->partnerType?->ar
-            ?? $partner?->partnerType?->en
-            ?? $partner?->partner_type_code
+        $partnerTypeName = $partner?->profession?->ar
+            ?? $partner?->profession?->fr
+            ?? $partner?->profession?->en
+            ?? $partner?->profession_code
             ?? '';
 
         $profile = [
-            'partner_type_code' => $partner?->partner_type_code ?? '',
+            'profession_code' => $partner?->profession_code ?? '',
+            'partner_type_code' => $partner?->profession_code ?? '',
             'partner_type' => $partnerTypeName,
+            'profession_label' => $partnerTypeName,
             'full_name' => $user->full_name ?? $user->name ?? '',
             'email' => $user->email ?? '',
             'phone_number' => $user->phone_number ?? '',
@@ -74,17 +76,17 @@ class ProfileController extends Controller
         }
 
         if (! $partner) {
-            $partnerType = match ($user->user_role_code) {
-                'center' => 'CENTER',
-                'pharmacist' => 'PHARM',
-                default => 'PRO',
+            $professionCode = match ($user->user_role_code) {
+                'pharmacist' => 'pharmacist',
+                'center' => 'center',
+                default => 'doctor',
             };
 
             $partner = Partner::firstOrCreate(
                 ['user_id' => $user->id],
                 [
-                    'partner_type' => $partnerType,
-                    'name' => $user->full_name,
+                    'profession_code' => $professionCode,
+                    'name' => $user->full_name ?? $user->name,
                 ]
             );
         }
@@ -92,13 +94,14 @@ class ProfileController extends Controller
         $partner->load([
             'profession',
             'speciality',
-            'catalog',
             'wilaya',
             'commune',
             'schedules',
-            'services',
+            'services.catalog',
             'contacts.platform',
         ]);
+
+        $communeLabel = $partner->commune?->ar ?? $partner->commune?->fr ?? $partner->commune?->en ?? $partner->city;
 
         $profileData = [
             'id' => $user->id,
@@ -111,32 +114,33 @@ class ProfileController extends Controller
             'profile_completed' => (bool) $user->profile_completed,
 
             'profession_code' => $partner->profession_code,
-            'profession_label' => $partner->profession?->ar ?? $partner->profession?->en ?? 'أخصائي',
+            'profession_label' => $partner->profession?->ar ?? $partner->profession?->fr ?? $partner->profession?->en ?? 'أخصائي',
             'speciality_code' => $partner->speciality_code,
             'custom_speciality' => $partner->custom_speciality,
             'specialty' => $partner->display_speciality ?? 'عام',
-            'center_catalog_code' => $partner->center_catalog_code,
-            'catalog_label' => $partner->catalog?->ar ?? $partner->catalog?->en ?? 'مركز طبي',
             'license_number' => $partner->license_number,
             'years_experience' => (string) ($partner->years_experience ?? ''),
             'bio' => $partner->bio,
             'description' => $partner->bio,
             'address' => $partner->address,
-            'city' => $partner->city ?? $partner->commune?->ar,
-            'commune_code' => $partner->commune_code,
-            'commune' => $partner->commune?->ar ?? $partner->commune?->fr ?? $partner->commune?->en ?? $partner->city,
-            'commune_name' => $partner->commune?->ar ?? $partner->commune?->fr ?? $partner->commune?->en ?? $partner->city,
+            'city' => $partner->city ?? $communeLabel,
+            'commune_id' => $partner->commune_id,
+            'commune_code' => $partner->commune?->code,
+            'commune' => $communeLabel,
+            'commune_name' => $communeLabel,
             'wilaya_code' => $partner->wilaya_code,
             'wilaya' => $partner->wilaya?->ar ?? $partner->wilaya?->en ?? null,
-            'latitude' => $partner->latitude ? (float) $partner->latitude : null,
-            'longitude' => $partner->longitude ? (float) $partner->longitude : null,
+            'lat' => $partner->lat ? (float) $partner->lat : null,
+            'lng' => $partner->lng ? (float) $partner->lng : null,
+            'lat' => $partner->lat ? (float) $partner->lat : null,
+            'lng' => $partner->lng ? (float) $partner->lng : null,
             'emergency_24_7' => (bool) $partner->emergency_24_7,
             'is_available' => (bool) $partner->is_available,
             'is_active' => (bool) $partner->is_active,
             'is_on_duty' => (bool) $partner->is_on_duty,
             'phone_public' => $partner->phone_public,
             'user_role_code' => $user->user_role_code,
-            'partner_type_code' => $partner->partner_type_code,
+            'partner_type_code' => $partner->profession_code,
             'services' => $partner->services,
             'schedules' => $partner->schedules,
             'contacts' => $partner->contacts,
@@ -168,19 +172,22 @@ class ProfileController extends Controller
             'bio' => ['nullable', 'string'],
             'address' => ['nullable', 'string', 'max:500'],
             'city' => ['nullable', 'string', 'max:100'],
-            'wilaya_code' => ['nullable', 'string'],
+            'wilaya_code' => ['nullable', 'string', 'exists:wilayas,code'],
+            'commune_id' => ['nullable', 'integer', 'exists:communes,id'],
             'commune_code' => ['nullable', 'string', 'exists:communes,code'],
             'license_number' => ['nullable', 'string', 'max:100'],
             'years_experience' => ['nullable', 'string', 'max:10'],
-            'profession_code' => ['nullable', 'string'],
-            'speciality_code' => ['nullable', 'string'],
-            'professional_speciality_code' => ['nullable', 'string'],
+            'profession_code' => ['nullable', 'string', 'exists:professions,code'],
+            'partner_type' => ['nullable', 'string'],
+            'speciality_code' => ['nullable', 'string', 'exists:specialities,code'],
+            'professional_speciality_code' => ['nullable', 'string', 'exists:specialities,code'],
             'custom_speciality' => ['nullable', 'string', 'max:255'],
             'specialty_id' => ['nullable', 'string'],
-            'center_catalog_code' => ['nullable', 'string'],
             'emergency_24_7' => ['nullable', 'boolean'],
-            'latitude' => ['nullable', 'numeric'],
-            'longitude' => ['nullable', 'numeric'],
+            'lat' => ['nullable', 'numeric'],
+            'lng' => ['nullable', 'numeric'],
+            'lat' => ['nullable', 'numeric'],
+            'lng' => ['nullable', 'numeric'],
             'is_available' => ['nullable', 'boolean'],
         ]);
 
@@ -223,17 +230,20 @@ class ProfileController extends Controller
         $user->save();
 
         // 2. Update Partner profile
-        $partnerType = match ($user->user_role_code) {
-            'center' => 'CENTER',
-            'pharmacist' => 'PHARM',
-            default => 'PRO',
-        };
+        $professionCode = $validated['profession_code'] ?? $validated['partner_type'] ?? null;
+        if (! $professionCode) {
+            $professionCode = match ($user->user_role_code) {
+                'pharmacist' => 'pharmacist',
+                'center' => 'center',
+                default => 'doctor',
+            };
+        }
 
         $partner = Partner::firstOrCreate(
             ['user_id' => $user->id],
             [
-                'partner_type' => $partnerType,
-                'name' => $user->full_name,
+                'profession_code' => $professionCode,
+                'name' => $user->full_name ?? $user->name,
             ]
         );
 
@@ -251,21 +261,31 @@ class ProfileController extends Controller
         if (array_key_exists('custom_speciality', $validated)) {
             $partner->custom_speciality = $validated['custom_speciality'];
         }
-        if (array_key_exists('center_catalog_code', $validated)) {
-            $partner->center_catalog_code = $validated['center_catalog_code'];
-        }
         if (array_key_exists('wilaya_code', $validated)) {
             $partner->wilaya_code = $validated['wilaya_code'];
         }
-        if (array_key_exists('commune_code', $validated)) {
-            $partner->commune_code = $validated['commune_code'];
-            if (empty($validated['city']) && ! empty($validated['commune_code'])) {
-                $communeObj = Commune::where('code', $validated['commune_code'])->first();
-                if ($communeObj) {
-                    $partner->city = $communeObj->ar ?? $communeObj->fr ?? $communeObj->en ?? $partner->city;
+
+        // Commune resolution (by ID or Code)
+        if (array_key_exists('commune_id', $validated) && ! empty($validated['commune_id'])) {
+            $partner->commune_id = $validated['commune_id'];
+            $communeObj = Commune::find($validated['commune_id']);
+            if ($communeObj) {
+                $partner->city = $communeObj->ar ?? $communeObj->fr ?? $communeObj->en ?? $partner->city;
+                if (empty($partner->wilaya_code)) {
+                    $partner->wilaya_code = $communeObj->wilaya_code;
+                }
+            }
+        } elseif (array_key_exists('commune_code', $validated) && ! empty($validated['commune_code'])) {
+            $communeObj = Commune::where('code', $validated['commune_code'])->first();
+            if ($communeObj) {
+                $partner->commune_id = $communeObj->id;
+                $partner->city = $communeObj->ar ?? $communeObj->fr ?? $communeObj->en ?? $partner->city;
+                if (empty($partner->wilaya_code)) {
+                    $partner->wilaya_code = $communeObj->wilaya_code;
                 }
             }
         }
+
         if (array_key_exists('license_number', $validated)) {
             $partner->license_number = $validated['license_number'];
         }
@@ -284,12 +304,16 @@ class ProfileController extends Controller
         if (array_key_exists('city', $validated)) {
             $partner->city = $validated['city'];
         }
-        if (array_key_exists('latitude', $validated)) {
-            $partner->latitude = $validated['latitude'];
+
+        $lat = $validated['lat'] ?? null;
+        $lng = $validated['lng'] ?? null;
+        if ($lat !== null) {
+            $partner->lat = $lat;
         }
-        if (array_key_exists('longitude', $validated)) {
-            $partner->longitude = $validated['longitude'];
+        if ($lng !== null) {
+            $partner->lng = $lng;
         }
+
         if (array_key_exists('emergency_24_7', $validated)) {
             $partner->emergency_24_7 = (bool) $validated['emergency_24_7'];
         }

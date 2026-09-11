@@ -130,15 +130,15 @@ class ServiceController extends Controller
             );
         }
 
-        $partnerType = match ($user->user_role_code) {
-            'center' => 'CENTER',
-            'pharmacist' => 'PHARM',
-            default => 'PRO',
+        $professionCode = match ($user->user_role_code) {
+            'pharmacist' => 'pharmacist',
+            'center' => 'center',
+            default => 'doctor',
         };
 
         $partner = Partner::firstOrCreate(
             ['user_id' => $user->id],
-            ['partner_type' => $partnerType, 'name' => $user->full_name]
+            ['profession_code' => $professionCode, 'name' => $user->full_name ?? $user->name]
         );
 
         $service = PartnerService::create([

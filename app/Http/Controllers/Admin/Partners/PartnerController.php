@@ -3,9 +3,7 @@
 namespace App\Http\Controllers\Admin\Partners;
 
 use App\Http\Controllers\Controller;
-use App\Models\CenterCatalog;
 use App\Models\Partner;
-use App\Models\PartnerType;
 use App\Models\Profession;
 use App\Models\Speciality;
 use App\Models\Wilaya;
@@ -23,7 +21,7 @@ class PartnerController extends Controller
     public function index(Request $request): Response
     {
         $search = $request->query('search');
-        $partnerTypeCode = $request->query('partner_type');
+        $partnerTypeCode = $request->query('partner_type') ?? $request->query('profession');
         $status = $request->query('status'); // 'all', 'active', 'inactive'
         $wilayaCode = $request->query('wilaya');
         $perPage = (int) $request->query('per_page', 12);
@@ -31,10 +29,8 @@ class PartnerController extends Controller
         $query = Partner::query()
             ->with([
                 'user:id,name,full_name,email,phone_number,image_url',
-                'partnerType:code,en,fr,ar',
                 'profession:code,en,fr,ar,hex',
                 'speciality:code,en,fr,ar',
-                'catalog:code,en,fr,ar',
                 'wilaya:code,number,en,fr,ar',
             ])
             ->withCount(['services', 'schedules']);
@@ -56,7 +52,7 @@ class PartnerController extends Controller
         }
 
         if (! empty($partnerTypeCode) && $partnerTypeCode !== 'all') {
-            $query->where('partner_type_code', $partnerTypeCode);
+            $query->where('profession_code', $partnerTypeCode);
         }
 
         if ($status === 'active') {
@@ -71,11 +67,11 @@ class PartnerController extends Controller
 
         $partners = $query->latest('id')->paginate($perPage)->withQueryString();
 
-        $partnerTypes = PartnerType::query()->orderBy('en')->get(['code', 'en', 'fr', 'ar']);
-        $professions = Profession::query()->orderBy('en')->get(['code', 'en', 'fr', 'ar', 'partner_type_code', 'hex']);
+        $professions = Profession::query()->orderBy('en')->get(['code', 'en', 'fr', 'ar', 'hex']);
+        $partnerTypes = $professions;
         $specialities = Speciality::query()->orderBy('en')->get(['code', 'en', 'fr', 'ar', 'profession_code']);
         $wilayas = Wilaya::query()->orderBy('number')->get(['code', 'number', 'en', 'fr', 'ar']);
-        $catalogs = CenterCatalog::query()->orderBy('en')->get(['code', 'en', 'fr', 'ar']);
+        $catalogs = [];
 
         return Inertia::render('admin/partners/list', [
             'partners' => $partners,
@@ -101,21 +97,19 @@ class PartnerController extends Controller
     {
         $partner->load([
             'user',
-            'partnerType',
             'profession',
             'speciality',
-            'catalog',
             'wilaya',
             'schedules',
             'services',
             'contacts.platform',
         ]);
 
-        $partnerTypes = PartnerType::query()->orderBy('en')->get(['code', 'en', 'fr', 'ar']);
-        $professions = Profession::query()->orderBy('en')->get(['code', 'en', 'fr', 'ar', 'partner_type_code', 'hex']);
+        $professions = Profession::query()->orderBy('en')->get(['code', 'en', 'fr', 'ar', 'hex']);
+        $partnerTypes = $professions;
         $specialities = Speciality::query()->orderBy('en')->get(['code', 'en', 'fr', 'ar', 'profession_code']);
         $wilayas = Wilaya::query()->orderBy('number')->get(['code', 'number', 'en', 'fr', 'ar']);
-        $catalogs = CenterCatalog::query()->orderBy('en')->get(['code', 'en', 'fr', 'ar']);
+        $catalogs = [];
 
         return Inertia::render('admin/partners/show', [
             'partner' => $partner,
@@ -133,12 +127,10 @@ class PartnerController extends Controller
     public function update(Request $request, Partner $partner): RedirectResponse|JsonResponse
     {
         $validated = $request->validate([
-            'partner_type_code' => ['nullable', 'string', 'exists:partner_types,code'],
             'name' => ['nullable', 'string', 'max:255'],
             'profession_code' => ['nullable', 'string', 'exists:professions,code'],
             'speciality_code' => ['nullable', 'string', 'exists:specialities,code'],
             'custom_speciality' => ['nullable', 'string', 'max:255'],
-            'center_catalog_code' => ['nullable', 'string', 'exists:center_catalogs,code'],
             'wilaya_code' => ['nullable', 'string', 'exists:wilayas,code'],
             'license_number' => ['nullable', 'string', 'max:100'],
             'years_experience' => ['nullable', 'string', 'max:50'],
@@ -146,8 +138,8 @@ class PartnerController extends Controller
             'bio' => ['nullable', 'string', 'max:1000'],
             'address' => ['nullable', 'string', 'max:255'],
             'city' => ['nullable', 'string', 'max:100'],
-            'latitude' => ['nullable', 'numeric'],
-            'longitude' => ['nullable', 'numeric'],
+            'lat' => ['nullable', 'numeric'],
+            'lng' => ['nullable', 'numeric'],
             'is_available' => ['nullable', 'boolean'],
             'emergency_24_7' => ['nullable', 'boolean'],
             'is_on_duty' => ['nullable', 'boolean'],
@@ -161,10 +153,8 @@ class PartnerController extends Controller
                 'message' => 'Partner updated successfully.',
                 'partner' => $partner->fresh([
                     'user:id,name,full_name,email,phone_number,image_url',
-                    'partnerType',
                     'profession',
                     'speciality',
-                    'catalog',
                     'wilaya',
                 ]),
             ]);

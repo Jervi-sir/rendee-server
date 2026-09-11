@@ -14,8 +14,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'en',
     'fr',
     'ar',
-    'latitude',
-    'longitude',
     'lat',
     'lng',
 ])]
@@ -24,8 +22,6 @@ class Commune extends Model
     protected function casts(): array
     {
         return [
-            'latitude' => 'decimal:8',
-            'longitude' => 'decimal:8',
             'lat' => 'decimal:8',
             'lng' => 'decimal:8',
         ];
@@ -48,9 +44,6 @@ class Commune extends Model
 
     public function getLatitudeAttribute(): ?float
     {
-        if (isset($this->attributes['latitude']) && $this->attributes['latitude'] !== null) {
-            return (float) $this->attributes['latitude'];
-        }
         if (isset($this->attributes['lat']) && $this->attributes['lat'] !== null) {
             return (float) $this->attributes['lat'];
         }
@@ -60,9 +53,6 @@ class Commune extends Model
 
     public function getLongitudeAttribute(): ?float
     {
-        if (isset($this->attributes['longitude']) && $this->attributes['longitude'] !== null) {
-            return (float) $this->attributes['longitude'];
-        }
         if (isset($this->attributes['lng']) && $this->attributes['lng'] !== null) {
             return (float) $this->attributes['lng'];
         }

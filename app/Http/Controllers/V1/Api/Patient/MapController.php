@@ -4,7 +4,7 @@ namespace App\Http\Controllers\V1\Api\Patient;
 
 use App\Http\Controllers\Controller;
 use App\Models\Partner;
-use App\Models\PartnerType;
+use App\Models\Profession;
 use App\Models\Wilaya;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,44 +15,19 @@ class MapController extends Controller
      * GET /api/v1/patient/map
      *
      * Query Parameters:
-     * - `partner_type` (string, optional): Filter by partner type ("doctor", "center", "dentist", "pharmacist")
-     * - `profession` (string, optional): Filter by profession code ("doctor", "dentist", "psychologist", etc.)
-     * - `speciality` (string, optional): Filter by speciality code ("cardiology", "pediatrics", etc.)
-     * - `wilaya_code` (string, optional): Filter by Wilaya code (e.g. "16", "31")
+     * - `profession` / `profession_code` / `partner_type` (string, optional): Filter by profession code
+     * - `speciality` / `speciality_code` (string, optional): Filter by speciality code
+     * - `wilaya_code` (string, optional): Filter by Wilaya code
      * - `query` (string, optional): Search keyword
-     *
-     * Response JSON:
-     * {
-     *   "markers": [
-     *     {
-     *       "id": 4,
-     *       "lat": 36.7538,
-     *       "lng": 3.0588,
-     *       "title": "د. كريم عمراني",
-     *       "address": "12 Rue Didouche Mourad, Alger",
-     *       "partner_type": {
-     *         "code": "doctor",
-     *         "label": "طبيب / أخصائي"
-     *       },
-     *       "pin_color": "#0284C7"
-     *     }
-     *   ],
-     *   "filters": [
-     *     { "key": "all", "label": "الكل", "count": 24 },
-     *     { "key": "doctor", "label": "أطباء", "count": 12 }
-     *   ],
-     *   "wilayas": [ ... ]
-     * }
      */
     public function index(Request $request): JsonResponse
     {
-        $entityType = $request->query('partner_type') ?? $request->query('user_type') ?? $request->query('entity_type');
-        $professionCode = $request->query('profession_code') ?? $request->query('profession');
+        $professionCode = $request->query('profession_code') ?? $request->query('profession') ?? $request->query('partner_type') ?? $request->query('user_type') ?? $request->query('entity_type');
         $specialityCode = $request->query('speciality_code') ?? $request->query('speciality');
         $wilayaCode = $request->query('wilaya_code') ?? $request->query('wilaya');
         $queryStr = $request->query('query');
 
-        $query = Partner::with(['user', 'partnerType', 'profession', 'speciality', 'catalog', 'wilaya'])
+        $query = Partner::with(['user', 'profession', 'speciality', 'wilaya', 'commune'])
             ->where('is_active', true)
             ->where('is_available', true);
 
@@ -61,6 +36,7 @@ class MapController extends Controller
                 $q->where('name', 'like', "%{$queryStr}%")
                     ->orWhere('city', 'like', "%{$queryStr}%")
                     ->orWhere('address', 'like', "%{$queryStr}%")
+                    ->orWhere('custom_speciality', 'like', "%{$queryStr}%")
                     ->orWhereHas('user', function ($uq) use ($queryStr) {
                         $uq->where('full_name', 'like', "%{$queryStr}%")
                             ->orWhere('name', 'like', "%{$queryStr}%");
@@ -69,25 +45,23 @@ class MapController extends Controller
                         $sq->where('ar', 'like', "%{$queryStr}%")
                             ->orWhere('fr', 'like', "%{$queryStr}%")
                             ->orWhere('en', 'like', "%{$queryStr}%");
+                    })
+                    ->orWhereHas('profession', function ($pq) use ($queryStr) {
+                        $pq->where('ar', 'like', "%{$queryStr}%")
+                            ->orWhere('fr', 'like', "%{$queryStr}%")
+                            ->orWhere('en', 'like', "%{$queryStr}%");
                     });
             });
         }
 
-        if ($entityType && $entityType !== 'all') {
-            $query->where('partner_type_code', $entityType);
-        }
-
         if ($professionCode && $professionCode !== 'all') {
-            $query->where(function ($pq) use ($professionCode) {
-                $pq->where('profession_code', $professionCode)
-                    ->orWhere('partner_type_code', $professionCode);
-            });
+            $query->where('profession_code', $professionCode);
         }
 
         if ($specialityCode && $specialityCode !== 'all') {
             $query->where(function ($sq) use ($specialityCode) {
                 $sq->where('speciality_code', $specialityCode)
-                    ->orWhere('center_catalog_code', $specialityCode);
+                    ->orWhere('custom_speciality', 'like', "%{$specialityCode}%");
             });
         }
 
@@ -99,9 +73,10 @@ class MapController extends Controller
 
         $markers = [];
         foreach ($partners as $partner) {
-            $code = $partner->partner_type_code ?? 'doctor';
-            $label = $partner->partnerType?->ar
-                ?? $partner->partnerType?->fr
+            $code = $partner->profession_code ?? 'doctor';
+            $label = $partner->profession?->ar
+                ?? $partner->profession?->fr
+                ?? $partner->profession?->en
                 ?? match ($code) {
                     'center' => 'مركز طبي',
                     'pharmacy', 'pharmacist' => 'صيدلية',
@@ -109,33 +84,59 @@ class MapController extends Controller
                 };
 
             $title = $partner->name ?? $partner->user?->full_name ?? $partner->user?->name ?? 'شريك';
-            if (in_array($code, ['doctor', 'professional']) && ! str_starts_with($title, 'د.')) {
-                $title = $title;
-            }
 
-            $pinColor = match ($code) {
+            $pinColor = $partner->profession?->hex ?? match ($code) {
                 'pharmacy', 'pharmacist' => '#059669',
                 'center' => '#1E3A8A',
                 'dentist' => '#10B981',
                 default => '#0284C7',
             };
 
+            $communeLabel = $partner->commune?->ar ?? $partner->commune?->fr ?? $partner->commune?->en ?? $partner->city;
+
+            $specialityName = $partner->display_speciality
+                ?? $partner->speciality?->ar
+                ?? $partner->speciality?->fr
+                ?? $partner->speciality?->en
+                ?? $partner->profession?->ar
+                ?? $partner->profession?->fr
+                ?? $partner->profession?->en
+                ?? 'أخصائي';
+
+            $imageUrl = $this->formatImageUrl($partner->user?->image_url);
+            $phone = $partner->phone_public ?? $partner->user?->phone_number;
+
             $markers[] = [
                 'id' => (int) $partner->id,
-                'lat' => $partner->latitude ? (float) $partner->latitude : 36.7538,
-                'lng' => $partner->longitude ? (float) $partner->longitude : 3.0588,
+                'lat' => $partner->lat ? (float) $partner->lat : 36.7538,
+                'lng' => $partner->lng ? (float) $partner->lng : 3.0588,
                 'title' => $title,
-                'address' => $partner->address ?? $partner->city ?? 'الجزائر',
+                'name' => $title,
+                'address' => $partner->address ?? $communeLabel ?? 'الجزائر',
+                'speciality' => $specialityName,
+                'phone' => $phone,
+                'phone_number' => $phone,
+                'image_url' => $imageUrl,
+                'profile_pic' => $imageUrl,
+                'is_on_duty' => (bool) $partner->is_on_duty,
+                'rating' => 4.8,
+                'reviews_count' => 120,
+                'profession' => [
+                    'code' => $code,
+                    'label' => $label,
+                    'hex' => $pinColor,
+                ],
                 'partner_type' => [
                     'code' => $code,
                     'label' => $label,
+                    'hex' => $pinColor,
                 ],
                 'pin_color' => $pinColor,
             ];
         }
 
-        // Dynamic filters matching FeedController
-        $partnerTypes = PartnerType::all();
+        // Dynamic filters from Profession
+        $professions = Profession::all();
 
         $filters = [
             [
@@ -145,17 +146,10 @@ class MapController extends Controller
             ],
         ];
 
-        foreach ($partnerTypes as $partnerType) {
-            $code = $partnerType->code;
-            $label = $partnerType->ar ?? $partnerType->fr ?? $partnerType->en ?? $code;
-            $count = count(array_filter($markers, function ($m) use ($code) {
-                $pt = $m['partner_type']['code'] ?? '';
-                if ($code === 'doctor' || $code === 'professional') {
-                    return in_array($pt, ['doctor', 'professional']);
-                }
-
-                return $pt === $code;
-            }));
+        foreach ($professions as $prof) {
+            $code = $prof->code;
+            $label = $prof->ar ?? $prof->fr ?? $prof->en ?? $code;
+            $count = count(array_filter($markers, fn ($m) => ($m['profession']['code'] ?? '') === $code));
 
             $filters[] = [
                 'key' => $code,
@@ -169,5 +163,21 @@ class MapController extends Controller
             'filters' => $filters,
             'wilayas' => Wilaya::getActiveWilayas(),
         ]);
+    }
+
+    /**
+     * Format image URL to always return an absolute/full URL.
+     */
+    private function formatImageUrl(?string $imageUrl): ?string
+    {
+        if (! $imageUrl) {
+            return null;
+        }
+
+        if (str_starts_with($imageUrl, 'http://') || str_starts_with($imageUrl, 'https://')) {
+            return $imageUrl;
+        }
+
+        return url($imageUrl);
     }
 }

@@ -18,8 +18,6 @@ return new class extends Migration
             $table->string('ar')->nullable();
             $table->string('hex');
             $table->timestamps();
-
-            $table->foreign('partner_type_code')->references('code')->on('partner_types')->nullOnDelete()->cascadeOnUpdate();
         });
 
         Schema::create('specialities', function (Blueprint $table) {
@@ -41,7 +39,7 @@ return new class extends Migration
             $table->string('custom_speciality')->nullable();
             $table->string('name')->nullable();
             $table->string('wilaya_code')->nullable();
-            $table->string('commune_code')->nullable();
+            $table->foreignId('commune_id')->nullable()->constrained()->nullOnDelete();
 
             $table->string('license_number')->nullable();
             $table->string('years_experience')->nullable();
@@ -49,8 +47,8 @@ return new class extends Migration
             $table->text('bio')->nullable();
             $table->string('address')->nullable();
             $table->string('city')->nullable();
-            $table->decimal('latitude', 10, 8)->nullable();
-            $table->decimal('longitude', 11, 8)->nullable();
+            $table->decimal('lat', 10, 8)->nullable();
+            $table->decimal('lng', 11, 8)->nullable();
             $table->boolean('is_available')->default(false);
             $table->boolean('emergency_24_7')->default(false);
             $table->boolean('is_on_duty')->default(false);
@@ -62,7 +60,6 @@ return new class extends Migration
             $table->foreign('profession_code')->references('code')->on('professions')->nullOnDelete()->cascadeOnUpdate();
             $table->foreign('speciality_code')->references('code')->on('specialities')->nullOnDelete();
             $table->foreign('wilaya_code')->references('code')->on('wilayas')->nullOnDelete();
-            $table->foreign('commune_code')->references('code')->on('communes')->nullOnDelete();
         });
 
         Schema::create('partner_schedules', function (Blueprint $table) {
@@ -71,6 +68,15 @@ return new class extends Migration
             $table->integer('day_of_week'); // 0-6 (Sunday-Saturday)
             $table->time('start_time')->nullable();
             $table->time('end_time')->nullable();
+
+            $table->time('morning_start_time')->nullable();
+            $table->time('morning_end_time')->nullable();
+            $table->boolean('morning_is_active')->default(true);
+
+            $table->time('evening_start_time')->nullable();
+            $table->time('evening_end_time')->nullable();
+            $table->boolean('evening_is_active')->default(true);
+
             $table->boolean('is_active')->default(false);
             $table->timestamps();
 
@@ -109,12 +115,9 @@ return new class extends Migration
     {
         Schema::dropIfExists('liked_partners');
         Schema::dropIfExists('partner_services');
-        Schema::dropIfExists('service_catalogs');
         Schema::dropIfExists('partner_schedules');
         Schema::dropIfExists('partners');
-        Schema::dropIfExists('center_catalogs');
         Schema::dropIfExists('specialities');
         Schema::dropIfExists('professions');
-        Schema::dropIfExists('partner_types');
     }
 };

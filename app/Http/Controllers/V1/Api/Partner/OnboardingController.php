@@ -72,8 +72,8 @@ class OnboardingController extends Controller
                 'wilaya_name' => $partner->wilaya?->ar ?? $partner->wilaya?->en ?? null,
                 'city' => $partner->city,
                 'address' => $partner->address,
-                'latitude' => $partner->latitude ? (float) $partner->latitude : null,
-                'longitude' => $partner->longitude ? (float) $partner->longitude : null,
+                'lat' => $partner->lat ? (float) $partner->lat : null,
+                'lng' => $partner->lng ? (float) $partner->lng : null,
                 'services_count' => $partner->services->count(),
                 'schedules_count' => $partner->schedules->where('is_active', true)->count(),
                 'contacts_count' => $partner->contacts->count(),
@@ -167,18 +167,18 @@ class OnboardingController extends Controller
             'wilaya_code' => ['required', 'string', Rule::exists('wilayas', 'code')],
             'city' => ['required', 'string', 'max:100'],
             'address' => ['required', 'string', 'max:500'],
-            'latitude' => ['nullable', 'numeric'],
-            'longitude' => ['nullable', 'numeric'],
+            'lat' => ['nullable', 'numeric'],
+            'lng' => ['nullable', 'numeric'],
         ]);
 
         $partner->wilaya_code = $validated['wilaya_code'];
         $partner->city = $validated['city'];
         $partner->address = $validated['address'];
-        if (array_key_exists('latitude', $validated)) {
-            $partner->latitude = $validated['latitude'];
+        if (array_key_exists('lat', $validated)) {
+            $partner->lat = $validated['lat'];
         }
-        if (array_key_exists('longitude', $validated)) {
-            $partner->longitude = $validated['longitude'];
+        if (array_key_exists('lng', $validated)) {
+            $partner->lng = $validated['lng'];
         }
         $partner->save();
 
@@ -340,7 +340,7 @@ class OnboardingController extends Controller
         $hasProfile = ! empty($user->full_name) && ! empty($user->email) && (! empty($user->phone_number) || ! empty($partner->phone_public)) && (! empty($partner->address) || ! empty($partner->city));
         $hasSchedule = $partner->schedules()->where('is_active', true)->count() > 0;
         $hasServices = $partner->services()->count() > 0;
-        $hasLocation = ! empty($partner->latitude) && ! empty($partner->longitude);
+        $hasLocation = ! empty($partner->lat) && ! empty($partner->lng);
 
         $sections = [
             'profile' => [

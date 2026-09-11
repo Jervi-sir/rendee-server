@@ -12,14 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('wilayas', function (Blueprint $table) {
-            $table->id();
-            $table->string('code')->unique();
+            $table->string('code')->primary();
             $table->string('number')->nullable();
             $table->string('en')->nullable();
             $table->string('fr')->nullable();
             $table->string('ar')->nullable();
-            $table->decimal('latitude', 10, 8)->nullable();
-            $table->decimal('longitude', 11, 8)->nullable();
             $table->decimal('lat', 10, 8)->nullable();
             $table->decimal('lng', 11, 8)->nullable();
             $table->timestamps();
@@ -27,15 +24,12 @@ return new class extends Migration
 
         Schema::create('communes', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('wilaya_id')->nullable()->constrained('wilayas')->nullOnDelete();
             $table->string('wilaya_code')->nullable()->index();
             $table->string('code')->unique();
             $table->string('postal_code')->nullable();
             $table->string('en')->nullable();
             $table->string('fr')->nullable();
             $table->string('ar')->nullable();
-            $table->decimal('latitude', 10, 8)->nullable();
-            $table->decimal('longitude', 11, 8)->nullable();
             $table->decimal('lat', 10, 8)->nullable();
             $table->decimal('lng', 11, 8)->nullable();
             $table->timestamps();
@@ -44,8 +38,7 @@ return new class extends Migration
         });
 
         Schema::create('contact_platforms', function (Blueprint $table) {
-            $table->id();
-            $table->string('code')->unique();
+            $table->string('code')->primary();
             $table->string('en')->nullable();
             $table->string('fr')->nullable();
             $table->string('ar')->nullable();
@@ -53,8 +46,7 @@ return new class extends Migration
         });
 
         Schema::create('statuses', function (Blueprint $table) {
-            $table->id();
-            $table->string('code')->unique();
+            $table->string('code')->primary();
             $table->string('en')->nullable();
             $table->string('fr')->nullable();
             $table->string('ar')->nullable();
@@ -78,6 +70,7 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::dropIfExists('service_catalogs');
         Schema::dropIfExists('statuses');
         Schema::dropIfExists('contact_platforms');
         Schema::dropIfExists('communes');

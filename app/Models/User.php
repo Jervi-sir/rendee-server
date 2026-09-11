@@ -110,7 +110,7 @@ class User extends Authenticatable implements PasskeyUser
             'userRole',
             'userDevice',
             'patient',
-            'partner.partnerType',
+            'partner.profession',
         ]);
     }
 
@@ -122,26 +122,6 @@ class User extends Authenticatable implements PasskeyUser
     public function toFormattedUserArray(): array
     {
         $this->loadProfileRelations();
-
-        $partnerType = null;
-        if ($this->user_role_code === UserRole::PARTNER || $this->partner) {
-            $partnerTypeModel = $this->partner?->partnerType;
-            if ($partnerTypeModel) {
-                $partnerType = [
-                    'code' => $partnerTypeModel->code,
-                    'en' => $partnerTypeModel->en,
-                    'fr' => $partnerTypeModel->fr,
-                    'ar' => $partnerTypeModel->ar,
-                ];
-            } elseif ($this->partner?->partner_type_code) {
-                $partnerType = [
-                    'code' => $this->partner->partner_type_code,
-                    'en' => $this->partner->partner_type_code,
-                    'fr' => $this->partner->partner_type_code,
-                    'ar' => $this->partner->partner_type_code,
-                ];
-            }
-        }
 
         return array_filter([
             'id' => $this->id,
@@ -159,7 +139,6 @@ class User extends Authenticatable implements PasskeyUser
                 'fr' => $this->userRole->fr,
                 'ar' => $this->userRole->ar,
             ] : null,
-            'partner_type' => $partnerType,
         ], fn ($value) => $value !== null);
     }
 

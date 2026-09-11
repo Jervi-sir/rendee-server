@@ -14,17 +14,16 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'profession_code',
     'speciality_code',
     'custom_speciality',
-    'center_catalog_code',
     'wilaya_code',
-    'commune_code',
+    'commune_id',
     'license_number',
     'years_experience',
     'phone_public',
     'bio',
     'address',
     'city',
-    'latitude',
-    'longitude',
+    'lat',
+    'lng',
     'is_available',
     'emergency_24_7',
     'is_on_duty',
@@ -37,8 +36,10 @@ class Partner extends Model
     protected function casts(): array
     {
         return [
-            'latitude' => 'decimal:8',
-            'longitude' => 'decimal:8',
+            'lat' => 'decimal:8',
+            'lng' => 'decimal:8',
+            'lat' => 'decimal:8',
+            'lng' => 'decimal:8',
             'is_available' => 'boolean',
             'emergency_24_7' => 'boolean',
             'is_on_duty' => 'boolean',
@@ -71,16 +72,6 @@ class Partner extends Model
         return $this->speciality?->en ?? $this->custom_speciality;
     }
 
-    public function catalog(): BelongsTo
-    {
-        return $this->belongsTo(CenterCatalog::class, 'center_catalog_code', 'code');
-    }
-
-    public function centerCatalog(): BelongsTo
-    {
-        return $this->catalog();
-    }
-
     public function wilaya(): BelongsTo
     {
         return $this->belongsTo(Wilaya::class, 'wilaya_code', 'code');
@@ -88,7 +79,7 @@ class Partner extends Model
 
     public function commune(): BelongsTo
     {
-        return $this->belongsTo(Commune::class, 'commune_code', 'code');
+        return $this->belongsTo(Commune::class, 'commune_id');
     }
 
     public function schedules(): HasMany
@@ -123,25 +114,23 @@ class Partner extends Model
     {
         $specialtyName = $this->specialty?->ar ?? $this->specialty?->en ?? null;
         $professionName = $this->profession?->ar ?? $this->profession?->en ?? null;
-        $catalogName = $this->catalog?->ar ?? $this->catalog?->en ?? null;
         $wilayaName = $this->wilaya?->ar ?? $this->wilaya?->fr ?? $this->wilaya?->en ?? null;
 
         $displayName = $this->name ?? $this->user?->full_name ?? $this->user?->name ?? 'شريك';
 
         $phone = $this->phone_public ?? $this->user?->phone_number;
-        $lat = $this->latitude ? (float) $this->latitude : ($this->wilaya?->lat ?? null);
-        $lng = $this->longitude ? (float) $this->longitude : ($this->wilaya?->lng ?? null);
+        $lat = $this->lat ? (float) $this->lat : ($this->wilaya?->lat ?? null);
+        $lng = $this->lng ? (float) $this->lng : ($this->wilaya?->lng ?? null);
 
         $data = [
             'id' => $this->id,
             'user_id' => $this->user_id,
             'name' => $displayName,
-            'title' => $professionName ?? $catalogName ?? ($this->partner_type_code === 'pharmacist' ? 'صيدلية' : 'طبيب'),
+            'title' => $professionName ?? 'طبيب',
             'specialty' => $specialtyName,
             'profession_code' => $this->profession_code,
             'speciality_code' => $this->speciality_code,
             'custom_speciality' => $this->custom_speciality,
-            'center_catalog_code' => $this->center_catalog_code,
             'license_number' => $this->license_number,
             'years_experience' => $this->years_experience,
             'bio' => $this->bio,
@@ -151,14 +140,13 @@ class Partner extends Model
             'phone_number' => $phone,
             'address' => $this->address,
             'city' => $this->city,
-            'commune_code' => $this->commune_code,
+            'commune_id' => $this->commune_id,
+            'commune_code' => $this->commune?->code,
             'commune' => $this->commune?->ar ?? $this->commune?->en ?? $this->city,
             'location' => $this->location ?? ($this->city ? ($wilayaName ? "{$this->city}، {$wilayaName}" : $this->city) : $wilayaName),
             'wilaya_code' => $this->wilaya_code,
             'wilaya' => $wilayaName,
             'wilaya_name' => $wilayaName,
-            'latitude' => $lat,
-            'longitude' => $lng,
             'lat' => $lat,
             'lng' => $lng,
             'is_available' => (bool) $this->is_available,
@@ -228,8 +216,8 @@ class Partner extends Model
 
         return [
             'id' => 'm'.($index + 1),
-            'latitude' => $this->latitude ? (float) $this->latitude : 35.6969,
-            'longitude' => $this->longitude ? (float) $this->longitude : -0.6331,
+            'lat' => $this->lat ? (float) $this->lat : 35.6969,
+            'lng' => $this->lng ? (float) $this->lng : -0.6331,
             'title' => $title,
             'city' => $this->city ?? 'وهران',
             'address' => $this->address ?? $this->city ?? 'الجزائر',

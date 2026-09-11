@@ -1,6 +1,5 @@
 <?php
 
-use App\Models\PartnerType;
 use App\Models\Profession;
 use App\Models\Speciality;
 use App\Models\User;
@@ -16,16 +15,9 @@ test('non-admin cannot access admin catalog routes', function () {
 
 test('authenticated admin user can view professions catalog page', function () {
     $user = User::factory()->admin()->create();
-    $partnerType = PartnerType::create([
-        'code' => 'doctor',
-        'en' => 'Doctor',
-        'fr' => 'Médecin',
-        'ar' => 'طبيب',
-    ]);
 
     Profession::create([
         'code' => 'general_practitioner',
-        'partner_type_code' => 'doctor',
         'en' => 'General Practitioner',
         'fr' => 'Généraliste',
         'ar' => 'طبيب عام',
@@ -39,33 +31,27 @@ test('authenticated admin user can view professions catalog page', function () {
         ->assertInertia(fn ($page) => $page
             ->component('admin/catalogs/professions')
             ->has('professions.data', 1)
-            ->has('partnerTypes', 1)
         );
 });
 
 test('can filter professions by partner type and search query', function () {
     $user = User::factory()->admin()->create();
 
-    $docType = PartnerType::create(['code' => 'doctor', 'en' => 'Doctor', 'fr' => 'Doc', 'ar' => 'طبيب']);
-    $dentistType = PartnerType::create(['code' => 'dentist', 'en' => 'Dentist', 'fr' => 'Dentiste', 'ar' => 'طبيب أسنان']);
-
     Profession::create([
         'code' => 'cardiologist',
-        'partner_type_code' => $docType->code,
         'en' => 'Cardiologist',
         'hex' => '#FF0000',
     ]);
 
     Profession::create([
         'code' => 'orthodontist',
-        'partner_type_code' => $dentistType->code,
         'en' => 'Orthodontist',
         'hex' => '#00FF00',
     ]);
 
-    // Filter by partner_type=dentist
+    // Filter by partner_type/profession=orthodontist
     $response = $this->actingAs($user)
-        ->get(route('admin.catalogs.professions.index', ['partner_type' => 'dentist']));
+        ->get(route('admin.catalogs.professions.index', ['partner_type' => 'orthodontist']));
 
     $response->assertOk()
         ->assertInertia(fn ($page) => $page
@@ -86,13 +72,11 @@ test('can filter professions by partner type and search query', function () {
 
 test('can store and update profession', function () {
     $user = User::factory()->admin()->create();
-    $partnerType = PartnerType::create(['code' => 'doctor', 'en' => 'Doctor', 'fr' => 'Doc', 'ar' => 'طبيب']);
 
     // Store
     $storeResponse = $this->actingAs($user)
         ->postJson(route('admin.catalogs.professions.store'), [
             'code' => 'dermatologist',
-            'partner_type_code' => $partnerType->code,
             'en' => 'Dermatologist',
             'fr' => 'Dermatologue',
             'ar' => 'طبيب أمراض جلدية',
@@ -110,7 +94,6 @@ test('can store and update profession', function () {
     // Update
     $updateResponse = $this->actingAs($user)
         ->putJson(route('admin.catalogs.professions.update', 'dermatologist'), [
-            'partner_type_code' => $partnerType->code,
             'en' => 'Dermatologist Updated',
             'fr' => 'Dermatologue Mis à jour',
             'ar' => 'طبيب جلدية',

@@ -4,14 +4,16 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'reference',
     'patient_id',
     'partner_id',
-    'service_type',
+    'partner_service_id',
+    'partner_schedule_id',
     'service_id',
-    'schedule_type',
     'schedule_id',
     'patient_name',
     'patient_phone',
@@ -42,43 +44,42 @@ class Booking extends Model
         ];
     }
 
-    public function patient()
+    public function patient(): BelongsTo
     {
         return $this->belongsTo(Patient::class);
     }
 
-    public function partner()
+    public function partner(): BelongsTo
     {
         return $this->belongsTo(Partner::class);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Polymorphic Relations
-    |--------------------------------------------------------------------------
-    */
-
-    public function service()
+    public function partnerService(): BelongsTo
     {
-        return $this->morphTo();
+        return $this->belongsTo(PartnerService::class, 'partner_service_id');
     }
 
-    public function schedule()
+    public function service(): BelongsTo
     {
-        return $this->morphTo();
+        return $this->partnerService();
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Common Relations
-    |--------------------------------------------------------------------------
-    */
-    public function status()
+    public function partnerSchedule(): BelongsTo
+    {
+        return $this->belongsTo(PartnerSchedule::class, 'partner_schedule_id');
+    }
+
+    public function schedule(): BelongsTo
+    {
+        return $this->partnerSchedule();
+    }
+
+    public function status(): BelongsTo
     {
         return $this->belongsTo(Status::class, 'status_code', 'code');
     }
 
-    public function bookingHistories()
+    public function bookingHistories(): HasMany
     {
         return $this->hasMany(BookingHistory::class);
     }

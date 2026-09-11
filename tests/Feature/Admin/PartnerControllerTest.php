@@ -1,7 +1,7 @@
 <?php
 
 use App\Models\Partner;
-use App\Models\PartnerType;
+use App\Models\Profession;
 use App\Models\User;
 
 test('non-admin cannot access admin partner routes', function () {
@@ -16,11 +16,11 @@ test('non-admin cannot access admin partner routes', function () {
 test('authenticated admin user can view partners list page', function () {
     $user = User::factory()->admin()->create();
     $partnerUser = User::factory()->create(['name' => 'Dr. Ahmed', 'email' => 'ahmed@test.com']);
-    $partnerType = PartnerType::create(['code' => 'doctor', 'en' => 'Doctor', 'fr' => 'Doc', 'ar' => 'طبيب']);
+    Profession::create(['code' => 'doctor', 'en' => 'Doctor', 'fr' => 'Doc', 'ar' => 'طبيب', 'hex' => '#0ea5e9']);
 
     Partner::create([
         'user_id' => $partnerUser->id,
-        'partner_type_code' => 'doctor',
+        'profession_code' => 'doctor',
         'name' => 'Dr. Ahmed Clinic',
         'is_active' => true,
     ]);
@@ -32,7 +32,7 @@ test('authenticated admin user can view partners list page', function () {
         ->assertInertia(fn ($page) => $page
             ->component('admin/partners/list')
             ->has('partners.data', 1)
-            ->has('partnerTypes', 1)
+            ->has('professions', 1)
         );
 });
 
@@ -99,11 +99,11 @@ test('can toggle partner approval status', function () {
 test('can view and update partner details', function () {
     $user = User::factory()->admin()->create();
     $partnerUser = User::factory()->create();
-    $partnerType = PartnerType::create(['code' => 'doctor', 'en' => 'Doctor', 'fr' => 'Doc', 'ar' => 'طبيب']);
+    Profession::create(['code' => 'doctor', 'en' => 'Doctor', 'fr' => 'Doc', 'ar' => 'طبيب', 'hex' => '#0ea5e9']);
 
     $partner = Partner::create([
         'user_id' => $partnerUser->id,
-        'partner_type_code' => 'doctor',
+        'profession_code' => 'doctor',
         'name' => 'Initial Name',
         'license_number' => 'INIT-123',
     ]);
@@ -122,7 +122,7 @@ test('can view and update partner details', function () {
     $updateRes = $this->actingAs($user)
         ->putJson(route('admin.partners.update', $partner->id), [
             'name' => 'Updated Name Clinic',
-            'partner_type_code' => 'doctor',
+            'profession_code' => 'doctor',
             'license_number' => 'NEW-999',
             'is_active' => true,
             'is_available' => true,

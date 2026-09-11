@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable(['code', 'en', 'fr', 'ar'])]
 class UserRole extends Model
@@ -27,7 +28,13 @@ class UserRole extends Model
 
     public const PROFESSIONAL = 'partner';
 
-    public function users()
+    protected $primaryKey = 'code';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
+
+    public function users(): HasMany
     {
         return $this->hasMany(User::class, 'user_role_code', 'code');
     }

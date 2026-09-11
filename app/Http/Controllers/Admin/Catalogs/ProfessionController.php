@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Admin\Catalogs;
 
 use App\Http\Controllers\Controller;
-use App\Models\PartnerType;
 use App\Models\Profession;
 use App\Models\Speciality;
 use Illuminate\Http\JsonResponse;
@@ -16,20 +15,19 @@ use Inertia\Response;
 class ProfessionController extends Controller
 {
     /**
-     * Display a listing of professions with partner type filtering and pagination.
+     * Display a listing of professions with search filtering and pagination.
      */
     public function index(Request $request): Response
     {
-        $partnerTypeCode = $request->query('partner_type');
+        $partnerTypeCode = $request->query('partner_type') ?? $request->query('profession');
         $search = $request->query('search');
         $perPage = (int) $request->query('per_page', 15);
 
         $query = Profession::query()
-            ->with(['partnerType'])
             ->withCount('specialities');
 
         if (! empty($partnerTypeCode) && $partnerTypeCode !== 'all') {
-            $query->where('partner_type_code', $partnerTypeCode);
+            $query->where('code', $partnerTypeCode);
         }
 
         if (! empty($search)) {
@@ -43,7 +41,7 @@ class ProfessionController extends Controller
 
         $professions = $query->latest()->paginate($perPage)->withQueryString();
 
-        $partnerTypes = PartnerType::query()
+        $partnerTypes = Profession::query()
             ->orderBy('en')
             ->get(['code', 'en', 'fr', 'ar']);
 
@@ -65,7 +63,6 @@ class ProfessionController extends Controller
     {
         $validated = $request->validate([
             'code' => ['required', 'string', 'max:50', 'alpha_dash', Rule::unique('professions', 'code')],
-            'partner_type_code' => ['nullable', 'string', 'exists:partner_types,code'],
             'en' => ['required', 'string', 'max:255'],
             'fr' => ['nullable', 'string', 'max:255'],
             'ar' => ['nullable', 'string', 'max:255'],
@@ -73,7 +70,7 @@ class ProfessionController extends Controller
         ]);
 
         $profession = Profession::create($validated);
-        $profession->load(['partnerType'])->loadCount('specialities');
+        $profession->loadCount('specialities');
 
         if ($request->wantsJson()) {
             return response()->json([
@@ -91,7 +88,6 @@ class ProfessionController extends Controller
     public function update(Request $request, Profession $profession): RedirectResponse|JsonResponse
     {
         $validated = $request->validate([
-            'partner_type_code' => ['nullable', 'string', 'exists:partner_types,code'],
             'en' => ['required', 'string', 'max:255'],
             'fr' => ['nullable', 'string', 'max:255'],
             'ar' => ['nullable', 'string', 'max:255'],
@@ -99,7 +95,7 @@ class ProfessionController extends Controller
         ]);
 
         $profession->update($validated);
-        $profession->load(['partnerType'])->loadCount('specialities');
+        $profession->loadCount('specialities');
 
         if ($request->wantsJson()) {
             return response()->json([
