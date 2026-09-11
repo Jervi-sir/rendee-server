@@ -13,7 +13,6 @@ return new class extends Migration
     {
         Schema::create('professions', function (Blueprint $table) {
             $table->string('code')->primary();
-            $table->string('partner_type_code')->nullable();
             $table->string('en')->nullable();
             $table->string('fr')->nullable();
             $table->string('ar')->nullable();
@@ -34,23 +33,13 @@ return new class extends Migration
             $table->foreign('profession_code')->references('code')->on('professions')->cascadeOnDelete();
         });
 
-        Schema::create('center_catalogs', function (Blueprint $table) {
-            $table->string('code')->primary();
-            $table->string('en')->nullable();
-            $table->string('fr')->nullable();
-            $table->string('ar')->nullable();
-            $table->timestamps();
-        });
-
         Schema::create('partners', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->string('partner_type_code')->nullable();
-            $table->string('name')->nullable();
             $table->string('profession_code')->nullable();
             $table->string('speciality_code')->nullable();
             $table->string('custom_speciality')->nullable();
-            $table->string('center_catalog_code')->nullable();
+            $table->string('name')->nullable();
             $table->string('wilaya_code')->nullable();
             $table->string('commune_code')->nullable();
 
@@ -70,10 +59,8 @@ return new class extends Migration
             $table->softDeletes();
             $table->timestamps();
 
-            $table->foreign('partner_type_code')->references('code')->on('partner_types')->nullOnDelete();
             $table->foreign('profession_code')->references('code')->on('professions')->nullOnDelete()->cascadeOnUpdate();
             $table->foreign('speciality_code')->references('code')->on('specialities')->nullOnDelete();
-            $table->foreign('center_catalog_code')->references('code')->on('center_catalogs')->nullOnDelete();
             $table->foreign('wilaya_code')->references('code')->on('wilayas')->nullOnDelete();
             $table->foreign('commune_code')->references('code')->on('communes')->nullOnDelete();
         });
@@ -89,15 +76,6 @@ return new class extends Migration
 
             $table->index(['partner_id', 'day_of_week']);
             $table->index(['is_active']);
-        });
-
-        Schema::create('service_catalogs', function (Blueprint $table) {
-            $table->string('code')->primary();
-            $table->string('source')->nullable();
-            $table->string('en')->nullable();
-            $table->string('fr')->nullable();
-            $table->string('ar')->nullable();
-            $table->timestamps();
         });
 
         Schema::create('partner_services', function (Blueprint $table) {

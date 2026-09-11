@@ -10,7 +10,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable([
     'user_id',
-    'partner_type_code',
     'name',
     'profession_code',
     'speciality_code',
@@ -50,11 +49,6 @@ class Partner extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
-    }
-
-    public function partnerType(): BelongsTo
-    {
-        return $this->belongsTo(PartnerType::class, 'partner_type_code', 'code');
     }
 
     public function profession(): BelongsTo
@@ -141,8 +135,6 @@ class Partner extends Model
         $data = [
             'id' => $this->id,
             'user_id' => $this->user_id,
-            'partner_type' => $this->partner_type_code ?? 'doctor',
-            'partner_type_code' => $this->partner_type_code ?? 'doctor',
             'name' => $displayName,
             'title' => $professionName ?? $catalogName ?? ($this->partner_type_code === 'pharmacist' ? 'صيدلية' : 'طبيب'),
             'specialty' => $specialtyName,
