@@ -56,9 +56,13 @@ class PartnerController extends Controller
 
         // Contacts
         $contacts = $partner->contacts->map(function ($contact) {
+            $val = $contact->url ?? $contact->value ?? '';
+
             return [
+                'id' => $contact->id,
                 'platform' => $contact->platform_code ?? $contact->platform?->code ?? 'phone',
-                'value' => $contact->value ?? '',
+                'value' => $val,
+                'url' => $val,
             ];
         })->filter(fn ($c) => ! empty($c['value']))->values()->toArray();
 
@@ -132,9 +136,24 @@ class PartnerController extends Controller
             ['name' => 'شهادة الاعتماد الطبي', 'type' => 'طبي'],
         ];
 
+        $imageUrl = $this->formatImageUrl($partner->user?->image_url);
+
+        $specialityLabel = $partner->speciality?->ar
+            ?? $partner->speciality?->fr
+            ?? $partner->custom_speciality
+            ?? $partner->display_speciality
+            ?? $partner->speciality?->en
+            ?? $professionLabel;
+
+        $specialityCode = $partner->speciality_code ?? ($partner->custom_speciality ? 'custom' : null);
+
         $response = [
             'id' => (int) $partner->id,
             'name' => $displayName,
+            'image_url' => $imageUrl,
+            'profile_pic' => $imageUrl,
+            'avatar' => $imageUrl,
+            'image' => $imageUrl,
             'bio' => $partner->bio ?? 'لا يوجد وصف حالياً.',
             'phone_numbers' => $phoneNumbers,
             'location' => [
@@ -153,19 +172,32 @@ class PartnerController extends Controller
                 'label' => $professionLabel,
                 'hex' => $partner->profession?->hex,
             ],
+            'speciality' => [
+                'code' => $specialityCode,
+                'label' => $specialityLabel,
+            ],
             'contacts' => $contacts,
             'services' => $services,
             'scheduel' => $scheduel,
             'certificates' => $certificates,
         ];
 
-        if ($partner->speciality || $partner->custom_speciality) {
-            $response['speciality'] = [
-                'code' => $partner->speciality_code ?? 'custom',
-                'label' => $partner->display_speciality ?? $partner->speciality?->ar ?? $partner->speciality?->fr ?? $partner->custom_speciality,
-            ];
+        return response()->json($response);
+    }
+
+    /**
+     * Format image URL to always return an absolute/full URL.
+     */
+    private function formatImageUrl(?string $imageUrl): ?string
+    {
+        if (! $imageUrl) {
+            return null;
         }
 
-        return response()->json($response);
+        if (str_starts_with($imageUrl, 'http://') || str_starts_with($imageUrl, 'https://')) {
+            return $imageUrl;
+        }
+
+        return url($imageUrl);
     }
 }

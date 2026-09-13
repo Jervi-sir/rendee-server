@@ -123,9 +123,10 @@ class FeedController extends Controller
 
             $name = $partner->name ?? $partner->user?->full_name ?? $partner->user?->name ?? 'شريك';
 
-            $specialityName = $partner->display_speciality
-                ?? $partner->speciality?->ar
+            $specialityName = $partner->speciality?->ar
                 ?? $partner->speciality?->fr
+                ?? $partner->custom_speciality
+                ?? $partner->display_speciality
                 ?? $partner->speciality?->en
                 ?? $partner->profession?->ar
                 ?? $partner->profession?->fr

@@ -158,12 +158,16 @@ export interface SpecialityInfo {
 export interface PartnerProfile {
     id: number;
     name: string;
+    image_url?: string | null;
+    profile_pic?: string | null;
+    avatar?: string | null;
+    image?: string | null;
     bio: string;
     phone_numbers: string[];
     location: PartnerLocation;
-    partner_type: PartnerTypeInfo;
-    profession?: ProfessionInfo;
-    speciality?: SpecialityInfo;
+    profession: ProfessionInfo;
+    speciality: SpecialityInfo;
+    partner_type?: PartnerTypeInfo;
     contacts: PartnerContact[];
     services: PartnerService[];
     scheduel: PartnerScheduleDay[];

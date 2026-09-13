@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'user_id',
     'platform_code',
     'url',
+    'value',
     'target_user_type',
 ])]
 class UserContact extends Model
@@ -28,5 +29,15 @@ class UserContact extends Model
     public function platform(): BelongsTo
     {
         return $this->belongsTo(ContactPlatform::class, 'platform_code', 'code');
+    }
+
+    public function getValueAttribute(): ?string
+    {
+        return $this->url;
+    }
+
+    public function setValueAttribute(?string $value): void
+    {
+        $this->attributes['url'] = $value;
     }
 }

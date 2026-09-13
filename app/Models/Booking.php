@@ -13,8 +13,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'partner_id',
     'partner_service_id',
     'partner_schedule_id',
-    'service_id',
-    'schedule_id',
     'patient_name',
     'patient_phone',
     'booking_date',

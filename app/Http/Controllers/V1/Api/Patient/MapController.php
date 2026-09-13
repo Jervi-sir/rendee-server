@@ -94,9 +94,10 @@ class MapController extends Controller
 
             $communeLabel = $partner->commune?->ar ?? $partner->commune?->fr ?? $partner->commune?->en ?? $partner->city;
 
-            $specialityName = $partner->display_speciality
-                ?? $partner->speciality?->ar
+            $specialityName = $partner->speciality?->ar
                 ?? $partner->speciality?->fr
+                ?? $partner->custom_speciality
+                ?? $partner->display_speciality
                 ?? $partner->speciality?->en
                 ?? $partner->profession?->ar
                 ?? $partner->profession?->fr

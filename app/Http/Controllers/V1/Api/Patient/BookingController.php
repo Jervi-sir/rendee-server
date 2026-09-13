@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Partner;
 use App\Models\PartnerSchedule;
-use App\Models\PartnerService;
 use App\Models\Patient;
 use App\Models\User;
 use Carbon\Carbon;
@@ -69,7 +68,7 @@ class BookingController extends Controller
         $perPage = max(1, min(100, (int) $request->query('per_page', 10)));
 
         $query = Booking::with([
-            'partner' => ['user', 'speciality', 'profession', 'centerCatalog', 'wilaya'],
+            'partner' => ['user', 'speciality', 'profession', 'wilaya', 'commune'],
             'service.serviceCatalog',
             'status',
         ])
@@ -152,7 +151,7 @@ class BookingController extends Controller
         $patientId = $user && $user->patient ? $user->patient->id : null;
 
         $booking = Booking::with([
-            'partner' => ['user', 'speciality', 'profession', 'centerCatalog', 'wilaya'],
+            'partner' => ['user', 'speciality', 'profession', 'wilaya', 'commune'],
             'service.serviceCatalog',
             'schedule',
             'status',
@@ -249,8 +248,7 @@ class BookingController extends Controller
         ];
 
         if ($serviceId) {
-            $bookingData['service_type'] = PartnerService::class;
-            $bookingData['service_id'] = $serviceId;
+            $bookingData['partner_service_id'] = $serviceId;
         }
 
         $carbonDate = Carbon::parse($date);
@@ -259,14 +257,19 @@ class BookingController extends Controller
             ->first();
 
         if ($schedule) {
-            $bookingData['schedule_type'] = PartnerSchedule::class;
-            $bookingData['schedule_id'] = $schedule->id;
+            $bookingData['partner_schedule_id'] = $schedule->id;
         }
 
         $booking = Booking::create($bookingData);
 
+        $booking->bookingHistories()->create([
+            'status_code' => 'pending',
+            'notes' => 'Rendez-vous créé.',
+            'changed_by' => $user?->id,
+        ]);
+
         $booking->load([
-            'partner' => ['user', 'speciality', 'profession', 'centerCatalog', 'wilaya'],
+            'partner' => ['user', 'speciality', 'profession', 'wilaya', 'commune'],
             'service.serviceCatalog',
             'status',
         ]);
@@ -313,11 +316,11 @@ class BookingController extends Controller
         $partner = null;
 
         if ($partnerId) {
-            $partner = Partner::with(['user', 'services', 'schedules'])->find($partnerId);
+            $partner = Partner::with(['user', 'profession', 'speciality', 'wilaya', 'commune', 'services', 'schedules'])->find($partnerId);
         }
 
         if (! $partner) {
-            $partner = Partner::with(['user', 'services', 'schedules'])->first();
+            $partner = Partner::with(['user', 'profession', 'speciality', 'wilaya', 'commune', 'services', 'schedules'])->first();
         }
 
         // Prefilled patient data from logged in user
@@ -374,11 +377,42 @@ class BookingController extends Controller
             })->toArray();
         }
 
+        $specialtyLabel = $partner?->display_speciality ?? $partner?->specialty?->ar ?? $partner?->specialty?->en ?? $partner?->custom_speciality;
+        $professionLabel = $partner?->profession?->ar ?? $partner?->profession?->en ?? ($partner?->profession_code === 'center' ? 'مركز طبي' : 'طبيب');
+        $imageUrl = $partner?->user?->image_url ? (str_starts_with($partner->user->image_url, 'http') ? $partner->user->image_url : url($partner->user->image_url)) : null;
+
+        $communeLabel = $partner?->commune?->ar ?? $partner?->commune?->fr ?? $partner?->commune?->en ?? $partner?->city;
+        $wilayaName = $partner?->wilaya?->ar ?? $partner?->wilaya?->fr ?? $partner?->wilaya?->en ?? null;
+        $locationLabel = implode(', ', array_filter([$partner?->address, $communeLabel, $wilayaName])) ?: ($partner?->location ?? 'الجزائر');
+        $lat = $partner?->lat !== null ? (float) $partner->lat : ($partner?->wilaya?->lat ? (float) $partner->wilaya->lat : null);
+        $lng = $partner?->lng !== null ? (float) $partner->lng : ($partner?->wilaya?->lng ? (float) $partner->wilaya->lng : null);
+
         $bookable = [
             'id' => $partner?->id ?? 1,
             'name' => $partner?->name ?? $partner?->user?->full_name ?? 'العيادة الطبية',
-            'partner_type' => $partner?->partner_type_code ?? 'doctor',
-            'is_center' => $partner ? ($partner->partner_type_code === 'center') : false,
+            'partner_type' => $partner?->profession_code ?? 'doctor',
+            'is_center' => $partner ? ($partner->profession_code === 'center') : false,
+            'title' => $professionLabel,
+            'profession' => $professionLabel,
+            'profession_code' => $partner?->profession_code,
+            'specialty' => $specialtyLabel,
+            'speciality' => $specialtyLabel,
+            'speciality_code' => $partner?->speciality_code,
+            'custom_speciality' => $partner?->custom_speciality,
+            'address' => $partner?->address,
+            'city' => $partner?->city ?? $communeLabel,
+            'commune_id' => $partner?->commune_id,
+            'commune_code' => $partner?->commune?->code,
+            'commune' => $communeLabel,
+            'wilaya_code' => $partner?->wilaya_code,
+            'wilaya' => $wilayaName,
+            'wilaya_name' => $wilayaName,
+            'location' => $locationLabel,
+            'lat' => $lat,
+            'lng' => $lng,
+            'image_url' => $imageUrl,
+            'avatar' => $imageUrl,
+            'profile_pic' => $imageUrl,
         ];
 
         return response()->json([
@@ -442,7 +476,7 @@ class BookingController extends Controller
         $patientId = $user && $user->patient ? $user->patient->id : null;
 
         $booking = Booking::with([
-            'partner' => ['user', 'speciality', 'profession', 'centerCatalog', 'wilaya'],
+            'partner' => ['user', 'speciality', 'profession', 'wilaya', 'commune'],
             'service.serviceCatalog',
             'status',
         ])->find($id);
@@ -481,8 +515,7 @@ class BookingController extends Controller
                 ->where('day_of_week', $carbonDate->dayOfWeek)
                 ->first();
             if ($schedule) {
-                $booking->schedule_id = $schedule->id;
-                $booking->schedule_type = PartnerSchedule::class;
+                $booking->partner_schedule_id = $schedule->id;
             }
         }
 
@@ -502,7 +535,7 @@ class BookingController extends Controller
         $booking->save();
 
         $booking->load([
-            'partner' => ['user', 'speciality', 'profession', 'centerCatalog', 'wilaya'],
+            'partner' => ['user', 'speciality', 'profession', 'wilaya', 'commune'],
             'service.serviceCatalog',
             'status',
             'schedule',

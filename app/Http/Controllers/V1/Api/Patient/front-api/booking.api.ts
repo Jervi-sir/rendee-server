@@ -5,28 +5,67 @@ import { api } from '@/utils/auth';
  * ============================================================================
  * RENDEE PATIENT - BOOKINGS API CLIENT
  * ============================================================================
- * 
+ *
  * Provides typed access to patient appointment workflows:
  * - Listing past & upcoming bookings with pagination & status filters
  * - Viewing individual booking details & history logs
  * - Creating new appointment bookings
- * - Pre-filling booking attempts with doctor services & schedules
- * - Confirming rescheduled proposals
+ * - Pre-filling booking attempts with doctor services, schedules, profession & speciality
+ * - Updating/rescheduling pending appointments
+ * - Confirming partner-rescheduled proposals
  */
 
 // ─────────────────────────────────────────────
 // Types & Interfaces
 // ─────────────────────────────────────────────
 
-export interface BookingProviderSummary {
+export interface BookingProviderUserSummary {
     id: number;
     name: string;
+    full_name?: string | null;
+    email?: string | null;
+    phone_number?: string | null;
+    image_url?: string | null;
+}
+
+export interface BookingProviderSummary {
+    id: number;
+    user_id?: number | null;
+    name: string;
     title?: string;
+    profession?: string | null;
+    profession_name?: string | null;
+    profession_code?: string | null;
     speciality?: string | null;
+    specialty?: string | null;
+    speciality_code?: string | null;
+    custom_speciality?: string | null;
+    license_number?: string | null;
+    years_experience?: string | null;
+    bio?: string | null;
+    description?: string | null;
+    phone?: string | null;
+    phone_public?: string | null;
+    phone_number?: string | null;
     address?: string | null;
     city?: string | null;
-    phone?: string | null;
+    location?: string | null;
+    commune_id?: number | null;
+    commune_code?: string | null;
+    commune?: string | null;
+    wilaya_code?: string | null;
+    wilaya?: string | null;
+    wilaya_name?: string | null;
+    lat?: number | null;
+    lng?: number | null;
     image_url?: string | null;
+    avatar?: string | null;
+    profile_pic?: string | null;
+    is_available?: boolean;
+    emergency_24_7?: boolean;
+    is_on_duty?: boolean;
+    is_active?: boolean;
+    user?: BookingProviderUserSummary | null;
     [key: string]: any;
 }
 
@@ -103,6 +142,19 @@ export interface CreateBookingPayload {
     notes?: string;
 }
 
+export interface UpdateBookingPayload {
+    /** New date string in YYYY-MM-DD format */
+    booking_date?: string;
+    /** Alias for booking_date */
+    date?: string;
+    /** New time string (e.g. "14:00") */
+    booking_time?: string;
+    /** Alias for booking_time */
+    time?: string;
+    /** Updated notes */
+    notes?: string;
+}
+
 export interface GetBookingsParams {
     /** Page number (default: 1) */
     page?: number;
@@ -124,6 +176,12 @@ export interface GetBookingResponse {
 }
 
 export interface CreateBookingResponse {
+    success: boolean;
+    message: string;
+    booking: PatientBookingDetailed;
+}
+
+export interface UpdateBookingResponse {
     success: boolean;
     message: string;
     booking: PatientBookingDetailed;
@@ -151,6 +209,34 @@ export interface AttemptBookingScheduleItem {
     is_active: boolean;
 }
 
+export interface AttemptBookingBookable {
+    id: number;
+    name: string;
+    partner_type: string;
+    is_center: boolean;
+    title?: string;
+    profession?: string | null;
+    profession_code?: string | null;
+    specialty?: string | null;
+    speciality?: string | null;
+    speciality_code?: string | null;
+    custom_speciality?: string | null;
+    address?: string | null;
+    city?: string | null;
+    location?: string | null;
+    commune_id?: number | null;
+    commune_code?: string | null;
+    commune?: string | null;
+    wilaya_code?: string | null;
+    wilaya?: string | null;
+    wilaya_name?: string | null;
+    lat?: number | null;
+    lng?: number | null;
+    image_url?: string | null;
+    avatar?: string | null;
+    profile_pic?: string | null;
+}
+
 export interface AttemptBookingResponse {
     success: boolean;
     patient_info: {
@@ -161,12 +247,7 @@ export interface AttemptBookingResponse {
         phone: string;
         phone_number: string;
     };
-    bookable: {
-        id: number;
-        name: string;
-        partner_type: string;
-        is_center: boolean;
-    };
+    bookable: AttemptBookingBookable;
     services: AttemptBookingServiceItem[];
     schedules: AttemptBookingScheduleItem[];
 }
@@ -206,7 +287,7 @@ export async function getBookings(
  * @example
  * ```ts
  * const { booking } = await getBooking(14);
- * console.log(booking.reference, booking.status_code);
+ * console.log(booking.reference, booking.provider?.profession, booking.provider?.speciality);
  * ```
  */
 export async function getBooking(
@@ -247,13 +328,39 @@ export async function createBooking(
 }
 
 /**
- * Fetch pre-filled booking options (patient info, partner services, schedules).
+ * Update date/time or notes for a pending appointment.
+ *
+ * **HTTP Route:** `PUT /api/v1/patient/bookings/{id}`
+ *
+ * @example
+ * ```ts
+ * const result = await updateBooking(14, {
+ *   booking_date: '2026-08-27',
+ *   booking_time: '11:00',
+ *   notes: 'Mis à jour de l’heure',
+ * });
+ * ```
+ */
+export async function updateBooking(
+    id: number | string,
+    payload: UpdateBookingPayload,
+): Promise<UpdateBookingResponse> {
+    const response = await api.put<UpdateBookingResponse>(
+        `/patient/bookings/${id}`,
+        payload,
+    );
+    return response.data;
+}
+
+/**
+ * Fetch pre-filled booking options (patient info, bookable details with profession/speciality, partner services, schedules).
  *
  * **HTTP Route:** `GET /api/v1/patient/bookings/attempt?partner_id={id}`
  *
  * @example
  * ```ts
  * const attemptData = await attemptBooking(4);
+ * console.log(attemptData.bookable.profession, attemptData.bookable.speciality);
  * console.log(attemptData.services, attemptData.schedules);
  * ```
  */

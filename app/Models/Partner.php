@@ -69,7 +69,7 @@ class Partner extends Model
 
     public function getDisplaySpecialityAttribute(): ?string
     {
-        return $this->speciality?->en ?? $this->custom_speciality;
+        return $this->speciality?->ar ?? $this->speciality?->fr ?? $this->speciality?->en ?? $this->custom_speciality;
     }
 
     public function wilaya(): BelongsTo
@@ -122,15 +122,23 @@ class Partner extends Model
         $lat = $this->lat ? (float) $this->lat : ($this->wilaya?->lat ?? null);
         $lng = $this->lng ? (float) $this->lng : ($this->wilaya?->lng ?? null);
 
+        $imageUrl = $this->user?->image_url ? (str_starts_with($this->user->image_url, 'http') ? $this->user->image_url : url($this->user->image_url)) : null;
+
         $data = [
             'id' => $this->id,
             'user_id' => $this->user_id,
             'name' => $displayName,
             'title' => $professionName ?? 'طبيب',
             'specialty' => $specialtyName,
+            'speciality' => $specialtyName,
+            'profession' => $professionName,
+            'profession_name' => $professionName,
             'profession_code' => $this->profession_code,
             'speciality_code' => $this->speciality_code,
             'custom_speciality' => $this->custom_speciality,
+            'image_url' => $imageUrl,
+            'avatar' => $imageUrl,
+            'profile_pic' => $imageUrl,
             'license_number' => $this->license_number,
             'years_experience' => $this->years_experience,
             'bio' => $this->bio,
@@ -159,7 +167,7 @@ class Partner extends Model
                 'full_name' => $this->user->full_name,
                 'email' => $this->user->email,
                 'phone_number' => $this->user->phone_number,
-                'image_url' => $this->user->image_url,
+                'image_url' => $imageUrl,
             ] : null,
         ];
 
