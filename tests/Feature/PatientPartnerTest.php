@@ -1,11 +1,14 @@
 <?php
 
+use App\Models\Commune;
 use App\Models\ContactPlatform;
 use App\Models\Partner;
 use App\Models\Profession;
 use App\Models\Speciality;
 use App\Models\User;
 use App\Models\UserContact;
+use App\Models\UserRole;
+use App\Models\Wilaya;
 
 test('patient can view partner details with profile image', function () {
     $user = User::factory()->create([
@@ -147,4 +150,101 @@ test('returns 404 if partner not found', function () {
     $response = $this->getJson(route('api.v1.patient.partners.show', 99999));
 
     $response->assertNotFound();
+});
+
+test('patient onboarding updates profile with commune_code successfully', function () {
+    UserRole::firstOrCreate(['code' => 'patient'], ['en' => 'Patient']);
+    $wilaya = Wilaya::firstOrCreate(['code' => '01'], ['en' => 'Adrar', 'ar' => 'أدرار']);
+    $commune = Commune::firstOrCreate(
+        ['code' => '1087'],
+        ['wilaya_code' => '01', 'ar' => 'أولاد أحمد تيمي', 'en' => 'Ouled Ahmed Timmi']
+    );
+
+    $user = User::factory()->create([
+        'user_role_code' => 'patient',
+    ]);
+
+    $response = $this->actingAs($user)->postJson(route('api.v1.patient.onboarding.update'), [
+        'date_of_birth' => '1998-06-08',
+        'gender' => 'male',
+        'wilaya_code' => '01',
+        'commune_code' => '1087',
+        'address' => 'Test Address',
+        'blood_type' => 'O+',
+    ]);
+
+    $response->assertOk()
+        ->assertJson([
+            'success' => true,
+            'is_completed' => true,
+        ]);
+
+    $patient = $user->fresh()->patient;
+    expect($patient)->not->toBeNull()
+        ->and($patient->commune_id)->toBe($commune->id)
+        ->and($patient->commune_code)->toBe('1087')
+        ->and($patient->wilaya_code)->toBe('01');
+});
+
+test('patient profile update handles commune_code successfully', function () {
+    UserRole::firstOrCreate(['code' => 'patient'], ['en' => 'Patient']);
+    $wilaya = Wilaya::firstOrCreate(['code' => '01'], ['en' => 'Adrar', 'ar' => 'أدرار']);
+    $commune = Commune::firstOrCreate(
+        ['code' => '1087'],
+        ['wilaya_code' => '01', 'ar' => 'أولاد أحمد تيمي', 'en' => 'Ouled Ahmed Timmi']
+    );
+
+    $user = User::factory()->create([
+        'user_role_code' => 'patient',
+    ]);
+
+    $response = $this->actingAs($user)->putJson(route('api.v1.patient.profile.update'), [
+        'full_name' => 'Test Patient',
+        'date_of_birth' => '1998-06-08',
+        'gender' => 'male',
+        'wilaya_code' => '01',
+        'commune_code' => '1087',
+        'address' => 'Updated Address',
+        'blood_type' => 'A+',
+    ]);
+
+    $response->assertOk()
+        ->assertJson([
+            'message' => 'Profile updated successfully.',
+        ]);
+
+    $patient = $user->fresh()->patient;
+    expect($patient)->not->toBeNull()
+        ->and($patient->commune_id)->toBe($commune->id)
+        ->and($patient->commune_code)->toBe('1087');
+});
+
+test('partner can load dashboard without errors', function () {
+    UserRole::firstOrCreate(['code' => 'doctor'], ['en' => 'Doctor']);
+    Profession::firstOrCreate(['code' => 'doctor'], ['en' => 'Doctor', 'ar' => 'طبيب', 'hex' => '#0ea5e9']);
+    Speciality::firstOrCreate(['code' => 'general'], ['en' => 'General', 'ar' => 'عام', 'profession_code' => 'doctor']);
+
+    $user = User::factory()->create([
+        'user_role_code' => 'doctor',
+    ]);
+
+    $partner = Partner::create([
+        'user_id' => $user->id,
+        'name' => 'Dr. Dashboard Test',
+        'profession_code' => 'doctor',
+        'speciality_code' => 'general',
+        'is_active' => true,
+    ]);
+
+    $response = $this->actingAs($user)->getJson('/api/v1/partner/dashboard');
+
+    $response->assertOk()
+        ->assertJsonStructure([
+            'header' => ['partner_name', 'professional_name', 'speciality', 'date_label'],
+            'stats' => ['pending', 'in_progress', 'confirmed', 'completed', 'today_appointments', 'completed_today', 'total_completed', 'pending_requests'],
+            'stats_list',
+            'appointments',
+            'current_page',
+            'total',
+        ]);
 });

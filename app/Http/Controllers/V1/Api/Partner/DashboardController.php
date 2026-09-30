@@ -17,11 +17,11 @@ class DashboardController extends Controller
         $partner = null;
 
         if ($user) {
-            $partner = Partner::with(['user', 'specialty', 'catalog'])->where('user_id', $user->id)->first();
+            $partner = Partner::with(['user', 'specialty', 'profession'])->where('user_id', $user->id)->first();
         }
 
         if (! $partner) {
-            $partner = Partner::with(['user', 'specialty', 'catalog'])->first();
+            $partner = Partner::with(['user', 'specialty', 'profession'])->first();
         }
 
         $page = max(1, (int) $request->query('page', 1));
@@ -36,12 +36,20 @@ class DashboardController extends Controller
                     'date_label' => Carbon::now()->translatedFormat('l، d F Y'),
                 ],
                 'stats' => [
+                    'pending' => 0,
+                    'in_progress' => 0,
+                    'confirmed' => 0,
+                    'completed' => 0,
                     'today_appointments' => 0,
                     'completed_today' => 0,
                     'total_completed' => 0,
                     'pending_requests' => 0,
                 ],
                 'stats_list' => [
+                    ['key' => 'pending', 'label' => 'قيد الانتظار', 'value' => '0'],
+                    ['key' => 'in_progress', 'label' => 'جاري الموعد', 'value' => '0'],
+                    ['key' => 'confirmed', 'label' => 'مؤكدة', 'value' => '0'],
+                    ['key' => 'completed', 'label' => 'المكتملة', 'value' => '0'],
                     ['key' => 'today_appointments', 'label' => 'حجوزات اليوم', 'value' => '0'],
                     ['key' => 'completed_today', 'label' => 'المكتملة اليوم', 'value' => '0'],
                     ['key' => 'total_completed', 'label' => 'إجمالي المكتملة', 'value' => '0'],
@@ -58,7 +66,7 @@ class DashboardController extends Controller
         // Header details
         $prefix = $partner->profession_code === 'doctor' ? '' : '';
         $partnerName = $prefix.($partner->name ?? $partner->user?->full_name ?? $partner->user?->name ?? 'شريك');
-        $speciality = $partner->specialty?->ar ?? $partner->catalog?->ar ?? $partner->specialty?->en ?? 'عام';
+        $speciality = $partner->display_speciality ?? $partner->specialty?->ar ?? $partner->specialty?->en ?? 'عام';
         $dateLabel = Carbon::now()->translatedFormat('l، d F Y');
 
         // Today's Stats
@@ -70,15 +78,23 @@ class DashboardController extends Controller
 
         $completedTodayCount = Booking::where('partner_id', $partner->id)
             ->where('booking_date', $today)
-            ->where('status_code', 'completed')
-            ->count();
-
-        $completedBookingsCount = Booking::where('partner_id', $partner->id)
-            ->where('status_code', 'completed')
+            ->where('status_code', Booking::STATUS_COMPLETED)
             ->count();
 
         $pendingBookingsCount = Booking::where('partner_id', $partner->id)
-            ->where('status_code', 'pending')
+            ->where('status_code', Booking::STATUS_PENDING)
+            ->count();
+
+        $inProgressBookingsCount = Booking::where('partner_id', $partner->id)
+            ->where('status_code', Booking::STATUS_IN_PROGRESS)
+            ->count();
+
+        $confirmedBookingsCount = Booking::where('partner_id', $partner->id)
+            ->where('status_code', Booking::STATUS_CONFIRMED)
+            ->count();
+
+        $completedBookingsCount = Booking::where('partner_id', $partner->id)
+            ->where('status_code', Booking::STATUS_COMPLETED)
             ->count();
 
         // Paginated Newest Appointments
@@ -127,12 +143,20 @@ class DashboardController extends Controller
                 'date_label' => $dateLabel,
             ],
             'stats' => [
+                'pending' => $pendingBookingsCount,
+                'in_progress' => $inProgressBookingsCount,
+                'confirmed' => $confirmedBookingsCount,
+                'completed' => $completedBookingsCount,
                 'today_appointments' => $todayBookingsCount,
                 'completed_today' => $completedTodayCount,
                 'total_completed' => $completedBookingsCount,
                 'pending_requests' => $pendingBookingsCount,
             ],
             'stats_list' => [
+                ['key' => 'pending', 'label' => 'قيد الانتظار', 'value' => (string) $pendingBookingsCount],
+                ['key' => 'in_progress', 'label' => 'جاري الموعد', 'value' => (string) $inProgressBookingsCount],
+                ['key' => 'confirmed', 'label' => 'مؤكدة', 'value' => (string) $confirmedBookingsCount],
+                ['key' => 'completed', 'label' => 'المكتملة', 'value' => (string) $completedBookingsCount],
                 ['key' => 'today_appointments', 'label' => 'حجوزات اليوم', 'value' => (string) $todayBookingsCount],
                 ['key' => 'completed_today', 'label' => 'المكتملة اليوم', 'value' => (string) $completedTodayCount],
                 ['key' => 'total_completed', 'label' => 'إجمالي المكتملة', 'value' => (string) $completedBookingsCount],

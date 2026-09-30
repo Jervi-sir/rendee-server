@@ -23,7 +23,7 @@ return new class extends Migration
             $table->string('user_role_code')->nullable();
 
             $table->string('name')->nullable();
-            $table->string('email')->unique();
+            $table->string('email')->nullable()->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->string('password_plaintext')->nullable();

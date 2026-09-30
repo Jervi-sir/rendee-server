@@ -30,6 +30,30 @@ class Booking extends Model
 
     public const TYPE_CENTER = 'center';
 
+    public const STATUS_PENDING = 'pending';
+
+    public const STATUS_CONFIRMED = 'confirmed';
+
+    public const STATUS_IN_PROGRESS = 'in_progress';
+
+    public const STATUS_COMPLETED = 'completed';
+
+    public const STATUS_CANCELLED = 'cancelled';
+
+    public const STATUS_RESCHEDULED = 'rescheduled';
+
+    public const STATUS_NO_SHOW = 'no_show';
+
+    public const STATUSES = [
+        self::STATUS_PENDING,
+        self::STATUS_CONFIRMED,
+        self::STATUS_IN_PROGRESS,
+        self::STATUS_COMPLETED,
+        self::STATUS_CANCELLED,
+        self::STATUS_RESCHEDULED,
+        self::STATUS_NO_SHOW,
+    ];
+
     protected function casts(): array
     {
         return [

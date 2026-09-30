@@ -137,6 +137,7 @@ class ProfileController extends Controller
             'address' => ['nullable', 'string', 'max:255'],
             'wilaya_code' => ['nullable', 'string', 'exists:wilayas,code'],
             'commune_code' => ['nullable', 'string', 'exists:communes,code'],
+            'commune_id' => ['nullable', 'integer', 'exists:communes,id'],
             'city' => ['nullable', 'string', 'max:255'],
             'medical_notes' => ['nullable', 'string'],
             'blood_type' => ['nullable', 'string', 'max:10'],
@@ -212,13 +213,15 @@ class ProfileController extends Controller
             $patient->wilaya_code = $validated['wilaya_code'];
         }
         if (array_key_exists('commune_code', $validated)) {
-            $patient->commune_code = $validated['commune_code'];
-            if (empty($validated['city']) && ! empty($validated['commune_code'])) {
-                $communeObj = Commune::where('code', $validated['commune_code'])->first();
-                if ($communeObj) {
-                    $patient->city = $communeObj->ar ?? $communeObj->fr ?? $communeObj->en ?? $patient->city;
-                }
+            $communeObj = ! empty($validated['commune_code'])
+                ? Commune::where('code', $validated['commune_code'])->first()
+                : null;
+            $patient->commune_id = $communeObj?->id;
+            if (empty($validated['city']) && $communeObj) {
+                $patient->city = $communeObj->ar ?? $communeObj->fr ?? $communeObj->en ?? $patient->city;
             }
+        } elseif (array_key_exists('commune_id', $validated)) {
+            $patient->commune_id = $validated['commune_id'];
         }
         if (array_key_exists('city', $validated) && ! empty($validated['city'])) {
             $patient->city = $validated['city'];

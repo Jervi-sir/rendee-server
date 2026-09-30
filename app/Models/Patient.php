@@ -26,6 +26,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Patient extends Model
 {
     use SoftDeletes;
+
     /**
      * Get the attributes that should be cast.
      *
@@ -55,6 +56,11 @@ class Patient extends Model
     public function commune(): BelongsTo
     {
         return $this->belongsTo(Commune::class, 'commune_id');
+    }
+
+    public function getCommuneCodeAttribute(): ?string
+    {
+        return $this->commune?->code;
     }
 
     public function bookings(): HasMany
