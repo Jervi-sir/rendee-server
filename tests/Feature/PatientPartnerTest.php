@@ -241,7 +241,7 @@ test('partner can load dashboard without errors', function () {
     $response->assertOk()
         ->assertJsonStructure([
             'header' => ['partner_name', 'professional_name', 'speciality', 'date_label'],
-            'stats' => ['pending', 'in_progress', 'confirmed', 'completed', 'today_appointments', 'completed_today', 'total_completed', 'pending_requests'],
+            'stats' => ['pending', 'in_progress', 'confirmed', 'completed', 'cancelled', 'today_appointments', 'completed_today', 'total_completed', 'pending_requests'],
             'stats_list',
             'appointments',
             'current_page',

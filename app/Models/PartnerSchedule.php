@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Support\TimeHelper;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -29,6 +31,48 @@ class PartnerSchedule extends Model
             'morning_is_active' => 'boolean',
             'evening_is_active' => 'boolean',
         ];
+    }
+
+    protected function startTime(): Attribute
+    {
+        return Attribute::make(
+            set: fn (?string $value) => TimeHelper::normalize($value),
+        );
+    }
+
+    protected function endTime(): Attribute
+    {
+        return Attribute::make(
+            set: fn (?string $value) => TimeHelper::normalize($value),
+        );
+    }
+
+    protected function morningStartTime(): Attribute
+    {
+        return Attribute::make(
+            set: fn (?string $value) => TimeHelper::normalize($value),
+        );
+    }
+
+    protected function morningEndTime(): Attribute
+    {
+        return Attribute::make(
+            set: fn (?string $value) => TimeHelper::normalize($value),
+        );
+    }
+
+    protected function eveningStartTime(): Attribute
+    {
+        return Attribute::make(
+            set: fn (?string $value) => TimeHelper::normalize($value),
+        );
+    }
+
+    protected function eveningEndTime(): Attribute
+    {
+        return Attribute::make(
+            set: fn (?string $value) => TimeHelper::normalize($value),
+        );
     }
 
     public function partner(): BelongsTo

@@ -31,7 +31,7 @@ return new class extends Migration
             $table->boolean('has_pending_proposal')->default(false);
             $table->text('notes')->nullable();
             $table->timestamps();
-            
+
             $table->foreign('status_code')->references('code')->on('statuses')->nullOnDelete();
         });
         Schema::create('booking_histories', function (Blueprint $table) {

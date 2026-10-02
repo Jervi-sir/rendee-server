@@ -40,6 +40,7 @@ class DashboardController extends Controller
                     'in_progress' => 0,
                     'confirmed' => 0,
                     'completed' => 0,
+                    'cancelled' => 0,
                     'today_appointments' => 0,
                     'completed_today' => 0,
                     'total_completed' => 0,
@@ -50,6 +51,7 @@ class DashboardController extends Controller
                     ['key' => 'in_progress', 'label' => 'جاري الموعد', 'value' => '0'],
                     ['key' => 'confirmed', 'label' => 'مؤكدة', 'value' => '0'],
                     ['key' => 'completed', 'label' => 'المكتملة', 'value' => '0'],
+                    ['key' => 'cancelled', 'label' => 'الملغاة', 'value' => '0'],
                     ['key' => 'today_appointments', 'label' => 'حجوزات اليوم', 'value' => '0'],
                     ['key' => 'completed_today', 'label' => 'المكتملة اليوم', 'value' => '0'],
                     ['key' => 'total_completed', 'label' => 'إجمالي المكتملة', 'value' => '0'],
@@ -95,6 +97,10 @@ class DashboardController extends Controller
 
         $completedBookingsCount = Booking::where('partner_id', $partner->id)
             ->where('status_code', Booking::STATUS_COMPLETED)
+            ->count();
+
+        $cancelledBookingsCount = Booking::where('partner_id', $partner->id)
+            ->where('status_code', Booking::STATUS_CANCELLED)
             ->count();
 
         // Paginated Newest Appointments
@@ -147,6 +153,7 @@ class DashboardController extends Controller
                 'in_progress' => $inProgressBookingsCount,
                 'confirmed' => $confirmedBookingsCount,
                 'completed' => $completedBookingsCount,
+                'cancelled' => $cancelledBookingsCount,
                 'today_appointments' => $todayBookingsCount,
                 'completed_today' => $completedTodayCount,
                 'total_completed' => $completedBookingsCount,
@@ -157,6 +164,7 @@ class DashboardController extends Controller
                 ['key' => 'in_progress', 'label' => 'جاري الموعد', 'value' => (string) $inProgressBookingsCount],
                 ['key' => 'confirmed', 'label' => 'مؤكدة', 'value' => (string) $confirmedBookingsCount],
                 ['key' => 'completed', 'label' => 'المكتملة', 'value' => (string) $completedBookingsCount],
+                ['key' => 'cancelled', 'label' => 'الملغاة', 'value' => (string) $cancelledBookingsCount],
                 ['key' => 'today_appointments', 'label' => 'حجوزات اليوم', 'value' => (string) $todayBookingsCount],
                 ['key' => 'completed_today', 'label' => 'المكتملة اليوم', 'value' => (string) $completedTodayCount],
                 ['key' => 'total_completed', 'label' => 'إجمالي المكتملة', 'value' => (string) $completedBookingsCount],

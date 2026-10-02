@@ -53,7 +53,6 @@ return new class extends Migration
             $table->timestamps();
         });
 
-
         Schema::create('service_catalogs', function (Blueprint $table) {
             $table->string('code')->primary();
             $table->string('source')->nullable();

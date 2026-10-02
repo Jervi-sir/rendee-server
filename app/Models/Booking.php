@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Support\TimeHelper;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -64,6 +66,20 @@ class Booking extends Model
             'is_center' => 'boolean',
             'has_pending_proposal' => 'boolean',
         ];
+    }
+
+    protected function bookingTime(): Attribute
+    {
+        return Attribute::make(
+            set: fn (?string $value) => TimeHelper::normalize($value),
+        );
+    }
+
+    protected function proposedTime(): Attribute
+    {
+        return Attribute::make(
+            set: fn (?string $value) => TimeHelper::normalize($value),
+        );
     }
 
     public function patient(): BelongsTo

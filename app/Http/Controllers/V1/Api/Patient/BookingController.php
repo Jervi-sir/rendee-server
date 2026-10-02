@@ -8,6 +8,7 @@ use App\Models\Partner;
 use App\Models\PartnerSchedule;
 use App\Models\Patient;
 use App\Models\User;
+use App\Support\TimeHelper;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -238,7 +239,7 @@ class BookingController extends Controller
             'patient_id' => $patientId,
             'partner_id' => $partnerId,
             'booking_date' => $date,
-            'booking_time' => $validated['time'],
+            'booking_time' => TimeHelper::normalize($validated['time']) ?? $validated['time'],
             'patient_name' => $validated['patient_name'],
             'patient_phone' => $validated['patient_phone'],
             'status_code' => 'pending',
@@ -520,7 +521,7 @@ class BookingController extends Controller
         }
 
         if ($newTime) {
-            $booking->booking_time = $newTime;
+            $booking->booking_time = TimeHelper::normalize($newTime) ?? $newTime;
         }
 
         if (array_key_exists('notes', $validated)) {

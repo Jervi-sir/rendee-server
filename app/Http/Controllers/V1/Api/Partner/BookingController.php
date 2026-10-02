@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\BookingHistory;
 use App\Models\Partner;
+use App\Support\TimeHelper;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -254,15 +255,16 @@ class BookingController extends Controller
             return response()->json(['error' => 'Booking not found'], 404);
         }
 
+        $normalizedProposedTime = TimeHelper::normalize($validated['proposed_time']) ?? $validated['proposed_time'];
         $booking->proposed_date = $validated['proposed_date'];
-        $booking->proposed_time = $validated['proposed_time'];
+        $booking->proposed_time = $normalizedProposedTime;
         $booking->has_pending_proposal = true;
         $booking->save();
 
         BookingHistory::create([
             'booking_id' => $booking->id,
             'status_code' => $booking->status_code,
-            'notes' => 'Reschedule suggested by partner: '.$validated['proposed_date'].' '.$validated['proposed_time'],
+            'notes' => 'Reschedule suggested by partner: '.$validated['proposed_date'].' '.$normalizedProposedTime,
             'changed_by' => $user?->id,
         ]);
 

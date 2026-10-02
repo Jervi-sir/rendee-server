@@ -16,6 +16,7 @@ export interface ProfessionalStats {
   in_progress: number;
   confirmed: number;
   completed: number;
+  cancelled: number;
   today_appointments: number;
   completed_today: number;
   total_completed: number;

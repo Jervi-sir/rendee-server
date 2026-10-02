@@ -14,7 +14,7 @@ class AppVersionTest extends TestCase
         config()->set('mobile.android.latest_version', '1.0.0');
         config()->set('mobile.android.store_url', 'https://play.google.com/store/apps/details?id=com.rendee.app');
 
-        $controller = new AppVersionController();
+        $controller = new AppVersionController;
         $request = Request::create('/api/v1/app/version-check', 'GET', [
             'platform' => 'android',
             'version' => '1.0.0',
@@ -34,7 +34,7 @@ class AppVersionTest extends TestCase
         config()->set('mobile.android.latest_version', '1.2.0');
         config()->set('mobile.android.store_url', 'https://play.google.com/store/apps/details?id=com.rendee.app');
 
-        $controller = new AppVersionController();
+        $controller = new AppVersionController;
         $request = Request::create('/api/v1/app/version-check', 'GET', [
             'platform' => 'android',
             'version' => '1.0.0',
@@ -54,7 +54,7 @@ class AppVersionTest extends TestCase
         config()->set('mobile.android.min_version', '1.0.0');
         config()->set('mobile.android.latest_version', '1.2.0');
 
-        $controller = new AppVersionController();
+        $controller = new AppVersionController;
         $request = Request::create('/api/v1/app/version-check', 'GET', [
             'platform' => 'android',
             'version' => '1.1.0',

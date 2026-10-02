@@ -69,7 +69,7 @@ test('patient can book an appointment successfully with partner_service_id', fun
                 'patient_name' => 'Jervi Doe',
                 'patient_phone' => '0555001122',
                 'booking_date' => '2026-09-13',
-                'booking_time' => '09:00',
+                'booking_time' => '09:00:00',
                 'status_code' => 'pending',
                 'service' => [
                     'id' => $service->id,
@@ -87,7 +87,7 @@ test('patient can book an appointment successfully with partner_service_id', fun
         'patient_name' => 'Jervi Doe',
         'patient_phone' => '0555001122',
         'booking_date' => '2026-09-13',
-        'booking_time' => '09:00',
+        'booking_time' => '09:00:00',
         'status_code' => 'pending',
     ]);
 
@@ -178,7 +178,7 @@ test('patient can update pending booking date and time', function () {
     $this->assertDatabaseHas('bookings', [
         'id' => $booking->id,
         'booking_date' => '2026-09-15',
-        'booking_time' => '14:00',
+        'booking_time' => '14:00:00',
         'notes' => 'Changed time',
     ]);
 });
@@ -262,4 +262,41 @@ test('attempt booking returns partner profession, speciality, and location', fun
                 'address' => '12 Rue des Pins',
             ],
         ]);
+});
+
+test('patient can book an appointment with Arabic localized time string', function () {
+    $doctorUser = User::factory()->create(['user_role_code' => 'doctor']);
+    $partner = Partner::create([
+        'user_id' => $doctorUser->id,
+        'name' => 'Dr. Karim Amrani',
+        'is_active' => true,
+    ]);
+
+    $patientUser = User::factory()->create(['user_role_code' => 'patient']);
+    $patient = Patient::create(['user_id' => $patientUser->id]);
+
+    $payload = [
+        'partner_id' => $partner->id,
+        'date' => '2026-09-13',
+        'time' => 'مساءً 02:00',
+        'patient_name' => 'Ahmed Benali',
+        'patient_phone' => '0550082343',
+        'notes' => 'Test Arabic time',
+    ];
+
+    $response = $this->actingAs($patientUser)
+        ->postJson(route('api.v1.patient.bookings.store'), $payload);
+
+    $response->assertCreated()
+        ->assertJson([
+            'success' => true,
+        ]);
+
+    $this->assertDatabaseHas('bookings', [
+        'partner_id' => $partner->id,
+        'patient_id' => $patient->id,
+        'booking_date' => '2026-09-13',
+        'booking_time' => '14:00:00',
+        'patient_name' => 'Ahmed Benali',
+    ]);
 });
