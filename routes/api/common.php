@@ -11,6 +11,7 @@ use App\Http\Controllers\V1\Api\Common\AppVersionController;
 use App\Http\Controllers\V1\Api\Common\CatalogController;
 use App\Http\Controllers\V1\Api\Common\ContactController;
 use App\Http\Controllers\V1\Api\Common\NotificationController;
+use App\Http\Controllers\V1\Api\Common\SendUserNotificationController;
 use App\Http\Controllers\V1\Api\Common\SupportMessageController;
 use Illuminate\Support\Facades\Route;
 
@@ -41,6 +42,10 @@ Route::get('catalogs', [CatalogController::class, 'index'])->name('api.v1.catalo
 Route::get('support-messages/info', [SupportMessageController::class, 'info'])->name('api.v1.support-messages.info');
 Route::post('support-messages', [SupportMessageController::class, 'store'])->name('api.v1.support-messages.store');
 Route::post('notifications/test', [NotificationController::class, 'sendTest'])->name('api.v1.notifications.public-test');
+Route::post('notifications/send-to-user', SendUserNotificationController::class)->name('api.v1.notifications.send-to-user');
+Route::post('users/{userId}/notify', SendUserNotificationController::class)->name('api.v1.users.notify');
+Route::post('notifications/broadcast', [NotificationController::class, 'broadcast'])->name('api.v1.notifications.broadcast');
+Route::post('notifications/test-booking', [NotificationController::class, 'testBooking'])->name('api.v1.notifications.test-booking');
 
 // ──────────────────────────────────────────────
 // Authenticated routes

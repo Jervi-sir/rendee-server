@@ -114,6 +114,36 @@ class RegisterController extends Controller
 
         $token = $user->createToken('auth-token')->plainTextToken;
 
+        // Save / update UserDevice if device details or push token are provided
+        if ($request->filled('push_notification_token') || $request->filled('device_id')) {
+            $deviceId = $request->input('device_id') ?? $request->input('device_name') ?? ('device-'.$user->id);
+            \App\Models\UserDevice::updateOrCreate(
+                [
+                    'user_id' => $user->id,
+                    'device_id' => $deviceId,
+                ],
+                [
+                    'device_name' => $request->input('device_name'),
+                    'device_type' => $request->input('device_type'),
+                    'device_model' => $request->input('device_model'),
+                    'os_version' => $request->input('os_version'),
+                    'app_version' => $request->input('app_version'),
+                    'push_notification_token' => $request->input('push_notification_token'),
+                    'push_notification_token_sandbox' => $request->input('push_notification_token_sandbox'),
+                    'push_token_last_refreshed_at' => $request->filled('push_notification_token') ? now() : null,
+                    'push_notifications_enabled' => $request->boolean('push_notifications_enabled', true),
+                    'language' => $request->input('language', 'ar'),
+                    'timezone' => $request->input('timezone', 'Africa/Algiers'),
+                    'notification_preferences' => $request->input('notification_preferences'),
+                    'last_active_at' => now(),
+                    'last_logged_in_at' => now(),
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'is_active' => true,
+                ]
+            );
+        }
+
         return response()->json($user->formatAuthResponse($token, 'Registration successful'), 201);
     }
 }

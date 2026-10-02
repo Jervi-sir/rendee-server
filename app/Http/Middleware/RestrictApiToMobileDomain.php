@@ -25,8 +25,8 @@ class RestrictApiToMobileDomain
         $host = $request->header('host', $request->getHost());
         $host = explode(':', (string) $host)[0];
 
-        // Allow local dev/testing on default test hosts (localhost/127.0.0.1)
-        if (app()->environment('local', 'testing') && in_array($host, ['localhost', '127.0.0.1'], true)) {
+        // Allow local dev/testing on any host or LAN IP
+        if (app()->environment('local', 'testing')) {
             return $next($request);
         }
 

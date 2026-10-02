@@ -3,15 +3,21 @@
 namespace App\Http\Controllers\V1\Api\Common;
 
 use App\Http\Controllers\Controller;
+use App\Models\Booking;
 use App\Models\Notification;
 use App\Models\User;
-use App\Models\UserDevice;
+use App\Services\Notification\BookingNotificationService;
+use App\Services\Notification\PushNotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 
 class NotificationController extends Controller
 {
+    public function __construct(
+        protected PushNotificationService $pushService,
+        protected BookingNotificationService $bookingNotificationService
+    ) {}
+
     /**
      * Get list of notifications for the authenticated user.
      */
@@ -83,8 +89,7 @@ class NotificationController extends Controller
     }
 
     /**
-     * Send a test push notification without requiring auth:
-     * - Requires only `user_id` (or fallback to `push_token`)
+     * Send a test push notification (either by user_id or direct push_token).
      *
      * POST /api/v1/notifications/test
      */
@@ -108,89 +113,103 @@ class NotificationController extends Controller
 
         // 1. Direct Push Token option
         if (! empty($validated['push_token'])) {
-            $messages = [
-                [
-                    'to' => $validated['push_token'],
-                    'sound' => 'default',
-                    'title' => $title,
-                    'body' => $body,
-                    'data' => $data,
-                    'channelId' => 'default',
-                    'priority' => 'high',
-                ],
-            ];
-
-            $response = Http::withHeaders([
-                'Accept' => 'application/json',
-                'Accept-Encoding' => 'gzip, deflate',
-                'Content-Type' => 'application/json',
-            ])->post('https://exp.host/--/api/v2/push/send', $messages);
+            $result = $this->pushService->sendToTokens(
+                tokens: [$validated['push_token']],
+                title: $title,
+                body: $body,
+                data: $data
+            );
 
             return response()->json([
-                'success' => true,
+                'success' => $result['success'] ?? false,
                 'mode' => 'direct_token',
                 'target_token' => $validated['push_token'],
                 'message' => 'Test notification dispatched to provided token.',
-                'expo_response' => $response->json(),
+                'result' => $result,
             ]);
         }
 
-        // 2. Direct user_id option (no authentication required)
+        // 2. Direct user_id option
         $targetUserId = (int) $validated['user_id'];
+        $result = $this->pushService->sendToUser(
+            user: $targetUserId,
+            title: $title,
+            body: $body,
+            data: $data,
+            type: 'test'
+        );
 
-        $devices = UserDevice::where('user_id', $targetUserId)
-            ->whereNotNull('push_notification_token')
-            ->where('push_notifications_enabled', true)
-            ->where('is_active', true)
-            ->get();
+        return response()->json([
+            'success' => $result['success'] ?? false,
+            'message' => $result['success'] ? 'Test notification sent successfully.' : 'Push notification dispatch failed.',
+            'details' => $result,
+        ], $result['success'] ? 200 : 400);
+    }
 
-        if ($devices->isEmpty()) {
-            return response()->json([
-                'success' => false,
-                'message' => "No active devices with registered push tokens found for user ID: {$targetUserId}.",
-                'user_id' => $targetUserId,
-                'tip' => 'Make sure the user has logged in and allowed notifications in the app.',
-            ], 404);
-        }
-
-        $messages = [];
-        foreach ($devices as $device) {
-            $messages[] = [
-                'to' => $device->push_notification_token,
-                'sound' => 'default',
-                'title' => $title,
-                'body' => $body,
-                'data' => $data,
-                'channelId' => 'default',
-                'priority' => 'high',
-            ];
-        }
-
-        // Send via Expo Push API
-        $response = Http::withHeaders([
-            'Accept' => 'application/json',
-            'Accept-Encoding' => 'gzip, deflate',
-            'Content-Type' => 'application/json',
-        ])->post('https://exp.host/--/api/v2/push/send', $messages);
-
-        // Record notification in DB
-        $notification = Notification::create([
-            'user_id' => $targetUserId,
-            'title' => $title,
-            'body' => $body,
-            'type' => 'test',
-            'data' => $data,
-            'is_read' => false,
+    /**
+     * Broadcast notification to a specific topic or user role.
+     *
+     * POST /api/v1/notifications/broadcast
+     */
+    public function broadcast(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'topic' => ['nullable', 'string', 'max:100'],
+            'role' => ['nullable', 'string', 'in:patient,partner'],
+            'title' => ['required', 'string', 'max:255'],
+            'body' => ['required', 'string', 'max:500'],
+            'data' => ['nullable', 'array'],
         ]);
+
+        $topic = $validated['topic'] ?? 'general';
+        $role = $validated['role'] ?? null;
+        $data = $validated['data'] ?? [];
+
+        $result = $this->pushService->sendToTopic(
+            topic: $topic,
+            title: $validated['title'],
+            body: $validated['body'],
+            data: $data,
+            targetRole: $role
+        );
 
         return response()->json([
             'success' => true,
-            'message' => 'Test notification sent successfully.',
-            'target_user_id' => $targetUserId,
-            'devices_notified' => $devices->count(),
-            'tokens' => $devices->pluck('push_notification_token'),
-            'expo_response' => $response->json(),
-            'notification' => $notification,
+            'topic' => $topic,
+            'target_role' => $role,
+            'result' => $result,
+        ]);
+    }
+
+    /**
+     * Test a booking notification specifically for a booking ID.
+     *
+     * POST /api/v1/notifications/test-booking
+     */
+    public function testBooking(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'booking_id' => ['required', 'integer', 'exists:bookings,id'],
+            'event' => ['required', 'string', 'in:created,confirmed,cancelled,proposal,proposal_accepted,completed'],
+            'reason' => ['nullable', 'string'],
+        ]);
+
+        $booking = Booking::with(['patient.user', 'partner.user'])->findOrFail($validated['booking_id']);
+
+        $res = match ($validated['event']) {
+            'created' => $this->bookingNotificationService->notifyNewBookingCreated($booking),
+            'confirmed' => $this->bookingNotificationService->notifyBookingConfirmed($booking),
+            'cancelled' => $this->bookingNotificationService->notifyBookingCancelled($booking, reason: $validated['reason'] ?? 'Test cancellation', cancelledBy: 'partner'),
+            'proposal' => $this->bookingNotificationService->notifyProposalSent($booking),
+            'proposal_accepted' => $this->bookingNotificationService->notifyProposalConfirmed($booking),
+            'completed' => $this->bookingNotificationService->notifyBookingCompleted($booking),
+        };
+
+        return response()->json([
+            'success' => true,
+            'booking_id' => $booking->id,
+            'event' => $validated['event'],
+            'dispatch_result' => $res,
         ]);
     }
 }

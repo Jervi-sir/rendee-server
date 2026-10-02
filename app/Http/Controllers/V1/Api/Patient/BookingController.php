@@ -8,6 +8,7 @@ use App\Models\Partner;
 use App\Models\PartnerSchedule;
 use App\Models\Patient;
 use App\Models\User;
+use App\Services\Notification\BookingNotificationService;
 use App\Support\TimeHelper;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -16,6 +17,9 @@ use Illuminate\Support\Str;
 
 class BookingController extends Controller
 {
+    public function __construct(
+        protected BookingNotificationService $bookingNotificationService
+    ) {}
     /**
      * GET /api/v1/patient/bookings
      *
@@ -275,6 +279,15 @@ class BookingController extends Controller
             'status',
         ]);
 
+        try {
+            $this->bookingNotificationService->notifyNewBookingCreated($booking);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Failed to dispatch new booking notification', [
+                'booking_id' => $booking->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Appointment booked successfully.',
@@ -458,6 +471,15 @@ class BookingController extends Controller
         $booking->save();
 
         $booking->load(['partner.user', 'service', 'status']);
+
+        try {
+            $this->bookingNotificationService->notifyProposalConfirmed($booking);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Failed to dispatch proposal confirmed notification', [
+                'booking_id' => $booking->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return response()->json([
             'success' => true,

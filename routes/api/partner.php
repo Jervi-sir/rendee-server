@@ -105,5 +105,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('bookings/{id}', [BookingController::class, 'show'])->name('bookings.show');
         Route::put('bookings/{id}', [BookingController::class, 'update'])->name('bookings.update');
         Route::post('bookings/{id}/suggest', [BookingController::class, 'suggest'])->name('bookings.suggest');
+        Route::post('bookings/{id}/complete', [BookingController::class, 'complete'])->name('bookings.complete');
+        Route::post('bookings/{id}/cancel', [BookingController::class, 'cancel'])->name('bookings.cancel');
+        Route::post('bookings/{id}/follow-up', [BookingController::class, 'followUp'])->name('bookings.follow-up');
     });
 });

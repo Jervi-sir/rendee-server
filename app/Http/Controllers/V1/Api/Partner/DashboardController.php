@@ -106,7 +106,8 @@ class DashboardController extends Controller
         // Paginated Newest Appointments
         $paginator = Booking::with(['service.catalog', 'patient.user', 'status'])
             ->where('partner_id', $partner->id)
-            ->orderBy('updated_at', 'desc')
+            ->orderBy('booking_date', 'asc')
+            ->orderBy('booking_time', 'asc')
             ->paginate($perPage, ['*'], 'page', $page);
 
         $appointments = collect($paginator->items())->map(function ($booking) {
