@@ -13,6 +13,7 @@ use App\Http\Controllers\V1\Api\Common\ContactController;
 use App\Http\Controllers\V1\Api\Common\NotificationController;
 use App\Http\Controllers\V1\Api\Common\SendUserNotificationController;
 use App\Http\Controllers\V1\Api\Common\SupportMessageController;
+use App\Http\Controllers\V1\Api\TermsConditions\TermsConditionsController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -46,6 +47,16 @@ Route::post('notifications/send-to-user', SendUserNotificationController::class)
 Route::post('users/{userId}/notify', SendUserNotificationController::class)->name('api.v1.users.notify');
 Route::post('notifications/broadcast', [NotificationController::class, 'broadcast'])->name('api.v1.notifications.broadcast');
 Route::post('notifications/test-booking', [NotificationController::class, 'testBooking'])->name('api.v1.notifications.test-booking');
+
+// ──────────────────────────────────────────────
+// Terms & Conditions / Consents (Public)
+// ──────────────────────────────────────────────
+Route::prefix('terms')->group(function () {
+    Route::get('/', [TermsConditionsController::class, 'index'])->name('api.v1.terms.index');
+    Route::get('patient', [TermsConditionsController::class, 'patient'])->name('api.v1.terms.patient');
+    Route::get('partner', [TermsConditionsController::class, 'partner'])->name('api.v1.terms.partner');
+    Route::get('actions', [TermsConditionsController::class, 'actions'])->name('api.v1.terms.actions');
+});
 
 // ──────────────────────────────────────────────
 // Authenticated routes
